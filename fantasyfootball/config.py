@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import requests
 from os import path
+import numpy as np
 
 DATA_DIR = r'../data/raw'
 
@@ -133,7 +134,7 @@ def value_over_last_starter(my_df, my_dict, pos_list):
         pos_cutoff = my_dict.get(pos) * my_dict.get('team_n')
         tdf = my_df.loc[my_df['pos'] == pos.upper(), [f'{my_dict.get("name")}_custom_pts']]
         tdf = tdf.head(pos_cutoff)
-        replacement_value[pos.upper()] = float(pd.np.mean(tdf.tail(3)))
+        replacement_value[pos.upper()] = float(np.mean(tdf.tail(3)))
     return replacement_value
 
 def value_over_avg_starter(my_df, my_dict, pos_list):
@@ -145,7 +146,7 @@ def value_over_avg_starter(my_df, my_dict, pos_list):
         pos_cutoff = my_dict.get(pos) * my_dict.get('team_n')
         tdf = my_df.loc[my_df['pos'] == pos.upper(), [f'{my_dict.get("name")}_custom_pts']]
         tdf = tdf.head(pos_cutoff)
-        replacement_value[pos.upper()] = float(pd.np.mean(tdf))
+        replacement_value[pos.upper()] = float(np.mean(tdf))
     return replacement_value
 
 def value_over_replacement_player(my_df, my_dict, pos_list):
@@ -157,7 +158,7 @@ def value_over_replacement_player(my_df, my_dict, pos_list):
         draft_cutoff = my_dict.get('rounds') * my_dict.get('team_n')
         tdf = my_df.head(draft_cutoff)
         tdf = tdf.loc[my_df['pos'] == pos.upper(), [f'{my_dict.get("name")}_custom_pts']]
-        replacement_value[pos.upper()] = float(pd.np.mean(tdf.tail(3)))
+        replacement_value[pos.upper()] = float(np.mean(tdf.tail(3)))
     return replacement_value
 
 def value_through_n_picks(my_df, my_dict, pos_list, pick_n):
@@ -168,7 +169,7 @@ def value_through_n_picks(my_df, my_dict, pos_list, pick_n):
     my_df = my_df.head(pick_n)
     for pos in pos_list:
         tdf = my_df.loc[my_df['pos'] == pos.upper(), [f'{my_dict.get("name")}_custom_pts']]
-        replacement_value[pos.upper()] = float(pd.np.mean(tdf.tail(1)))
+        replacement_value[pos.upper()] = float(np.mean(tdf.tail(1)))
     return replacement_value
 
 
