@@ -51,7 +51,7 @@ def fantasy_pros_column_reindex(df):
 
 if __name__ == "__main__":
 
-    DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\Fantasy Football\data\raw'
+    DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\data\raw'
     league = config.justin
     pos_list = ['qb', 'wr', 'te', 'rb']
     today = date.today()

@@ -122,7 +122,7 @@ def generate_sentiment_dict(formatted_names):
 if __name__ == '__main__':
     today = date.today()
     date = today.strftime('%Y.%m.%d')
-    DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\Fantasy Football\Data\raw'
+    DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\data\raw'
 
     row_n = 170
     league = ffconfig.sean
