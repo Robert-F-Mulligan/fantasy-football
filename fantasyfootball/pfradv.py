@@ -66,7 +66,7 @@ if __name__ == "__main__":
     max = int(input('Maximum year? >>> '))
     row_n = 300
 
-    DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\Fantasy Football\data\raw'
+    DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\data\raw'
 
     df_list = []
 
