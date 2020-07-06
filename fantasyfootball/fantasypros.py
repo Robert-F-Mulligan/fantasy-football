@@ -8,6 +8,12 @@ from datetime import date
 import sys
 import fantasyfootball.config as config
 import fantasyfootball.ffcalculator as ffcalculator
+from matplotlib import pyplot as plt
+import matplotlib.patches as mpatches
+import seaborn as sns
+import matplotlib.style as style
+from sklearn.mixture import GaussianMixture
+
 
 def fantasy_pros_scrape(url):
     """Scrape Fantasy Pros stat projections given a URL"""
@@ -49,10 +55,227 @@ def fantasy_pros_column_reindex(df):
     df = df.reindex(columns = full_column_list, fill_value = 0)
     return df
 
+def fantasy_pros_ecr_scrape(league_dict=config.sean):
+    """Scrape Fantasy Pros ECR given a league scoring format"""
+    scoring = league_dict.get('scoring')
+    if scoring == 'ppr':
+        url = 'https://www.fantasypros.com/nfl/rankings/ppr-cheatsheets.php'
+    elif scoring == 'half-ppr':
+        url = 'https://www.fantasypros.com/nfl/rankings/half-point-ppr-cheatsheets.php'
+    else:
+        url = 'https://www.fantasypros.com/nfl/rankings/consensus-cheatsheets.php'
+    r = requests.get(url)
+    soup = BeautifulSoup(r.content, 'html.parser')
+    table = soup.find_all('table')
+    return pd.read_html(str(table))[0]
+
+def fantasy_pros_ecr_scrape_column_clean(df):
+    df = df.copy()
+    df.columns = [col.lower() for col in df.columns]
+    df.drop(columns=['wsid'], inplace=True)
+    df.dropna(subset=['overall (team)'], inplace=True)
+    df['rank'] = df['rank'].astype('int')
+    df.rename(columns={
+    'overall (team)' : 'player_name',
+    'pos' : 'pos_rank'
+            }, inplace=True)
+    df['tm'] = df['player_name'].str.split().str[-1]
+    df['player_name'] = df['player_name'].str.rsplit(n=1).str[0].str.rsplit(n=1).str[0].str[:-2]
+    df['pos'] = df['pos_rank']
+    df['pos'].replace('\d+', '', regex=True, inplace=True)
+    df.reset_index(inplace=True, drop=True)
+    return df
+
+def fantasy_pros_ecr_column_reindex(df):
+    """Adds columns that are missing from Fantasy Pros tables and reorders columns"""
+    full_column_list = [
+        'rank', 'player_name', 'pos', 'tm', 'pos_rank', 'bye', 'best', 'worst', 'avg', 'std dev',
+       'adp', 'vs. adp' 
+       ]
+    df = df.copy()
+    df = df.reindex(columns = full_column_list, fill_value = 0)
+    return df
+
+def fantasy_pros_ecr_draft_spread_chart(league_dict=config.sean, player_n=50, x_size=20, y_size=15):
+    today = date.today()
+    date_str = today.strftime('%m.%d.%Y')
+    df = fantasy_pros_ecr_scrape(league_dict)
+    cleaned_df = fantasy_pros_ecr_scrape_column_clean(df)
+    ecr = fantasy_pros_ecr_column_reindex(cleaned_df)
+    ecr = ecr[:player_n]
+    style.use('ggplot')
+    fig, ax = plt.subplots()
+    colors = {
+        'RB': 'red',
+        'WR': 'blue',
+        'QB': 'green',
+        'TE': 'orange',
+        'DST' : 'magenta',
+        'K' : 'cyan'
+    }
+    for _, row in ecr.iterrows():
+        xmin = row['best']
+        xmax = row['worst']
+        ymin, ymax = row['rank'], row['rank']
+        center = row['avg']
+        pos = row['pos']
+        player = row['player_name']
+
+        plt.scatter(center, ymax, color='gray', zorder=2, s=100)
+        plt.scatter(xmin, ymax, s=1.5, marker= "|", color=colors.get(pos, 'yellow'), alpha=0.5, zorder=1)
+        plt.scatter(xmax, ymax, s=1.5, marker= "|", color=colors.get(pos, 'yellow'), alpha=0.5, zorder=1)
+        plt.plot((xmin, xmax), (ymin, ymax), colors.get(pos, 'yellow'), alpha=0.5, zorder=1, linewidth=5.0)
+        plt.annotate(player, xy=(xmax+1, ymax))
+
+    patches = [mpatches.Patch(color=v, label=k, alpha=0.5) for k, v in colors.items()]
+    plt.legend(handles=patches)
+
+    plt.title(f'{date_str} Fantasy Football Draft')
+    plt.xlabel('Average Expert Rank')
+    plt.ylabel('Expert Consensus Rank')
+
+    fig.set_size_inches(x_size, y_size)
+    plt.gca().invert_yaxis()
+    plt.savefig(fr'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\figures\{date_str}_rangeofrankings.png')
+    return plt.show()
+
+def fantasy_pros_ecr_tier_add(df, player_n=50, cluster_n=8, random_st=7):
+    df = df.copy()
+    df = df.head(player_n)
+    gm = GaussianMixture(n_components=cluster_n, random_state=random_st)
+    gm.fit(df[['avg']])
+    cluster = gm.predict(df[['avg']])
+    df['cluster'] = cluster
+    df['avg_cluster'] = df['rank'].groupby(df['cluster']).transform('mean')
+    df['cluster_rank'] = df['avg_cluster'].transform('rank', method='dense')
+    df['cluster_rank'] = df['cluster_rank'].astype('int')
+    df.drop(columns=['avg_cluster'], inplace=True)
+    return df
+
+def fantasy_pros_ecr_pos_tier_add(df, player_n=50, cluster_n=8, random_st=7):
+    df = df.copy()
+    df_list = []
+    pos_list = ['QB', 'RB', 'WR', 'TE']
+    for pos in pos_list:
+        pos_df = df.loc[df['pos']==pos]
+        #pos_df.reset_index(inplace=True, drop=True)
+        pos_df = pos_df.head(player_n)
+        gm = GaussianMixture(n_components=cluster_n, random_state=random_st)
+        gm.fit(pos_df[['avg']])
+        cluster = gm.predict(pos_df[['avg']])
+        pos_df['cluster'] = cluster
+        pos_df['avg_cluster'] = pos_df['rank'].groupby(pos_df['cluster']).transform('mean')
+        pos_df['pos_cluster_rank'] = pos_df['avg_cluster'].transform('rank', method='dense')
+        pos_df['pos_cluster_rank'] = pos_df['pos_cluster_rank'].astype('int')
+        pos_df.drop(columns=['avg_cluster', 'cluster'], inplace=True)
+        df_list.append(pos_df)
+    df = pd.concat(df_list)
+    df.sort_values('avg', inplace=True)
+    df.reset_index(inplace=True, drop=True)
+    return df
+
+
+def fantasy_pros_ecr_draft_spread_chart_with_tiers(league_dict=config.sean, player_n=50, x_size=20, y_size=15):
+    today = date.today()
+    date_str = today.strftime('%m.%d.%Y')
+    df = fantasy_pros_ecr_scrape(league_dict)
+    cleaned_df = fantasy_pros_ecr_scrape_column_clean(df)
+    ecr = fantasy_pros_ecr_column_reindex(cleaned_df)
+    ecr = fantasy_pros_ecr_tier_add(ecr, player_n=player_n)
+    style.use('ggplot')
+    fig, ax = plt.subplots()
+    colors = {
+        1: 'red',
+        2: 'blue',
+        3: 'green',
+        4: 'orange',
+        5: 'magenta',
+        6: 'cyan',
+        7: '#FFC300',
+        8: '#581845'
+    }
+    for _, row in ecr.iterrows():
+        xmin = row['best']
+        xmax = row['worst']
+        ymin, ymax = row['rank'], row['rank']
+        center = row['avg']
+        player = row['player_name']
+        cluster = row['cluster_rank']
+        
+        plt.scatter(center, ymax, color='gray', zorder=2, s=100)
+        plt.scatter(xmin, ymax, marker= "|", color=colors.get(cluster, 'yellow'), alpha=0.5, zorder=1)
+        plt.scatter(xmax, ymax, marker= "|", color=colors.get(cluster, 'yellow'), alpha=0.5, zorder=1)
+        plt.plot((xmin, xmax), (ymin, ymax), color=colors.get(cluster, 'yellow'), alpha=0.5, zorder=1, linewidth=5.0)
+        plt.annotate(player, xy=(xmax+1, ymax))
+    
+    patches = [mpatches.Patch(color=v, label='Tier '+str(k), alpha=0.5) for k, v in colors.items()]
+    plt.legend(handles=patches)
+
+    plt.title(f'{date_str} Fantasy Football Draft')
+    plt.xlabel('Average Expert Rank')
+    plt.ylabel('Expert Consensus Rank')
+
+    plt.gca().invert_yaxis()
+    fig.set_size_inches(x_size, y_size)
+    #plt.savefig(fr'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\figures\{date_str}_rangeofrankings_tiers.png')
+    return plt.show()
+
+def fantasy_pros_ecr_draft_spread_chart_with_tiers_by_pos(league_dict=config.sean, player_n=50, x_size=20, y_size=15):
+    today = date.today()
+    date_str = today.strftime('%m.%d.%Y')
+    pos_list = ['QB', 'RB', 'WR', 'TE']
+    df = fantasy_pros_ecr_scrape(league_dict)
+    cleaned_df = fantasy_pros_ecr_scrape_column_clean(df)
+    ecr = fantasy_pros_ecr_column_reindex(cleaned_df)
+    ecr = fantasy_pros_ecr_pos_tier_add(ecr, player_n=player_n)
+    ecr['pos_rank'].replace('[^0-9]', '', regex=True, inplace=True)
+    ecr['pos_rank'] = ecr['pos_rank'].astype('int')
+    style.use('ggplot')
+    for pos in pos_list:
+        ecr_pos = ecr.copy()
+        ecr_pos = ecr_pos.loc[ecr_pos['pos']==pos]
+        fig, ax = plt.subplots()
+        colors = {
+            1: 'red',
+            2: 'blue',
+            3: 'green',
+            4: 'orange',
+            5: '#900C3F', #purple
+            6: '#2980B9', #blue-green
+            7: '#FFC300', #gold
+            8: '#581845' #dark purple
+        }
+        for _, row in ecr_pos.iterrows():
+            xmin = row['best']
+            xmax = row['worst']
+            ymin, ymax = row['pos_rank'], row['pos_rank']
+            center = row['avg']
+            player = row['player_name']
+            cluster = row['pos_cluster_rank']
+            
+            plt.scatter(center, ymax, color='gray', zorder=2, s=100)
+            plt.scatter(xmin, ymax, marker= "|", color=colors.get(cluster, 'yellow'), alpha=0.5, zorder=1)
+            plt.scatter(xmax, ymax, marker= "|", color=colors.get(cluster, 'yellow'), alpha=0.5, zorder=1)
+            plt.plot((xmin, xmax), (ymin, ymax), color=colors.get(cluster, 'yellow'), alpha=0.5, zorder=1, linewidth=5.0)
+            plt.annotate(player, xy=(xmax+1, ymax))
+        
+        patches = [mpatches.Patch(color=v, label='Tier '+str(k), alpha=0.5) for k, v in colors.items()]
+        plt.legend(handles=patches)
+
+        plt.title(f'{date_str} Fantasy Football Draft - {pos}')
+        plt.xlabel('Average Expert Rank')
+        plt.ylabel('Expert Consensus Rank')
+
+        plt.gca().invert_yaxis()
+        fig.set_size_inches(x_size, y_size)
+        plt.savefig(fr'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\figures\{date_str}_rangeofrankings_tiers_{pos}.png')
+    return plt.show()
+
+
 if __name__ == "__main__":
 
     DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\data\raw'
-    league = config.justin
+    league = config.sean
     pos_list = ['qb', 'wr', 'te', 'rb']
     today = date.today()
     date = today.strftime('%Y.%m.%d')
@@ -67,11 +290,11 @@ if __name__ == "__main__":
             cleaned_df = fantasy_pros_column_clean(scraped_df)
             cleaned_df['pos'] = pos.upper()
             cleaned_df = config.unique_id_create(cleaned_df, 'player_name', 'pos', 'tm')
-            cleaned_df =config.char_replace(cleaned_df, 'id')
+            cleaned_df = config.char_replace(cleaned_df, 'id')
             cleaned_reindexed_df = fantasy_pros_column_reindex(cleaned_df)
             cleaned_reindexed_df['std_scoring'] = cleaned_reindexed_df['ppr_scoring'] - cleaned_reindexed_df['receiving_rec']
             cleaned_reindexed_df['half_ppr_scoring'] = cleaned_reindexed_df['ppr_scoring'] - 0.5*cleaned_reindexed_df['receiving_rec']
-            config.fantasy_pros_pts(cleaned_reindexed_df, league)
+            cleaned_reindexed_df = config.fantasy_pros_pts(cleaned_reindexed_df, league)
             df_list.append(cleaned_reindexed_df)
         fantasy_pros_df = pd.concat(df_list)
         fantasy_pros_df.sort_values(f'{league.get("name")}_custom_pts', ascending=False, inplace=True)
@@ -94,18 +317,18 @@ if __name__ == "__main__":
 
 
     #create new id for previous season aggs
-    config.unique_id_create(merged_df, 'player_name', 'pos')
-    config.char_replace(merged_df, 'id')
+    merged_df = config.unique_id_create(merged_df, 'player_name', 'pos')
+    merged_df = config.char_replace(merged_df, 'id')
 
     #import last season aggs
     print("Grabbing last season's aggs...")                   
     weekly_stats.columns = [col.lower() for col in weekly_stats.columns]
 
     #new id omits team name to prevent players with new teams from breaking the merge
-    config.unique_id_create(weekly_stats, 'player_name', 'pos')
+    weekly_stats = config.unique_id_create(weekly_stats, 'player_name', 'pos')
     year = weekly_stats['year'].max()
-    config.char_replace(weekly_stats, 'id')
-    config.pro_football_reference_pts(weekly_stats, league)
+    weekly_stats = config.char_replace(weekly_stats, 'id')
+    weekly_stats = config.pro_football_reference_pts(weekly_stats, league)
     agg_df = weekly_stats.groupby('id').agg(
         avg_ppg =(f'{league.get("name")}_custom_pts', 'mean'),
         std_dev=(f'{league.get("name")}_custom_pts', 'std')
