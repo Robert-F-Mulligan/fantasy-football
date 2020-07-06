@@ -1,8 +1,6 @@
 #config.py
 
-from bs4 import BeautifulSoup
 import pandas as pd
-import requests
 from os import path
 import numpy as np
 
@@ -79,6 +77,7 @@ scoring_List = [sean, justin, work]
 
 def fantasy_pros_pts(my_df, my_dict):
     """Adds a column to a dataframe for fantasy points based on custom league specs for Fantasy Pros Projections"""
+    my_df = my_df.copy()
     my_df[f'{my_dict.get("name")}_custom_pts'] = (
       my_df['receiving_rec'] * my_dict.get('receiving_rec')  
       + my_df['receiving_yds'] * my_dict.get('receiving_yds')
@@ -94,6 +93,7 @@ def fantasy_pros_pts(my_df, my_dict):
 
 def pro_football_reference_pts(my_df, my_dict):
     """Adds a column to a dataframe for fantasy points based on custom league specs for Pro Football Reference data"""
+    my_df = my_df.copy()
     my_df[f'{my_dict.get("name")}_custom_pts'] = (
       my_df['receiving_rec'] * my_dict.get('receiving_rec')  
       + my_df['receiving_yds'] * my_dict.get('receiving_yds')
@@ -110,6 +110,7 @@ def pro_football_reference_pts(my_df, my_dict):
 
 def char_replace(my_df, col_name):
     """Replaces common characters and suffixes that will make creating unique IDs difficult between different data souces"""
+    my_df = my_df.copy()
     char_list = [' III', ' II', ' IV', ' V', 'Jr', ' ', "'", '\.', '-']
     for char in char_list:
         my_df[col_name].replace(char,'', regex=True, inplace=True)
@@ -118,6 +119,7 @@ def char_replace(my_df, col_name):
 
 def unique_id_create(my_df, player_name_col, pos_col, tm_col=None):
     """Derives a unique ID to allow for merges across different data sources"""
+    my_df = my_df.copy()
     if tm_col is None:
         my_df['id'] = my_df[player_name_col].str.split().str[0].str[0:3] + '_' + my_df[player_name_col].str.split().str[1] + '_' + my_df[pos_col]
     else:
