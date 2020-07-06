@@ -14,7 +14,6 @@ import seaborn as sns
 import matplotlib.style as style
 from sklearn.mixture import GaussianMixture
 
-
 def fantasy_pros_scrape(url):
     """Scrape Fantasy Pros stat projections given a URL"""
     r = requests.get(url)
@@ -70,6 +69,7 @@ def fantasy_pros_ecr_scrape(league_dict=config.sean):
     return pd.read_html(str(table))[0]
 
 def fantasy_pros_ecr_scrape_column_clean(df):
+    """Cleans data for ECR scrape """
     df = df.copy()
     df.columns = [col.lower() for col in df.columns]
     df.drop(columns=['wsid'], inplace=True)
@@ -87,7 +87,7 @@ def fantasy_pros_ecr_scrape_column_clean(df):
     return df
 
 def fantasy_pros_ecr_column_reindex(df):
-    """Adds columns that are missing from Fantasy Pros tables and reorders columns"""
+    """Reorders columns for ECR data"""
     full_column_list = [
         'rank', 'player_name', 'pos', 'tm', 'pos_rank', 'bye', 'best', 'worst', 'avg', 'std dev',
        'adp', 'vs. adp' 
@@ -97,6 +97,7 @@ def fantasy_pros_ecr_column_reindex(df):
     return df
 
 def fantasy_pros_ecr_draft_spread_chart(league_dict=config.sean, player_n=50, x_size=20, y_size=15):
+    """Produces scatterplot with ranking variances by position """
     today = date.today()
     date_str = today.strftime('%m.%d.%Y')
     df = fantasy_pros_ecr_scrape(league_dict)
@@ -140,6 +141,7 @@ def fantasy_pros_ecr_draft_spread_chart(league_dict=config.sean, player_n=50, x_
     return plt.show()
 
 def fantasy_pros_ecr_tier_add(df, player_n=50, cluster_n=8, random_st=7):
+    """Adds overall tiers using GuassianMixture model to ECR data """
     df = df.copy()
     df = df.head(player_n)
     gm = GaussianMixture(n_components=cluster_n, random_state=random_st)
@@ -153,6 +155,7 @@ def fantasy_pros_ecr_tier_add(df, player_n=50, cluster_n=8, random_st=7):
     return df
 
 def fantasy_pros_ecr_pos_tier_add(df, player_n=50, cluster_n=8, random_st=7):
+    """Adds position specific tiers using GuassianMixture model to ECR data """
     df = df.copy()
     df_list = []
     pos_list = ['QB', 'RB', 'WR', 'TE']
@@ -174,8 +177,8 @@ def fantasy_pros_ecr_pos_tier_add(df, player_n=50, cluster_n=8, random_st=7):
     df.reset_index(inplace=True, drop=True)
     return df
 
-
 def fantasy_pros_ecr_draft_spread_chart_with_tiers(league_dict=config.sean, player_n=50, x_size=20, y_size=15):
+    """Produces scatterplot with ranking variances and tiers"""
     today = date.today()
     date_str = today.strftime('%m.%d.%Y')
     df = fantasy_pros_ecr_scrape(league_dict)
@@ -221,6 +224,7 @@ def fantasy_pros_ecr_draft_spread_chart_with_tiers(league_dict=config.sean, play
     return plt.show()
 
 def fantasy_pros_ecr_draft_spread_chart_with_tiers_by_pos(league_dict=config.sean, player_n=50, x_size=20, y_size=15):
+    """Produces scatterplot with ranking variances by position and tiers"""
     today = date.today()
     date_str = today.strftime('%m.%d.%Y')
     pos_list = ['QB', 'RB', 'WR', 'TE']
@@ -263,8 +267,8 @@ def fantasy_pros_ecr_draft_spread_chart_with_tiers_by_pos(league_dict=config.sea
         plt.legend(handles=patches)
 
         plt.title(f'{date_str} Fantasy Football Draft - {pos}')
-        plt.xlabel('Average Expert Rank')
-        plt.ylabel('Expert Consensus Rank')
+        plt.xlabel('Average Expert Overall Rank')
+        plt.ylabel('Expert Consensus Position Rank')
 
         plt.gca().invert_yaxis()
         fig.set_size_inches(x_size, y_size)
