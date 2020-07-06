@@ -62,8 +62,8 @@ def advanced_stats_reindex(df):
     return reindexed_df
 
 if __name__ == "__main__":
-    min = 2019
-    max = 2019
+    min = int(input('Minimum year? >>> '))
+    max = int(input('Maximum year? >>> '))
     row_n = 300
 
     DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\Fantasy Football\data\raw'
