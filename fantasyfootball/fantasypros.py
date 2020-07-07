@@ -79,10 +79,13 @@ def fantasy_pros_ecr_scrape_column_clean(df):
     'overall (team)' : 'player_name',
     'pos' : 'pos_rank'
             }, inplace=True)
-    df['tm'] = df['player_name'].str.split().str[-1]
-    df['player_name'] = df['player_name'].str.rsplit(n=1).str[0].str.rsplit(n=1).str[0].str[:-2]
     df['pos'] = df['pos_rank']
     df['pos'].replace('\d+', '', regex=True, inplace=True)
+    df['tm'] = ''
+    df.loc[df['pos'] == 'DST', 'tm'] = df.loc[df['pos'] == 'DST', 'player_name'].str.split('(').str[-1].str.split(')').str[0]
+    df.loc[df['pos'] != 'DST', 'tm'] = df.loc[df['pos'] != 'DST', 'player_name'].str.split().str[-1]
+    df.loc[df['pos'] == 'DST', 'player_name'] = df.loc[df['pos'] == 'DST', 'player_name'].str.rsplit('(', n=1).str[0] + ' (' + df['tm'] + ')'
+    df.loc[df['pos'] != 'DST', 'player_name'] = df.loc[df['pos'] != 'DST', 'player_name'].str.rsplit(n=1).str[0].str.rsplit(n=1).str[0].str[:-2]
     df.reset_index(inplace=True, drop=True)
     return df
 
@@ -158,7 +161,7 @@ def fantasy_pros_ecr_pos_tier_add(df, player_n=50, cluster_n=8, random_st=7):
     """Adds position specific tiers using GuassianMixture model to ECR data """
     df = df.copy()
     df_list = []
-    pos_list = ['QB', 'RB', 'WR', 'TE']
+    pos_list = ['QB', 'RB', 'WR', 'TE', 'DST', 'K']
     for pos in pos_list:
         pos_df = df.loc[df['pos']==pos]
         #pos_df.reset_index(inplace=True, drop=True)
@@ -227,7 +230,7 @@ def fantasy_pros_ecr_draft_spread_chart_with_tiers_by_pos(league_dict=config.sea
     """Produces scatterplot with ranking variances by position and tiers"""
     today = date.today()
     date_str = today.strftime('%m.%d.%Y')
-    pos_list = ['QB', 'RB', 'WR', 'TE']
+    pos_list = ['QB', 'RB', 'WR', 'TE', 'DST', 'K']
     df = fantasy_pros_ecr_scrape(league_dict)
     cleaned_df = fantasy_pros_ecr_scrape_column_clean(df)
     ecr = fantasy_pros_ecr_column_reindex(cleaned_df)
