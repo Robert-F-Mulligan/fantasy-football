@@ -7,9 +7,7 @@ Project Organization
     │
     ├── data/               <- The original, immutable data dump. 
     │
-    ├── notebooks/          <- Jupyter notebooks. Naming convention is a short `-` delimited 
-    │                         description, a number (for ordering), and the creator's initials,
-    │                        e.g. `initial-data-exploration-01-hg`.
+    ├── notebooks/          <- Jupyter notebooks. 
     │
     ├── tests/               <- Unit tests.
     │
@@ -17,11 +15,11 @@ Project Organization
     │
     ├── LICENSE
     │
-    ├── requirements.txt     <- pip package dependencies   
+    ├── requirements.txt     <- pip package dependencies.   
     │
     ├── README.md            <- The top-level README for developers using this project.
     │
-    └── setup.py             <- run this to install source code
+    └── setup.py             <- run this to install source code.
     
 
 
