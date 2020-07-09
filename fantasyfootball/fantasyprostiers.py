@@ -6,7 +6,7 @@ from datetime import date
 import sys
 import fantasyfootball.config as config
 import fantasyfootball.ffcalculator as ffcalculator
-import fantasypros as fp
+import fantasyfootball.fantasypros as fp
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
@@ -80,7 +80,6 @@ def fantasy_pros_ecr_pos_tier_add(df, player_n=50, cluster_n=8, random_st=7):
     pos_list = ['QB', 'RB', 'WR', 'TE', 'DST', 'K']
     for pos in pos_list:
         pos_df = df.loc[df['pos']==pos]
-        #pos_df.reset_index(inplace=True, drop=True)
         pos_df = pos_df.head(player_n)
         gm = GaussianMixture(n_components=cluster_n, random_state=random_st)
         gm.fit(pos_df[['avg']])
@@ -139,7 +138,7 @@ def fantasy_pros_ecr_draft_spread_chart_with_tiers(league_dict=config.sean, play
 
     plt.gca().invert_yaxis()
     fig.set_size_inches(x_size, y_size)
-    #plt.savefig(fr'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\figures\{date_str}_rangeofrankings_tiers.png')
+    plt.savefig(fr'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\figures\{date_str}_rangeofrankings_tiers.png')
     return plt.show()
 
 def fantasy_pros_ecr_draft_spread_chart_with_tiers_by_pos(league_dict=config.sean, player_n=50, x_size=20, y_size=15):
@@ -194,21 +193,35 @@ def fantasy_pros_ecr_draft_spread_chart_with_tiers_by_pos(league_dict=config.sea
         plt.savefig(fr'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\figures\{date_str}_rangeofrankings_tiers_{pos}.png')
     return plt.show()
 
-def cluster_component_silhouette_estimator(df, df_col, x_size=15, y_size=10):
+def cluster_component_silhouette_estimator(df, df_col='avg', x_size=15, y_size=10):
     """Plots the Akaike's Information Criterion (AIC) and Bayesian Information Criterion (BIC) for clusters in a range for a dataset
     The goal is to pick the number of clusters that minimize the AIC or BIC
      """
-    distortions = []
-    K = range(1,21)
-    for k in K:
-        kmeanModel = KMeans(n_clusters=k)
-        kmeanModel.fit(df[['avg']])
-        distortions.append(kmeanModel.inertia_)
+    n_components = np.arange(1, 21)
+    models = [GaussianMixture(n_components=n, covariance_type='full', random_state=7).fit(df[[df_col]])
+            for n in n_components]
+
     fig, ax = plt.subplots()
-    plt.plot(K, distortions, 'bx-')
-    plt.xlabel('k')
-    plt.ylabel('Distortion')
-    plt.title('The Elbow Method showing the optimal k')                                                                     
+    plt.plot(n_components, [m.bic(df[[df_col]]) for m in models], label='BIC')
+    plt.plot(n_components, [m.aic(df[[df_col]]) for m in models], label='AIC')
+    plt.legend(loc='best')
+    plt.xlabel('n_components')                                                               
+    fig.set_size_inches(x_size, y_size)
+    return plt.show()
+
+def cluster_component_silhouette_estimator_2D(df, df_col_list=['avg', 'rank'], x_size=15, y_size=10):
+    """Plots the Akaike's Information Criterion (AIC) and Bayesian Information Criterion (BIC) for clusters in a range for a dataset
+    The goal is to pick the number of clusters that minimize the AIC or BIC
+     """
+    n_components = np.arange(1, 21)
+    models = [GaussianMixture(n_components=n, covariance_type='full', random_state=7).fit(df[df_col_list])
+            for n in n_components]
+
+    fig, ax = plt.subplots()
+    plt.plot(n_components, [m.bic(df[df_col_list]) for m in models], label='BIC')
+    plt.plot(n_components, [m.aic(df[df_col_list]) for m in models], label='AIC')
+    plt.legend(loc='best')
+    plt.xlabel('n_components')                                                               
     fig.set_size_inches(x_size, y_size)
     return plt.show()
 
