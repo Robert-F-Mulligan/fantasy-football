@@ -32,6 +32,7 @@ Set up
 Install the virtual environment with venv and activate it:
 
 $ python venv /path/to/new/virtual/environment
+
 $ /path/to/new/virtual/environment/Scripts/activate 
 
 Install fantasyfootball in the virtual environment by running setup.py:
