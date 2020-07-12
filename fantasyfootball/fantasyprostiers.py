@@ -2,6 +2,7 @@
 
 import pandas as pd
 from os import path
+from fantasyfootball.config import FIGURE_DIR
 from datetime import date
 import sys
 import fantasyfootball.config as config
@@ -56,7 +57,7 @@ def fantasy_pros_ecr_draft_spread_chart(league_dict=config.sean, player_n=50, x_
 
     fig.set_size_inches(x_size, y_size)
     plt.gca().invert_yaxis()
-    plt.savefig(fr'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\figures\{date_str}_rangeofrankings.png')
+    plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings.png'))
     return plt.show()
 
 def fantasy_pros_ecr_tier_add(df, player_n=50, cluster_n=8, random_st=7):
@@ -138,7 +139,7 @@ def fantasy_pros_ecr_draft_spread_chart_with_tiers(league_dict=config.sean, play
 
     plt.gca().invert_yaxis()
     fig.set_size_inches(x_size, y_size)
-    plt.savefig(fr'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\figures\{date_str}_rangeofrankings_tiers.png')
+    plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_tiers.png'))
     return plt.show()
 
 def fantasy_pros_ecr_draft_spread_chart_with_tiers_by_pos(league_dict=config.sean, player_n=50, x_size=20, y_size=15):
@@ -190,7 +191,7 @@ def fantasy_pros_ecr_draft_spread_chart_with_tiers_by_pos(league_dict=config.sea
 
         plt.gca().invert_yaxis()
         fig.set_size_inches(x_size, y_size)
-        plt.savefig(fr'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\figures\{date_str}_rangeofrankings_tiers_{pos}.png')
+        plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_tiers_{pos}.png'))
     return plt.show()
 
 def cluster_component_silhouette_estimator(df, df_col='avg', x_size=15, y_size=10):

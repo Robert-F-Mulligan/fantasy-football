@@ -1,9 +1,10 @@
-#pfr.py
+#pfrgbg.py
 
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from os import path
+from fantasyfootball.config import DATA_DIR
 
 def player_href_list_grab(year):
     """Grabs a list of hrefs for a given year based on descending fantasy performance"""
@@ -92,7 +93,6 @@ if __name__ == "__main__":
     min = int(input('Minimum year? >>> '))
     max = int(input('Maximum year? >>> '))
     row_n = 300
-    DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\data\raw'
 
     df_list = []
     errors_list = []

@@ -10,7 +10,8 @@ from datetime import date
 from os import path
 import sys
 from ffcalculator import adp_scrape
-import config as ffconfig
+from fantasyfootball.config import DATA_DIR
+import fantasyfootball.config as ffconfig
 
 config = TwitterConfig()
 
@@ -122,7 +123,6 @@ def generate_sentiment_dict(formatted_names):
 if __name__ == '__main__':
     today = date.today()
     date = today.strftime('%Y.%m.%d')
-    DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\data\raw'
 
     row_n = 170
     league = ffconfig.sean
@@ -143,6 +143,6 @@ if __name__ == '__main__':
     df = ffconfig.unique_id_create(df, 'player_name', 'pos')
     df = ffconfig.char_replace(df, 'id')
     df['avg_sentiment'] = df['compound'] / df['num_tweets']
-    df.to_csv(path.join(DATA_DIR, f'Twitter_Sentiment_Analysis_{date}.csv'), index=False)
+    df.to_csv(path.join(DATA_DIR, rf'twitter\Twitter_Sentiment_Analysis_{date}.csv'), index=False)
     
     print('All finished!')

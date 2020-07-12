@@ -2,6 +2,7 @@
 
 import pandas as pd
 from bs4 import BeautifulSoup
+from fantasyfootball.config import DATA_DIR
 import requests
 from os import path
 from datetime import date
@@ -103,7 +104,6 @@ def fantasy_pros_ecr_column_reindex(df):
 
 if __name__ == "__main__":
 
-    DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\data\raw'
     league = config.sean
     pos_list = ['qb', 'wr', 'te', 'rb']
     today = date.today()

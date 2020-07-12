@@ -4,7 +4,8 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from os import path
-import fantasyfootball.pfr as pfr
+import fantasyfootball.pfrgbg as pfr
+from fantasyfootball.config import DATA_DIR
 
 def advanced_player_soup_grab(last_name_letter, player_id, year):
     """Returns a soup object for Advanced stats for each player in a given year"""
@@ -65,8 +66,6 @@ if __name__ == "__main__":
     min = int(input('Minimum year? >>> '))
     max = int(input('Maximum year? >>> '))
     row_n = 300
-
-    DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\data\raw'
 
     df_list = []
 
