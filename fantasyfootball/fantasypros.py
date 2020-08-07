@@ -57,6 +57,12 @@ def fantasy_pros_column_reindex(df):
     df = df.reindex(columns = full_column_list, fill_value = 0)
     return df
 
+def fantasy_pros_stats_process(url):
+    df = fantasy_pros_scrape(url)
+    df = fantasy_pros_column_clean(df)
+    df = fantasy_pros_column_reindex(df)
+    return df
+
 def fantasy_pros_ecr_scrape(league_dict=config.sean):
     """Scrape Fantasy Pros ECR given a league scoring format"""
     scoring = league_dict.get('scoring')
@@ -87,8 +93,9 @@ def fantasy_pros_ecr_scrape_column_clean(df):
     df['tm'] = ''
     df.loc[df['pos'] == 'DST', 'tm'] = df.loc[df['pos'] == 'DST', 'player_name'].str.split('(').str[-1].str.split(')').str[0]
     df.loc[df['pos'] != 'DST', 'tm'] = df.loc[df['pos'] != 'DST', 'player_name'].str.split().str[-1]
-    df.loc[df['pos'] == 'DST', 'player_name'] = df.loc[df['pos'] == 'DST', 'player_name'].str.rsplit('(', n=1).str[0] + ' (' + df['tm'] + ')'
+    df.loc[df['pos'] == 'DST', 'player_name'] = df.loc[df['pos'] == 'DST', 'player_name'].str.rsplit('(', n=1).str[0] + '(' + df['tm'] + ')'
     df.loc[df['pos'] != 'DST', 'player_name'] = df.loc[df['pos'] != 'DST', 'player_name'].str.rsplit(n=1).str[0].str.rsplit(n=1).str[0].str[:-2]
+    df['tm'].replace({'JAC' : 'JAX'}, inplace=True)
     df.reset_index(inplace=True, drop=True)
     return df
 
@@ -102,13 +109,19 @@ def fantasy_pros_ecr_column_reindex(df):
     df = df.reindex(columns = full_column_list, fill_value = 0)
     return df
 
+def fantasy_pros_ecr_process(league):
+    df = fantasy_pros_ecr_scrape(league)
+    df = fantasy_pros_ecr_scrape_column_clean(df)
+    df = fantasy_pros_ecr_column_reindex(df)
+    return df
+
 if __name__ == "__main__":
 
     league = config.sean
     pos_list = ['qb', 'wr', 'te', 'rb']
     today = date.today()
     date = today.strftime('%Y.%m.%d')
-    weekly_stats = pd.read_csv(path.join(DATA_DIR, r'Game by Game Breakdown_2019_2019.csv'))
+    weekly_stats = pd.read_csv(path.join(DATA_DIR, r'game-by-game\2019_weekly.csv'))
     errors_list = []
     try:
         print('Pulling in position projections...')
@@ -169,7 +182,7 @@ if __name__ == "__main__":
 
 
     #run the desired VBD function to calculate replacement player
-    replacement_value = config.value_over_last_starter(merged_df, league, pos_list)
+    replacement_value = config.value_through_n_picks(merged_df, league, pos_list)
 
     #map replacement value to df and calculate value above replacement
     print('Mapping VBD...')
@@ -178,7 +191,7 @@ if __name__ == "__main__":
     merged_df.reset_index(drop=True)
 
     #export to CSVs
-    merged_df[['player_name', 'tm', 'pos', 'bye', 'adp', f'{year}_avg_ppg', f'{year}_std_dev', f'{league.get("name")}_custom_pts', f'{league.get("name")}_custom_pts_vor']].to_csv(path.join(DATA_DIR, f'Fantasy_Pros_Projections_{date}_with_VOR_Condensed_{league.get("name")}.csv'), index=False)
+    merged_df[['player_name', 'tm', 'pos', 'bye', 'adp', f'{year}_avg_ppg', f'{year}_std_dev', f'{league.get("name")}_custom_pts', f'{league.get("name")}_custom_pts_vor']].to_csv(path.join(DATA_DIR, rf'vor\Fantasy_Pros_Projections_{date}_with_VOR_Condensed_{league.get("name")}.csv'), index=False)
 
     rows, cols = merged_df.shape
     print(f'All done! The dataframe has {rows} rows and {cols} columns.')

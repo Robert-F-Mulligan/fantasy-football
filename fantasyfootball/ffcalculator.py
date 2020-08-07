@@ -26,10 +26,8 @@ def adp_column_clean(df, league_dict):
     """Cleans ADP dataframe from Fantasy Football Calculator"""
     df = df.copy()
     df.columns = [col.lower() for col in df.columns]
-    df = config.unique_id_create(df, 'name', 'pos', 'team')
     df['scoring'] = league_dict.get('scoring')
     df['n_teams'] = league_dict.get('team_n')
-    df = config.char_replace(df, 'id')
     df.rename(columns={'#':'adp'}, inplace=True)
     return df
 
