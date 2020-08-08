@@ -27,7 +27,9 @@ justin = {
     'rb' : 2,
     'wr' : 2,
     'te' : 1,
-    'flex' : 1
+    'flex' : 1,
+    'dst' : 1,
+    'k' : 1
 }
 
 sean = {
@@ -49,7 +51,9 @@ sean = {
     'rb' : 2,
     'wr' : 2,
     'te' : 1,
-    'flex' : 1
+    'flex' : 1,
+    'dst' : 1,
+    'k' : 1
 }
 
 work = {
@@ -71,7 +75,9 @@ work = {
     'rb' : 1,
     'wr' : 2,
     'te' : 1,
-    'flex' : 2
+    'flex' : 2,
+    'dst' : 1,
+    'k' : 1
 }
 
 scoring_List = [sean, justin, work]
@@ -112,10 +118,10 @@ def pro_football_reference_pts(my_df, my_dict):
 def char_replace(my_df, col_name):
     """Replaces common characters and suffixes that will make creating unique IDs difficult between different data souces"""
     my_df = my_df.copy()
-    char_list = [' III', ' II', ' IV', ' V', 'Jr', ' ', "'", '\.', '-']
+    char_list = ["'", ' III', ' II', ' IV', ' V', 'Jr',  '\.', '-'] #removed ' ' 
     for char in char_list:
         my_df[col_name].replace(char,'', regex=True, inplace=True)
-        my_df[col_name] = my_df[col_name].str.upper()
+        my_df[col_name] = my_df[col_name].str.lower()
     return my_df
 
 def unique_id_create(my_df, player_name_col, pos_col, tm_col=None):
@@ -125,6 +131,7 @@ def unique_id_create(my_df, player_name_col, pos_col, tm_col=None):
         my_df['id'] = my_df[player_name_col].str.split().str[0].str[0:3] + '_' + my_df[player_name_col].str.split().str[1] + '_' + my_df[pos_col]
     else:
         my_df['id'] = my_df[player_name_col].str.split().str[0].str[0:3] + '_' + my_df[player_name_col].str.split().str[1] + '_' + my_df[pos_col] + '_' + my_df[tm_col]
+    my_df['id'] = my_df['id'].str.lower()
     return my_df
 
 #VBD functions
@@ -164,11 +171,12 @@ def value_over_replacement_player(my_df, my_dict, pos_list):
         replacement_value[pos.upper()] = float(np.mean(tdf.tail(3)))
     return replacement_value
 
-def value_through_n_picks(my_df, my_dict, pos_list, pick_n):
+def value_through_n_picks(my_df, my_dict, pos_list, pick_n=125):
     """Calculates the value per pos through 100 picks, given a datframe, league dict and pos list"""
     replacement_value = {}
     my_df = my_df.copy()
     my_df.sort_values('adp', inplace=True)
+    my_df.reset_index(inplace=True, drop=True)
     my_df = my_df.head(pick_n)
     for pos in pos_list:
         tdf = my_df.loc[my_df['pos'] == pos.upper(), [f'{my_dict.get("name")}_custom_pts']]

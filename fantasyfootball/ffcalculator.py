@@ -31,6 +31,10 @@ def adp_column_clean(df, league_dict):
     df.rename(columns={'#':'adp'}, inplace=True)
     return df
 
+def adp_process(league_dict):
+    df = adp_scrape(league_dict)
+    df = adp_column_clean(df, league_dict)
+    return df
 if __name__ == "__main__":
     league = config.sean
     adp = adp_scrape(league)

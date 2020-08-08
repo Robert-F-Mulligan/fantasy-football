@@ -11,13 +11,13 @@ from fantasyfootball import fantasypros as fp
 import matplotlib.style as style
 from datetime import date
 from fantasyfootball import config
-from fantasyfootball import fpkmeans
+from fantasyfootball import tiers
 from fantasyfootball.config import FIGURE_DIR, DATA_DIR
 from os import path
-import fantasyfootball.ffcalculator as ffcalculator
+from fantasyfootball import ffcalculator
 
 league = config.justin
-elbow = fpkmeans.total_elbow
+total_tier_dict = tiers.total_tier_dict
 pos_list = ['qb', 'wr', 'te', 'rb']
 today = date.today()
 date = today.strftime('%Y.%m.%d')
@@ -86,7 +86,8 @@ ecr = fp.fantasy_pros_ecr_process(league)
 ecr = ecr.merge(merged_df, how='left', on=['player_name', 'pos', 'tm']).reset_index(drop=True)
 ecr.drop(columns=['adp_x', 'bye_y'], inplace=True)
 ecr.rename(columns={'adp_y' : 'adp', 'bye_x': 'bye'}, inplace=True)
-tier_df = fpkmeans.assign_k_means_total_cutoff_cluster(ecr, elbow)
+pos_dict = tiers.draftable_position_quantity(league)
+tier_df = tiers.assign_tier_to_df(ecr, total_tier_dict, kmeans=False, n=pos_dict)
 
 #cleanup columns
 tier_df.rename(columns={
