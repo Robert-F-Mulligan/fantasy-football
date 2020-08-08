@@ -121,6 +121,7 @@ def make_clustering_viz(tier_dict, kmeans=True, league=config.sean, n=35, x_size
     """Generates a chart with colored tiers; you can either use kmeans of GGMM
         The default number per position is 35; run either AIC/BIC (GMM) or SSE (kmeans) analysis prior to running
         Use your findings to create the tier dict
+        Optional: Pass in a custom n by position dict
     """
     palette = ['red', 'blue', 'green', 'orange', '#900C3F', '#2980B9', '#FFC300', '#581845']
     df = fp.fantasy_pros_ecr_process(league)
