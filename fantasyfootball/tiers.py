@@ -66,22 +66,22 @@ def kmeans_sse_chart(league=config.sean, n=None, clusters=10):
             x = pos_df[['avg' ,'best', 'worst']].to_numpy()
         else:
             if not isinstance(n, dict):
-                n = {k: n for k,v in pos.items()} 
+                n = {k: int(n) for k,v in pos.items()} 
             pos_df = df.loc[df['pos'] == p].head(n[p]).copy()
             x = pos_df[['avg' ,'best', 'worst']].to_numpy()
-        sse = {}
-        for k in range(1, clusters+1):
-            kmm = KMeans(n_clusters=k).fit(x)
-            sse[k] = kmm.inertia_ # within-cluster-sum-of-squares
+        n_components = range(1, clusters+1)
+        
+        models = [KMeans(n_clusters=n).fit(x) 
+                for n in n_components]
 
-        ax.plot(list(sse.keys()), list(sse.values()))
+        ax.plot(n_components, [m.inertia_ for m in models], label='SSE')
         ax.set_xlabel("Number of clusters")
-        ax.set_ylabel("SSE")
+        ax.legend(loc='best')
         ax.set_xticks(np.arange(1, clusters+1, step=1))
         ax.set_title(p)   
     return plt.show()
 
-def gmm_component_silhouette_estimator(league=config.sean, n=None, components=10):
+def gmm_component_silhouette_estimator(league=config.sean, n=None, components=10, covariance_type='full'):
     """Plots the Akaike's Information Criterion (AIC) and Bayesian Information Criterion (BIC) for clusters in a range for a dataset
     The goal is to pick the number of clusters that minimize the AIC or BIC
      """
@@ -102,11 +102,11 @@ def gmm_component_silhouette_estimator(league=config.sean, n=None, components=10
             x = pos_df[['avg' ,'best', 'worst']].to_numpy()
         else:
             if not isinstance(n, dict):
-                n = {k: n for k,v in pos.items()} 
+                n = {k: int(n) for k,v in pos.items()} 
             pos_df = df.loc[df['pos'] == p].head(n[p]).copy()
             x = pos_df[['avg' ,'best', 'worst']].to_numpy()
         n_components = range(1, components+1)
-        models = [GaussianMixture(n_components=n, covariance_type='full', random_state=7).fit(x)
+        models = [GaussianMixture(n_components=n, covariance_type=covariance_type, random_state=0).fit(x)
                 for n in n_components]
 
         ax.plot(n_components, [m.bic(x) for m in models], label='BIC')
@@ -117,7 +117,7 @@ def gmm_component_silhouette_estimator(league=config.sean, n=None, components=10
         ax.set_title(p)
     return plt.show()
 
-def make_clustering_viz(tier_dict, kmeans=True, league=config.sean, n=35, x_size=20, y_size=15):
+def make_clustering_viz(tier_dict, kmeans=True, league=config.sean, n=35, x_size=20, y_size=15, covariance_type='full'):
     """Generates a chart with colored tiers; you can either use kmeans of GGMM
         The default number per position is 35; run either AIC/BIC (GMM) or SSE (kmeans) analysis prior to running
         Use your findings to create the tier dict
@@ -130,30 +130,24 @@ def make_clustering_viz(tier_dict, kmeans=True, league=config.sean, n=35, x_size
     today = date.today()
     date_str = today.strftime('%m.%d.%Y')
     if not isinstance(n, dict):
-        n = {k: n for k,v in tier_dict.items()}       
+        n = {k: int(n) for k,v in tier_dict.items()}       
     for p, k in tier_dict.items():
         pos_df = df.loc[df['pos'] == p].head(n[p]).copy().reset_index(drop=True)
         x = pos_df.loc[:, ['best', 'worst', 'avg']].head(n[p]).copy().reset_index(drop=True)
         if kmeans:
             kmm = KMeans(n_clusters=k).fit(x)
             labels = kmm.predict(x)
-            unique_labels = []
-            tiers = []
-            for i in labels:
-                if i not in unique_labels:
-                    unique_labels.append(i)
-                tiers.append(len(set(unique_labels)))
         else: #gausianmixture
-            gmm = GaussianMixture(n_components=k, random_state=8).fit(x)
+            gmm = GaussianMixture(n_components=k, covariance_type=covariance_type, random_state=0).fit(x)
             labels = gmm.predict(x)
-            unique_labels = []
-            tiers = []
-            for i in labels:
-                if i not in unique_labels:
-                    unique_labels.append(i)
-                tiers.append(len(set(unique_labels)))
-
-        pos_df['pos_tiers'] = tiers                              
+        unique_labels = []
+        for i in labels:
+            if i not in unique_labels:
+                unique_labels.append(i)
+        rank_dict = dict(zip(unique_labels, range(1,len(unique_labels)+1)))
+        pos_df['pos_tiers'] = labels
+        pos_df['pos_tiers'] = pos_df['pos_tiers'].map(rank_dict)                             
+        
         style.use('ggplot')
         colors = dict(zip(range(1, k+1), palette[:k]))
 
@@ -192,7 +186,7 @@ def make_clustering_viz(tier_dict, kmeans=True, league=config.sean, n=35, x_size
          
     return plt.show()
 
-def assign_tier_to_df(df ,tier_dict, kmeans=True, n=None):
+def assign_tier_to_df(df ,tier_dict, kmeans=True, n=None, covariance_type='full'):
     """Assigns a tier by position to a dataframe (either kmeans or GMM method)"""
     df_list = []
     df = df.copy()
@@ -203,29 +197,23 @@ def assign_tier_to_df(df ,tier_dict, kmeans=True, n=None):
             x = pos_df.loc[:, ['best', 'worst', 'avg']].copy().reset_index(drop=True)
         else:
             if not isinstance(n, dict):
-                n = {k: n for k,v in tier_dict.items()}
+                n = {k: int(n) for k,v in tier_dict.items()}
             pos_df = df.loc[df['pos'] == p].head(n[p]).copy().reset_index(drop=True)
             extra_df = df.loc[df['pos'] == p][n[p]:].copy().reset_index(drop=True)
             x = pos_df.loc[:, ['best', 'worst', 'avg']].head(n[p]).copy().reset_index(drop=True)
         if kmeans:
             kmm = KMeans(n_clusters=k).fit(x)
-            labels = kmm.predict(x)
-            unique_labels = []
-            tiers = []
-            for i in labels:
-                if i not in unique_labels:
-                    unique_labels.append(i)
-                tiers.append(len(set(unique_labels)))
+            labels = kmm.predict(x) 
         else:
-            gmm = GaussianMixture(n_components =k).fit(x)
+            gmm = GaussianMixture(n_components=k, covariance_type=covariance_type, random_state=0).fit(x)
             labels = gmm.predict(x)
-            unique_labels = []
-            tiers = []
-            for i in labels:
-                if i not in unique_labels:
-                    unique_labels.append(i)
-                tiers.append(len(set(unique_labels))) 
-        pos_df['pos_tiers'] = tiers
+        unique_labels = []
+        for i in labels:
+            if i not in unique_labels:
+                unique_labels.append(i)
+        rank_dict = dict(zip(unique_labels, range(1,len(unique_labels)+1)))
+        pos_df['pos_tiers'] = labels
+        pos_df['pos_tiers'] = pos_df['pos_tiers'].map(rank_dict)
         extra_df['pos_tiers'] = np.nan
         df_list.append(pos_df)
         df_list.append(extra_df)
@@ -258,7 +246,7 @@ def draftable_position_quantity(league=config.sean):
     pos_list = ['RB', 'WR', 'QB', 'TE']
     for pos in pos_list:
         count = df.loc[df['pos']==pos]['name'].count()
-        pos_values[pos] = count
+        pos_values[pos] = 5 * round(count/5) #round to nearest 5
     return pos_values
 
 if __name__ == "__main__":
@@ -269,4 +257,4 @@ if __name__ == "__main__":
 
     pos_dict = draftable_position_quantity(league)
 
-    make_clustering_viz(tier_dict=pos_tier_dict, kmeans=False, league=league, n=pos_dict)
+    make_clustering_viz(tier_dict=pos_tier_dict, kmeans=False, league=league, n=pos_dict, covariance_type='diag')
