@@ -37,10 +37,11 @@ draftable_quantity_dict = {
     }
 
 def kmeans_sse_chart(league=config.sean, pos_breakout=True, pos_n=None, clusters=10):
-    """Plots the SSE for different k-means cluster values for k
-       Specify a number for n if you wish to segment position groups by a cutoff number
-       Plots distorition for a given cluster # - the optimal cluster # will be the point in which the line flattens out, forming an elbow
-       Optional: Pass a dict with specific quanities per posiiton
+    """
+    Plots the SSE for different k-means cluster values for k
+    Specify a number for n if you wish to segment position groups by a cutoff number
+    Plots distorition for a given cluster # - the optimal cluster # will be the point in which the line flattens out, forming an elbow
+    Optional: Pass a dict with specific quanities per posiiton
     """
     df = fp.fantasy_pros_ecr_process(league)
     if pos_breakout:
@@ -87,9 +88,10 @@ def kmeans_sse_chart(league=config.sean, pos_breakout=True, pos_n=None, clusters
     return plt.show()
 
 def gmm_component_silhouette_estimator(league=config.sean, pos_breakout=True, pos_n=None, components=10, covariance_type='diag'):
-    """Plots the Akaike's Information Criterion (AIC) and Bayesian Information Criterion (BIC) for clusters in a range for a dataset
+    """
+    Plots the Akaike's Information Criterion (AIC) and Bayesian Information Criterion (BIC) for clusters in a range for a dataset
     The goal is to pick the number of clusters that minimize the AIC or BIC
-     """
+    """
     df = fp.fantasy_pros_ecr_process(league)
     if pos_breakout:
         fig, ax = plt.subplots(2, 3); fig.set_size_inches(15, 10)
@@ -137,10 +139,10 @@ def gmm_component_silhouette_estimator(league=config.sean, pos_breakout=True, po
     return plt.show()
 
 def make_clustering_viz(tier_dict=8, kmeans=False, league=config.sean, pos_n=35, x_size=20, y_size=15, covariance_type='diag'):
-    """Generates a chart with colored tiers; you can either use kmeans of GGMM
-        The default number per position is 35; run either AIC/BIC (GMM) or SSE (kmeans) analysis prior to running
-        Use your findings to create the tier dict
-        Optional: Pass in a custom n by position dict
+    """
+    Generates a chart with colored tiers; you can either use kmeans of GMM
+    Optional: Pass in a custom tier dict to show varying numbers of tiers; default will be uniform across position
+    Optional: Pass in a custom pos_n dict to show different numbers of players by position
     """
     palette = ['red', 'blue', 'green', 'orange', '#900C3F', '#2980B9', '#FFC300', '#581845']
     df = fp.fantasy_pros_ecr_process(league)
@@ -208,7 +210,11 @@ def make_clustering_viz(tier_dict=8, kmeans=False, league=config.sean, pos_n=35,
     return plt.show()
 
 def assign_tier_to_df(df, tier_dict=8, kmeans=False, pos_n=None, covariance_type='diag'):
-    """Assigns a tier by position to a dataframe (either kmeans or GMM method)"""
+    """
+    Assigns a tier by position to a dataframe (either kmeans or GMM method)
+    Optional: Pass in a custom tier dict to show varying numbers of tiers; default will be uniform across position
+    Optional: Pass in a custom pos_n dict to show different numbers of players by position
+    """
     df_list = []
     df = df.copy()
     if not isinstance(tier_dict, dict):
