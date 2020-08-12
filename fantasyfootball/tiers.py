@@ -16,25 +16,17 @@ from fantasyfootball.config import FIGURE_DIR
 from fantasyfootball import ffcalculator
 from os import path
 
-#run SSE chart to pick cluster #s
-pos_tier_dict = {
+#run SSE or AIC/BIC chart to pick cluster #s
+pos_tier_dict_viz = {
     'RB' : 8,
-    'QB' : 5,
-    'WR' : 8,
-    'TE' : 4,
-    'DST' : 4,
-    'K' : 3
+    'QB' : 6,
+    'WR' : 5,
+    'TE' : 5,
+    'DST' : 6,
+    'K' : 7
     }
 
-total_tier_dict = {
-    'RB' : 6,
-    'QB' : 4,
-    'WR' : 6,
-    'TE' : 6,
-    'DST' : 4,
-    'K' : 4
-    }
-
+#optionally run draftable_position_quantity() func to determine "draftable" number by pos
 draftable_quantity_dict = {
     'RB' : 56,
     'QB' : 19,
@@ -44,67 +36,95 @@ draftable_quantity_dict = {
     'K' : 15
     }
 
-def kmeans_sse_chart(league=config.sean, n=None, clusters=10):
+def kmeans_sse_chart(league=config.sean, pos_breakout=True, pos_n=None, clusters=10):
     """Plots the SSE for different k-means cluster values for k
        Specify a number for n if you wish to segment position groups by a cutoff number
        Plots distorition for a given cluster # - the optimal cluster # will be the point in which the line flattens out, forming an elbow
        Optional: Pass a dict with specific quanities per posiiton
     """
     df = fp.fantasy_pros_ecr_process(league)
-    fig, ax = plt.subplots(2, 3); fig.set_size_inches(15, 10)
-    pos = {
-        'RB': ax[0][0], # top left
-        'WR': ax[0][1], # top middle
-        'QB': ax[1][0], # bottom left
-        'TE': ax[1][1],  # bottom middle
-        'DST': ax[0][2], # top right
-        'K': ax[1][2] # bottom right
-        }
-    for p, ax in pos.items():
-        if n is None:
-            pos_df = df.loc[df['pos'] == p].copy()
-            x = pos_df[['avg' ,'best', 'worst']].to_numpy()
-        else:
-            if not isinstance(n, dict):
-                n = {k: int(n) for k,v in pos.items()} 
-            pos_df = df.loc[df['pos'] == p].head(n[p]).copy()
-            x = pos_df[['avg' ,'best', 'worst']].to_numpy()
+    if pos_breakout:
+        fig, ax = plt.subplots(2, 3); fig.set_size_inches(15, 10)
+        pos = {
+            'RB': ax[0][0], # top left
+            'WR': ax[0][1], # top middle
+            'QB': ax[1][0], # bottom left
+            'TE': ax[1][1],  # bottom middle
+            'DST': ax[0][2], # top right
+            'K': ax[1][2] # bottom right
+            }
+        for p, ax in pos.items():
+            if pos_n is None:
+                pos_df = df.loc[df['pos'] == p].copy()
+                x = pos_df[['avg' ,'best', 'worst']].to_numpy()
+            else:
+                if not isinstance(pos_n, dict):
+                    pos_n = {k: int(pos_n) for k,v in pos.items()} 
+                pos_df = df.loc[df['pos'] == p].head(pos_n[p]).copy()
+                x = pos_df[['avg' ,'best', 'worst']].to_numpy()
+            n_components = range(1, clusters+1)
+            
+            models = [KMeans(n_clusters=n).fit(x) 
+                    for n in n_components]
+
+            ax.plot(n_components, [m.inertia_ for m in models], label='SSE')
+            ax.set_xlabel("Number of clusters")
+            ax.legend(loc='best')
+            ax.set_xticks(np.arange(1, clusters+1, step=1))
+            ax.set_title(p) 
+    else:
+        fig, ax = plt.subplots(); fig.set_size_inches(15, 10)
+        full_df = df.head(200).copy()
+        x = full_df[['avg' ,'best', 'worst']].to_numpy()
         n_components = range(1, clusters+1)
-        
         models = [KMeans(n_clusters=n).fit(x) 
-                for n in n_components]
+                    for n in n_components]
 
         ax.plot(n_components, [m.inertia_ for m in models], label='SSE')
         ax.set_xlabel("Number of clusters")
         ax.legend(loc='best')
-        ax.set_xticks(np.arange(1, clusters+1, step=1))
-        ax.set_title(p)   
+        ax.set_xticks(np.arange(1, clusters+1, step=1)) 
     return plt.show()
 
-def gmm_component_silhouette_estimator(league=config.sean, n=None, components=10, covariance_type='full'):
+def gmm_component_silhouette_estimator(league=config.sean, pos_breakout=True, pos_n=None, components=10, covariance_type='diag'):
     """Plots the Akaike's Information Criterion (AIC) and Bayesian Information Criterion (BIC) for clusters in a range for a dataset
     The goal is to pick the number of clusters that minimize the AIC or BIC
      """
     df = fp.fantasy_pros_ecr_process(league)
-    fig, ax = plt.subplots(2, 3); fig.set_size_inches(15, 10)
-    pos = {
-        'RB': ax[0][0], # top left
-        'WR': ax[0][1], # top middle
-        'QB': ax[1][0], # bottom left
-        'TE': ax[1][1],  # bottom middle
-        'DST': ax[0][2], # top right
-        'K': ax[1][2] # bottom right
-        }
+    if pos_breakout:
+        fig, ax = plt.subplots(2, 3); fig.set_size_inches(15, 10)
+        pos = {
+            'RB': ax[0][0], # top left
+            'WR': ax[0][1], # top middle
+            'QB': ax[1][0], # bottom left
+            'TE': ax[1][1],  # bottom middle
+            'DST': ax[0][2], # top right
+            'K': ax[1][2] # bottom right
+            }
 
-    for p, ax in pos.items():
-        if n is None:
-            pos_df = df.loc[df['pos'] == p].copy()
-            x = pos_df[['avg' ,'best', 'worst']].to_numpy()
-        else:
-            if not isinstance(n, dict):
-                n = {k: int(n) for k,v in pos.items()} 
-            pos_df = df.loc[df['pos'] == p].head(n[p]).copy()
-            x = pos_df[['avg' ,'best', 'worst']].to_numpy()
+        for p, ax in pos.items():
+            if pos_n is None:
+                pos_df = df.loc[df['pos'] == p].copy()
+                x = pos_df[['avg' ,'best', 'worst']].to_numpy()
+            else:
+                if not isinstance(pos_n, dict):
+                    pos_n = {k: int(pos_n) for k,v in pos.items()} 
+                pos_df = df.loc[df['pos'] == p].head(pos_n[p]).copy()
+                x = pos_df[['avg' ,'best', 'worst']].to_numpy()
+            n_components = range(1, components+1)
+            models = [GaussianMixture(n_components=n, covariance_type=covariance_type, random_state=0).fit(x)
+                    for n in n_components]
+
+            ax.plot(n_components, [m.bic(x) for m in models], label='BIC')
+            ax.plot(n_components, [m.aic(x) for m in models], label='AIC')
+            ax.set_xticks(np.arange(1, components+1, step=1))
+            ax.legend(loc='best')
+            ax.set_xlabel('n_components')                                                               
+            ax.set_title(p)
+    else:
+        fig, ax = plt.subplots(); fig.set_size_inches(15, 10)
+        full_df = df.head(200).copy()
+        x = full_df[['avg' ,'best', 'worst']].to_numpy()
         n_components = range(1, components+1)
         models = [GaussianMixture(n_components=n, covariance_type=covariance_type, random_state=0).fit(x)
                 for n in n_components]
@@ -113,11 +133,10 @@ def gmm_component_silhouette_estimator(league=config.sean, n=None, components=10
         ax.plot(n_components, [m.aic(x) for m in models], label='AIC')
         ax.set_xticks(np.arange(1, components+1, step=1))
         ax.legend(loc='best')
-        ax.set_xlabel('n_components')                                                               
-        ax.set_title(p)
+        ax.set_xlabel('n_components')    
     return plt.show()
 
-def make_clustering_viz(tier_dict, kmeans=True, league=config.sean, n=35, x_size=20, y_size=15, covariance_type='full'):
+def make_clustering_viz(tier_dict=8, kmeans=False, league=config.sean, pos_n=35, x_size=20, y_size=15, covariance_type='diag'):
     """Generates a chart with colored tiers; you can either use kmeans of GGMM
         The default number per position is 35; run either AIC/BIC (GMM) or SSE (kmeans) analysis prior to running
         Use your findings to create the tier dict
@@ -129,11 +148,13 @@ def make_clustering_viz(tier_dict, kmeans=True, league=config.sean, n=35, x_size
     df['pos_rank'] = df['pos_rank'].astype('int')
     today = date.today()
     date_str = today.strftime('%m.%d.%Y')
-    if not isinstance(n, dict):
-        n = {k: int(n) for k,v in tier_dict.items()}       
+    if not isinstance(tier_dict, dict):
+        tier_dict = {pos: tier_dict for  pos in ['QB', 'RB', 'WR', 'TE', 'DST', 'K']}
+    if not isinstance(pos_n, dict):
+        pos_n = {k: int(pos_n) for k,v in tier_dict.items()}       
     for p, k in tier_dict.items():
-        pos_df = df.loc[df['pos'] == p].head(n[p]).copy().reset_index(drop=True)
-        x = pos_df.loc[:, ['best', 'worst', 'avg']].head(n[p]).copy().reset_index(drop=True)
+        pos_df = df.loc[df['pos'] == p].head(pos_n[p]).copy().reset_index(drop=True)
+        x = pos_df.loc[:, ['best', 'worst', 'avg']].head(pos_n[p]).copy().reset_index(drop=True)
         if kmeans:
             kmm = KMeans(n_clusters=k).fit(x)
             labels = kmm.predict(x)
@@ -151,7 +172,7 @@ def make_clustering_viz(tier_dict, kmeans=True, league=config.sean, n=35, x_size
         style.use('ggplot')
         colors = dict(zip(range(1, k+1), palette[:k]))
 
-        fig, ax = plt.subplots(); fig.set_size_inches(8,10);
+        fig, ax = plt.subplots();
         for _, row in pos_df.iterrows():
             xmin = row['best']
             xmax = row['worst']
@@ -186,21 +207,23 @@ def make_clustering_viz(tier_dict, kmeans=True, league=config.sean, n=35, x_size
          
     return plt.show()
 
-def assign_tier_to_df(df ,tier_dict, kmeans=True, n=None, covariance_type='full'):
+def assign_tier_to_df(df, tier_dict=8, kmeans=False, pos_n=None, covariance_type='diag'):
     """Assigns a tier by position to a dataframe (either kmeans or GMM method)"""
     df_list = []
     df = df.copy()
+    if not isinstance(tier_dict, dict):
+        tier_dict = {pos: int(tier_dict) for  pos in ['QB', 'RB', 'WR', 'TE', 'DST', 'K']}
     for p, k in tier_dict.items():
-        if n is None:
+        if pos_n is None:
             pos_df = df.loc[df['pos'] == p].copy()
             extra_df = pd.DataFrame()
             x = pos_df.loc[:, ['best', 'worst', 'avg']].copy().reset_index(drop=True)
         else:
-            if not isinstance(n, dict):
-                n = {k: int(n) for k,v in tier_dict.items()}
-            pos_df = df.loc[df['pos'] == p].head(n[p]).copy().reset_index(drop=True)
-            extra_df = df.loc[df['pos'] == p][n[p]:].copy().reset_index(drop=True)
-            x = pos_df.loc[:, ['best', 'worst', 'avg']].head(n[p]).copy().reset_index(drop=True)
+            if not isinstance(pos_n, dict):
+                pos_n = {k: int(pos_n) for k,v in tier_dict.items()}
+            pos_df = df.loc[df['pos'] == p].head(pos_n[p]).copy().reset_index(drop=True)
+            extra_df = df.loc[df['pos'] == p][pos_n[p]:].copy().reset_index(drop=True)
+            x = pos_df.loc[:, ['best', 'worst', 'avg']].head(pos_n[p]).copy().reset_index(drop=True)
         if kmeans:
             kmm = KMeans(n_clusters=k).fit(x)
             labels = kmm.predict(x) 
@@ -222,7 +245,7 @@ def assign_tier_to_df(df ,tier_dict, kmeans=True, n=None, covariance_type='full'
     df.reset_index(inplace=True, drop=True)
     return df
 
-def best_worst_avg_3d_viz(league=config.sean, n=35):
+def best_worst_avg_3d_viz(league=config.sean, pos_n=35):
     """Grapsh in 3d best, worst and avg by position """
     ecr = fp.fantasy_pros_ecr_process(league)
     pos_list = list(ecr['pos'].unique())
@@ -230,7 +253,7 @@ def best_worst_avg_3d_viz(league=config.sean, n=35):
         sns.set_style('white')
         fig = plt.figure(); fig.set_size_inches(5, 5)
         ax = plt.axes(projection='3d')
-        df = ecr.loc[ecr['pos'] == pos].head(n).copy()
+        df = ecr.loc[ecr['pos'] == pos].head(pos_n).copy()
         x, y, z = df['avg'].to_numpy(), df['worst'].to_numpy(), df['best'].to_numpy()
         ax.scatter3D(x, y, z)
         plt.title(f'{pos}')
@@ -252,9 +275,8 @@ def draftable_position_quantity(league=config.sean):
 if __name__ == "__main__":
     #run elbow chart or AIC/BIC chart to estimate optimal number of k for each pos
 
-    league = config.sean
-    draftable_players = league.get('team_n') * league.get('rounds')
+    league = config.justin
+    
+    draftable_pos_dict = draftable_position_quantity(league)
 
-    pos_dict = draftable_position_quantity(league)
-
-    make_clustering_viz(tier_dict=pos_tier_dict, kmeans=False, league=league, n=pos_dict, covariance_type='diag')
+    make_clustering_viz(tier_dict=pos_tier_dict_viz, league=league, pos_n=draftable_pos_dict, covariance_type='diag')
