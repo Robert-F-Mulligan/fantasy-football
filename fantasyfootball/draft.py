@@ -17,27 +17,13 @@ from os import path
 from fantasyfootball import ffcalculator
 
 league = config.justin
-total_tier_dict = tiers.total_tier_dict
 pos_list = ['qb', 'wr', 'te', 'rb']
 today = date.today()
 date = today.strftime('%Y.%m.%d')
 weekly_stats = pd.read_csv(path.join(DATA_DIR, r'game-by-game\2019_weekly.csv'))
 errors_list = []
 try:
-    df_list = []
-    for pos in pos_list:
-        url = f'https://www.fantasypros.com/nfl/projections/{pos}.php?week=draft&scoring=PPR&week=draft'
-        fp_df = fp.fantasy_pros_stats_process(url)
-        fp_df['pos'] = pos.upper()
-        fp_df['temp_name'] = fp_df['player_name']
-        fp_df = config.char_replace(fp_df, 'temp_name')
-        fp_df = config.unique_id_create(fp_df, 'temp_name', 'pos')
-        #add custom scoring
-        fp_df = config.fantasy_pros_pts(fp_df, league)
-        df_list.append(fp_df)
-    df = pd.concat(df_list)
-    df.drop(columns=['temp_name'], inplace=True)
-    df.sort_values(f'{league.get("name")}_custom_pts', ascending=False, inplace=True)
+    df = fp.fantasy_pros_pos_projection_scrape(week='draft', league=league, make_id=True)
 
 except Exception as e:
     # Store the url and the error it causes in a list
@@ -45,8 +31,7 @@ except Exception as e:
     # then append it to the list of errors
     errors_list.append(error)
 
-adp_df = ffcalculator.adp_scrape(league)
-adp_df = ffcalculator.adp_column_clean(adp_df, league)
+adp_df = ffcalculator.adp_process(league=league)
 adp_df = config.char_replace(adp_df, 'name')
 adp_df = config.unique_id_create(adp_df, 'name', 'pos')
 
@@ -87,7 +72,7 @@ ecr = ecr.merge(merged_df, how='left', on=['player_name', 'pos', 'tm']).reset_in
 ecr.drop(columns=['adp_x', 'bye_y'], inplace=True)
 ecr.rename(columns={'adp_y' : 'adp', 'bye_x': 'bye'}, inplace=True)
 pos_dict = tiers.draftable_position_quantity(league)
-tier_df = tiers.assign_tier_to_df(ecr, total_tier_dict, kmeans=False, n=pos_dict)
+tier_df = tiers.assign_tier_to_df(ecr, tier_dict=8, kmeans=False, pos_n=pos_dict)
 
 #cleanup columns
 tier_df.rename(columns={
