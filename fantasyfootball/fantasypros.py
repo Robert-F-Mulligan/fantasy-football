@@ -46,7 +46,7 @@ def fantasy_pros_column_clean(df):
 def fantasy_pros_column_reindex(df):
     """Adds columns that are missing from Fantasy Pros tables and reorders columns"""
     full_column_list = [
-    'id', 'player_name', 'tm', 'pos',
+    'player_name', 'tm', 'pos',
     'receiving_rec', 'receiving_yds', 'receiving_td', 'rushing_att', 'rushing_yds', 'rushing_td', #WR/RB
     'passing_att', 'passing_cmp', 'passing_yds', 'passing_td', 'passing_int', #passing
     'fumbles', 'ppr_scoring'
@@ -61,6 +61,28 @@ def fantasy_pros_stats_process(url):
     df = fantasy_pros_scrape(url)
     df = fantasy_pros_column_clean(df)
     df = fantasy_pros_column_reindex(df)
+    return df
+
+def fantasy_pros_pos_projection_scrape(week='draft', league=config.sean, PPR=True, make_id=False):
+    df_list = []
+    pos_list = pos_list = ['qb', 'wr', 'te', 'rb']
+    for pos in pos_list:
+        url = f'https://www.fantasypros.com/nfl/projections/{pos}.php?week=draft&scoring=PPR&week={week}'
+        df = fantasy_pros_stats_process(url)
+        df['pos'] = pos.upper()
+        if not PPR:
+            df['standard_scoring'] = df['ppr_scoring'] - df['receiving_rec']
+            df.drop(columns=['ppr_scoring'], inplace=True)
+        #add custom scoring
+        df = config.fantasy_pros_pts(df, league)
+        df_list.append(df)
+    df = pd.concat(df_list)
+    if make_id:                                     
+        df['temp_name'] = df['player_name']
+        df = config.char_replace(df, 'temp_name')
+        df = config.unique_id_create(df, 'temp_name', 'pos')
+        df.drop(columns=['temp_name'], inplace=True)
+    df.sort_values(f'{league.get("name")}_custom_pts', ascending=False, inplace=True)
     return df
 
 def fantasy_pros_ecr_scrape(league_dict=config.sean):
@@ -115,86 +137,47 @@ def fantasy_pros_ecr_process(league):
     df = fantasy_pros_ecr_column_reindex(df)
     return df
 
+def fantasy_pros_ecr_weekly_clean(df):
+    """
+    Cleans Dfs from FantasyPros weekly rankings
+    """
+    df = df.copy()
+    df.rename(columns={ df.columns[2]: 'player_name'}, inplace=True)
+    df.columns = [col.lower() for col in df.columns]
+    df.drop(columns=['wsis'], inplace=True)
+    df.dropna(subset=['player_name'], inplace=True)
+    df['rank'] = df['rank'].astype('int')
+    df['tm'] = df['player_name'].str.split().str[-1]
+    #rsplit doesn't support Regex - comment out until bug is fixed
+    #df['player_name'] = df['player_name'].str.rsplit('[A-Z]\.').str[0]
+    df['player_name'] = df['player_name'].str.rsplit(n=1).str[0].str.rsplit(n=1).str[0].str[:-2]
+    df['tm'].replace({'JAC' : 'JAX'}, inplace=True)
+    return df
+
+def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
+    """Scrape Fantasy Pros ECR given a league scoring format (on a week by week basis)"""
+    scoring = league_dict.get('scoring')
+    pos_list = ['RB', 'WR', 'TE', 'QB', 'K'] #'DST'
+    df_list = []
+    for pos in pos_list:
+        if scoring == 'ppr' and pos in ['RB', 'WR', 'TE']:
+            url = f'https://www.fantasypros.com/nfl/rankings/ppr-{pos.lower()}.php'
+        elif scoring == 'half-ppr' and pos in ['RB', 'WR', 'TE']:
+            url = f'https://www.fantasypros.com/nfl/rankings/half-point-ppr-{pos.lower()}.php'
+        else:
+            url = f'https://www.fantasypros.com/nfl/rankings/{pos.lower()}.php'
+        
+        r = requests.get(url)
+        soup = BeautifulSoup(r.content, 'html.parser')
+        table = soup.find_all('table')
+        df = pd.read_html(str(table))[0]
+        df['pos'] = pos
+        df = fantasy_pros_ecr_weekly_clean(df)
+        df_list.append(df)
+        print(f'Appending {pos} DF')
+    df = pd.concat(df_list)
+    return df
+
 if __name__ == "__main__":
-
-    league = config.sean
-    pos_list = ['qb', 'wr', 'te', 'rb']
-    today = date.today()
-    date = today.strftime('%Y.%m.%d')
-    weekly_stats = pd.read_csv(path.join(DATA_DIR, r'game-by-game\2019_weekly.csv'))
-    errors_list = []
-    try:
-        print('Pulling in position projections...')
-        df_list = []
-        for pos in pos_list:
-            url = f'https://www.fantasypros.com/nfl/projections/{pos}.php?week=draft&scoring=PPR&week=draft'
-            scraped_df = fantasy_pros_scrape(url)
-            cleaned_df = fantasy_pros_column_clean(scraped_df)
-            cleaned_df['pos'] = pos.upper()
-            cleaned_df = config.unique_id_create(cleaned_df, 'player_name', 'pos', 'tm')
-            cleaned_df = config.char_replace(cleaned_df, 'id')
-            cleaned_reindexed_df = fantasy_pros_column_reindex(cleaned_df)
-            cleaned_reindexed_df['std_scoring'] = cleaned_reindexed_df['ppr_scoring'] - cleaned_reindexed_df['receiving_rec']
-            cleaned_reindexed_df['half_ppr_scoring'] = cleaned_reindexed_df['ppr_scoring'] - 0.5*cleaned_reindexed_df['receiving_rec']
-            cleaned_reindexed_df = config.fantasy_pros_pts(cleaned_reindexed_df, league)
-            df_list.append(cleaned_reindexed_df)
-        fantasy_pros_df = pd.concat(df_list)
-        fantasy_pros_df.sort_values(f'{league.get("name")}_custom_pts', ascending=False, inplace=True)
-
-    except Exception as e:
-        # Store the url and the error it causes in a list
-        error =[e]  
-        # then append it to the list of errors
-        errors_list.append(error)
-
-    print('Pulling in ADP...')
-
-    adp_df = ffcalculator.adp_scrape(league)
-    adp_df = ffcalculator.adp_column_clean(adp_df, league)
-
-    #combines DFs
-    merged_df = fantasy_pros_df.merge(adp_df, how='left', on='id').sort_values('adp').reset_index(drop=True)
-    merged_df.drop(columns=['name', 'pos_y', 'team', 'id'], inplace=True)
-    merged_df.rename(columns={'pos_x' : 'pos'}, inplace=True)
-
-
-    #create new id for previous season aggs
-    merged_df = config.unique_id_create(merged_df, 'player_name', 'pos')
-    merged_df = config.char_replace(merged_df, 'id')
-
-    #import last season aggs
-    print("Grabbing last season's aggs...")                   
-    weekly_stats.columns = [col.lower() for col in weekly_stats.columns]
-
-    #new id omits team name to prevent players with new teams from breaking the merge
-    weekly_stats = config.unique_id_create(weekly_stats, 'player_name', 'pos')
-    year = weekly_stats['year'].max()
-    weekly_stats = config.char_replace(weekly_stats, 'id')
-    weekly_stats = config.pro_football_reference_pts(weekly_stats, league)
-    agg_df = weekly_stats.groupby('id').agg(
-        avg_ppg =(f'{league.get("name")}_custom_pts', 'mean'),
-        std_dev=(f'{league.get("name")}_custom_pts', 'std')
-        )
-    agg_df.rename(columns={'avg_ppg' : f'{year}_avg_ppg', 'std_dev' : f'{year}_std_dev'}, inplace=True)
-
-    merged_df = merged_df.merge(agg_df, how='left', on='id').reset_index(drop=True)
-    merged_df.drop(columns=['id'], inplace=True)
-
-
-    #run the desired VBD function to calculate replacement player
-    replacement_value = config.value_through_n_picks(merged_df, league, pos_list)
-
-    #map replacement value to df and calculate value above replacement
-    print('Mapping VBD...')
-    merged_df[f'{league.get("name")}_custom_pts_vor'] = merged_df[f'{league.get("name")}_custom_pts'] - merged_df['pos'].map(replacement_value)
-    merged_df.sort_values(f'{league.get("name")}_custom_pts_vor', inplace=True, ascending=False)
-    merged_df.reset_index(drop=True)
-
-    #export to CSVs
-    merged_df[['player_name', 'tm', 'pos', 'bye', 'adp', f'{year}_avg_ppg', f'{year}_std_dev', f'{league.get("name")}_custom_pts', f'{league.get("name")}_custom_pts_vor']].to_csv(path.join(DATA_DIR, rf'vor\Fantasy_Pros_Projections_{date}_with_VOR_Condensed_{league.get("name")}.csv'), index=False)
-
-    rows, cols = merged_df.shape
-    print(f'All done! The dataframe has {rows} rows and {cols} columns.')
-    error_list_len = len(errors_list)
-    print(f'There were {error_list_len} errors.\n The error list is: {errors_list}.')
-    print(merged_df.head())
+    pass
+    
