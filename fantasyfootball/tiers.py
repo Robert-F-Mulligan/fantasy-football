@@ -138,16 +138,20 @@ def gmm_component_silhouette_estimator(league=config.sean, pos_breakout=True, po
         ax.set_xlabel('n_components')    
     return plt.show()
 
-def make_clustering_viz(tier_dict=8, kmeans=False, league=config.sean, pos_n=35, x_size=20, y_size=15, covariance_type='diag'):
+def make_clustering_viz(tier_dict=8, kmeans=False, league=config.sean, pos_n=35, x_size=20, y_size=15, covariance_type='diag', draft=True, save=True):
     """
     Generates a chart with colored tiers; you can either use kmeans of GMM
     Optional: Pass in a custom tier dict to show varying numbers of tiers; default will be uniform across position
     Optional: Pass in a custom pos_n dict to show different numbers of players by position
     """
     palette = ['red', 'blue', 'green', 'orange', '#900C3F', '#2980B9', '#FFC300', '#581845']
-    df = fp.fantasy_pros_ecr_process(league)
-    df['pos_rank'].replace('[^0-9]', '', regex=True, inplace=True)
-    df['pos_rank'] = df['pos_rank'].astype('int')
+    if draft:
+        df = fp.fantasy_pros_ecr_process(league)
+    else:
+        df = fp.fantasy_pros_ecr_weekly_scrape(league)
+    df['pos_rank'] = (df['pos_rank'].replace('[^0-9]', '', regex=True)
+                                    .astype('int')
+                     )
     today = date.today()
     date_str = today.strftime('%m.%d.%Y')
     if not isinstance(tier_dict, dict):
@@ -195,17 +199,21 @@ def make_clustering_viz(tier_dict=8, kmeans=False, league=config.sean, pos_n=35,
             patches.append(patch)
 
         plt.legend(handles=patches, borderpad=1, fontsize=12)
-        plt.title(f'{date_str} Fantasy Football Draft - {p}')
+        if draft:
+            plt.title(f'{date_str} Fantasy Football Draft - {p}')
+        else:
+            plt.title(f'{date_str} Fantasy Football Weekly - {p}')
         plt.xlabel('Average Expert Overall Rank')
         plt.ylabel('Expert Consensus Position Rank')
 
         fig.set_size_inches(x_size, y_size)
         plt.gca().invert_yaxis()
         #plt.tight_layout()
-        if kmeans:
-            plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_kmeans_{p}.png'))
-        else:
-            plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_gmm_{p}.png'))
+        if save:
+            if kmeans:
+                plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_kmeans_{p}.png'))
+            else:
+                plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_gmm_{p}.png'))
          
     return plt.show()
 
@@ -247,8 +255,9 @@ def assign_tier_to_df(df, tier_dict=8, kmeans=False, pos_n=None, covariance_type
         df_list.append(pos_df)
         df_list.append(extra_df)
     df = pd.concat(df_list, ignore_index=True)
-    df.sort_values('rank', inplace=True)
-    df.reset_index(inplace=True, drop=True)
+    df = (df.sort_values('rank')
+            .reset_index(drop=True)
+         )
     return df
 
 def best_worst_avg_3d_viz(league=config.sean, pos_n=35):
@@ -274,7 +283,7 @@ def draftable_position_quantity(league=config.sean):
     df = df.head(draftable_players)
     pos_list = ['RB', 'WR', 'QB', 'TE']
     for pos in pos_list:
-        count = df.loc[df['pos']==pos]['name'].count()
+        count = df.loc[df['pos']==pos]['player_name'].count()
         pos_values[pos] = 5 * round(count/5) #round to nearest 5
     return pos_values
 

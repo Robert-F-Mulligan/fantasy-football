@@ -78,10 +78,7 @@ def fantasy_pros_pos_projection_scrape(week='draft', league=config.sean, PPR=Tru
         df_list.append(df)
     df = pd.concat(df_list)
     if make_id:                                     
-        df['temp_name'] = df['player_name']
-        df = config.char_replace(df, 'temp_name')
-        df = config.unique_id_create(df, 'temp_name', 'pos')
-        df.drop(columns=['temp_name'], inplace=True)
+        df = config.unique_id_create(df)
     df.sort_values(f'{league.get("name")}_custom_pts', ascending=False, inplace=True)
     return df
 
@@ -103,13 +100,11 @@ def fantasy_pros_ecr_scrape_column_clean(df):
     """Cleans data for ECR scrape """
     df = df.copy()
     df.columns = [col.lower() for col in df.columns]
-    df.drop(columns=['wsid'], inplace=True)
-    df.dropna(subset=['overall (team)'], inplace=True)
+    df = (df.drop(columns=['wsid'])
+            .dropna(subset=['overall (team)'])
+            .rename(columns={'overall (team)' : 'player_name', 'pos' : 'pos_rank'})
+         )
     df['rank'] = df['rank'].astype('int')
-    df.rename(columns={
-    'overall (team)' : 'player_name',
-    'pos' : 'pos_rank'
-            }, inplace=True)
     df['pos'] = df['pos_rank']
     df['pos'].replace('\d+', '', regex=True, inplace=True)
     df['tm'] = ''
@@ -142,11 +137,12 @@ def fantasy_pros_ecr_weekly_clean(df):
     Cleans Dfs from FantasyPros weekly rankings
     """
     df = df.copy()
-    df.rename(columns={ df.columns[2]: 'player_name'}, inplace=True)
     df.columns = [col.lower() for col in df.columns]
-    df.drop(columns=['wsis'], inplace=True)
-    df.dropna(subset=['player_name'], inplace=True)
-    df['rank'] = df['rank'].astype('int')
+    df = (df.rename(columns={df.columns[2]: 'player_name', 'Rank': 'pos_rank'})
+            .drop(columns=['wsis'])
+            .dropna(subset=['player_name'])
+         )
+    df['pos_rank'] = df['pos_rank'].astype('int')
     df['tm'] = df['player_name'].str.split().str[-1]
     #rsplit doesn't support Regex - comment out until bug is fixed
     #df['player_name'] = df['player_name'].str.rsplit('[A-Z]\.').str[0]
@@ -174,7 +170,6 @@ def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
         df['pos'] = pos
         df = fantasy_pros_ecr_weekly_clean(df)
         df_list.append(df)
-        print(f'Appending {pos} DF')
     df = pd.concat(df_list)
     return df
 

@@ -140,8 +140,7 @@ if __name__ == '__main__':
     df.rename(columns={'index' : 'player_name'}, inplace=True)
     pos_df = pd.DataFrame({'pos': pos_list[:row_n]})
     df = df.join(pos_df, how="left")
-    df = ffconfig.unique_id_create(df, 'player_name', 'pos')
-    df = ffconfig.char_replace(df, 'id')
+    df = ffconfig.unique_id_create(df)
     df['avg_sentiment'] = df['compound'] / df['num_tweets']
     df.to_csv(path.join(DATA_DIR, rf'twitter\Twitter_Sentiment_Analysis_{date}.csv'), index=False)
     

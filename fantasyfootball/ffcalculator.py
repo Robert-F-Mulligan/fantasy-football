@@ -5,10 +5,10 @@ import pandas as pd
 import requests
 import fantasyfootball.config as config
 
-def adp_scrape(league_dict):
+def adp_scrape(league):
     """Function to pull ADP table from Fantasy Football Calculator specific to customized league specs"""
-    team_number = league_dict.get('team_n')
-    scoring = league_dict.get('scoring')
+    team_number = league.get('team_n')
+    scoring = league.get('scoring')
     if (scoring == 'standard') and (team_number == 12):
         url = 'https://fantasyfootballcalculator.com/adp'
     elif (scoring == 'ppr' or scoring == 'half-ppr')  & (team_number == 12):
@@ -22,20 +22,20 @@ def adp_scrape(league_dict):
     df = df.iloc[:,:-1]
     return df
 
-def adp_column_clean(df, league_dict):
+def adp_column_clean(df, league):
     """Cleans ADP dataframe from Fantasy Football Calculator"""
     df = df.copy()
     df.columns = [col.lower() for col in df.columns]
-    df['scoring'] = league_dict.get('scoring')
-    df['n_teams'] = league_dict.get('team_n')
-    df.rename(columns={'#':'adp'}, inplace=True)
+    df['scoring'] = league.get('scoring')
+    df['n_teams'] = league.get('team_n')
+    df.rename(columns={'#':'adp', 'name': 'player_name'}, inplace=True)
     return df
 
-def adp_process(league_dict):
-    df = adp_scrape(league_dict)
-    df = adp_column_clean(df, league_dict)
+def adp_process(league):
+    df = adp_scrape(league)
+    df = adp_column_clean(df, league)
     return df
+
 if __name__ == "__main__":
     league = config.sean
-    adp = adp_scrape(league)
-    adp_clean = adp_column_clean(adp, league)
+    adp_process(league)

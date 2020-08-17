@@ -115,23 +115,44 @@ def pro_football_reference_pts(my_df, my_dict):
     )
     return my_df
 
-def char_replace(my_df, col_name):
-    """Replaces common characters and suffixes that will make creating unique IDs difficult between different data souces"""
-    my_df = my_df.copy()
-    char_list = ["'", ' III', ' II', ' IV', ' V', 'Jr',  '\.', '-'] #removed ' ' 
-    for char in char_list:
-        my_df[col_name].replace(char,'', regex=True, inplace=True)
-        my_df[col_name] = my_df[col_name].str.lower()
-    return my_df
 
-def unique_id_create(my_df, player_name_col, pos_col, tm_col=None):
+def unique_id_create(my_df, team=False):
     """Derives a unique ID to allow for merges across different data sources"""
     my_df = my_df.copy()
-    if tm_col is None:
-        my_df['id'] = my_df[player_name_col].str.split().str[0].str[0:3] + '_' + my_df[player_name_col].str.split().str[1] + '_' + my_df[pos_col]
-    else:
-        my_df['id'] = my_df[player_name_col].str.split().str[0].str[0:3] + '_' + my_df[player_name_col].str.split().str[1] + '_' + my_df[pos_col] + '_' + my_df[tm_col]
-    my_df['id'] = my_df['id'].str.lower()
+    char_list = ["'", ' III', ' II', ' IV', ' V', 'Jr',  '\.', '-'] #removed ' '
+    symbol_dict = dict(zip(char_list, len(char_list)*['']))
+    if team:
+        my_df = (my_df.assign(id = (
+                          my_df['player_name'].replace(symbol_dict, regex=True)
+                                                .str.lower()
+                                                .str.split()
+                                                .str[0].str[0:3]
+                         + '_' 
+                         + my_df['player_name'].replace(symbol_dict, regex=True)
+                                               .str.lower()
+                                               .str.split()
+                                               .str[1]
+                         + '_' 
+                         + my_df['pos']
+                         + '_' 
+                         + my_df['tm']
+                               ).str.lower())
+                )
+    else:            
+        my_df = (my_df.assign(id = (
+                           my_df['player_name'].replace(symbol_dict, regex=True)
+                                                .str.lower()
+                                                .str.split()
+                                                .str[0].str[0:3]
+                         + '_' 
+                          + my_df['player_name'].replace(symbol_dict, regex=True)
+                                               .str.lower()
+                                               .str.split()
+                                               .str[1]
+                         + '_' 
+                         + my_df['pos']
+                               ).str.lower())
+                )
     return my_df
 
 #VBD functions
