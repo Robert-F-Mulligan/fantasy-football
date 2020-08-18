@@ -40,8 +40,9 @@ except Exception as e:
     # then append it to the list of errors
     errors_list.append(error)
 
-adp_df = ffcalculator.adp_process(league=league)
-adp_df = config.unique_id_create(adp_df)
+adp_df = (ffcalculator.adp_process(league=league)
+                      .pipe(config.unique_id_create)
+         )
 
 #combines DFs
 merged_df = (df.merge(adp_df, how='left', on='id').sort_values('adp').reset_index(drop=True)
@@ -56,8 +57,8 @@ weekly_stats = config.unique_id_create(weekly_stats)
 year = weekly_stats['year'].max()
 weekly_stats = config.pro_football_reference_pts(weekly_stats, league)
 agg_df = (weekly_stats.groupby('id')
-                      .agg(avg_ppg =(f'{league.get("name")}_custom_pts', 'mean'),
-                                        std_dev=(f'{league.get("name")}_custom_pts', 'std'))
+                      .agg(avg_ppg=(f'{league.get("name")}_custom_pts', 'mean'),
+                           std_dev=(f'{league.get("name")}_custom_pts', 'std'))
                       .rename(columns={'avg_ppg' : f'{year}_avg_ppg', 'std_dev' : f'{year}_std_dev'})
          )
 
@@ -71,14 +72,14 @@ replacement_value = config.value_through_n_picks(merged_df, league, pos_list)
 #map replacement value to df and calculate value above replacement
 merged_df[f'{league.get("name")}_custom_pts_vor'] = merged_df[f'{league.get("name")}_custom_pts'] - merged_df['pos'].map(replacement_value)
 merged_df = (merged_df.sort_values(f'{league.get("name")}_custom_pts_vor', ascending=False)
-                     .reset_index(drop=True)
+                      .reset_index(drop=True)
             )
 
 #add tiers
-ecr = fp.fantasy_pros_ecr_process(league)
-ecr = (ecr.merge(merged_df, how='left', on=['player_name', 'pos', 'tm']).reset_index(drop=True)
-          .drop(columns=['adp_x', 'bye_y'])
-          .rename(columns={'adp_y' : 'adp', 'bye_x': 'bye'})
+ecr = (fp.fantasy_pros_ecr_process(league)
+         .merge(merged_df, how='left', on=['player_name', 'pos', 'tm']).reset_index(drop=True)
+         .drop(columns=['adp_x', 'bye_y'])
+         .rename(columns={'adp_y' : 'adp', 'bye_x': 'bye'})
       )
 
 pos_dict = tiers.draftable_position_quantity(league)
