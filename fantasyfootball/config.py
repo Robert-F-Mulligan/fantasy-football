@@ -4,8 +4,8 @@ import pandas as pd
 from os import path
 import numpy as np
 
-DATA_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\data\raw'
-FIGURE_DIR = r'C:\Users\rmull\Documents\Rob\Python Projects\fantasy-football\figures'
+DATA_DIR = r'..\data\raw'
+FIGURE_DIR = r'..\figures'
 
 #scoring systems
 justin = {
