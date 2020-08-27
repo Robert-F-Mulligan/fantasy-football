@@ -25,7 +25,7 @@ pos_tier_dict_viz = {
     'K' : 4
     }
 
-league = config.justin
+league = config.sean
 pos_list = ['qb', 'wr', 'te', 'rb']
 today = date.today()
 date = today.strftime('%Y.%m.%d')
@@ -70,8 +70,8 @@ merged_df = (merged_df.merge(agg_df, how='left', on='id').reset_index(drop=True)
 replacement_value = config.value_through_n_picks(merged_df, league, pos_list)
 
 #map replacement value to df and calculate value above replacement
-merged_df[f'{league.get("name")}_custom_pts_vor'] = merged_df[f'{league.get("name")}_custom_pts'] - merged_df['pos'].map(replacement_value)
-merged_df = (merged_df.sort_values(f'{league.get("name")}_custom_pts_vor', ascending=False)
+merged_df['vor'] = merged_df[f'{league.get("name")}_custom_pts'] - merged_df['pos'].map(replacement_value)
+merged_df = (merged_df.sort_values('vor', ascending=False)
                       .reset_index(drop=True)
             )
 
@@ -89,7 +89,6 @@ tier_df = tiers.assign_tier_to_df(ecr, tier_dict=pos_tier_dict_viz, kmeans=False
 #cleanup columns
 tier_df = tier_df.rename(columns={
     f'{league.get("name")}_custom_pts': 'custom_points',
-    f'{league.get("name")}_custom_pts_vor': 'vor',
     f'{year}_avg_ppg': 'py_avg_ppg',
     f'{year}_std_dev': 'py_std_dev'
     })
