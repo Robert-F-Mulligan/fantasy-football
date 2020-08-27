@@ -85,7 +85,7 @@ scoring_List = [sean, justin, work]
 def fantasy_pros_pts(my_df, my_dict):
     """Adds a column to a dataframe for fantasy points based on custom league specs for Fantasy Pros Projections"""
     my_df = my_df.copy()
-    my_df[f'{my_dict['name']}_custom_pts'] = (
+    my_df[f'{my_dict["name"]}_custom_pts'] = (
       my_df['receiving_rec'] * my_dict['receiving_rec']
       + my_df['receiving_yds'] * my_dict['receiving_yds']
       + my_df['receiving_td'] * my_dict['receiving_td']
@@ -101,7 +101,7 @@ def fantasy_pros_pts(my_df, my_dict):
 def pro_football_reference_pts(my_df, my_dict):
     """Adds a column to a dataframe for fantasy points based on custom league specs for Pro Football Reference data"""
     my_df = my_df.copy()
-    my_df[f'{my_dict['name']}_custom_pts'] = (
+    my_df[f'{my_dict["name"]}_custom_pts'] = (
       my_df['receiving_rec'] * my_dict['receiving_rec']
       + my_df['receiving_yds'] * my_dict['receiving_yds']
       + my_df['receiving_td'] * my_dict['receiving_td']
