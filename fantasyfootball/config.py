@@ -86,15 +86,15 @@ def fantasy_pros_pts(my_df, my_dict):
     """Adds a column to a dataframe for fantasy points based on custom league specs for Fantasy Pros Projections"""
     my_df = my_df.copy()
     my_df[f'{my_dict.get("name")}_custom_pts'] = (
-      my_df['receiving_rec'] * my_dict.get('receiving_rec')  
-      + my_df['receiving_yds'] * my_dict.get('receiving_yds')
-      + my_df['receiving_td'] * my_dict.get('receiving_td')
-      + my_df['rushing_yds'] * my_dict.get('rushing_yds')
-      + my_df['rushing_td'] * my_dict.get('rushing_td')
-      + my_df['passing_yds'] * my_dict.get('passing_yds')
-      + my_df['passing_td'] * my_dict.get('passing_td')
-      + my_df['passing_int'] * my_dict.get('passing_int')
-      + my_df['fumbles'] * my_dict.get('fumbles')
+      my_df['receiving_rec'] * my_dict['receiving_rec']
+      + my_df['receiving_yds'] * my_dict['receiving_yds']
+      + my_df['receiving_td'] * my_dict['receiving_td']
+      + my_df['rushing_yds'] * my_dict['rushing_yds']
+      + my_df['rushing_td'] * my_dict['rushing_td']
+      + my_df['passing_yds'] * my_dict['passing_yds']
+      + my_df['passing_td'] * my_dict['passing_td']
+      + my_df['passing_int'] * my_dict['passing_int']
+      + my_df['fumbles'] * my_dict['fumbles']
     )
     return my_df
 
@@ -102,16 +102,16 @@ def pro_football_reference_pts(my_df, my_dict):
     """Adds a column to a dataframe for fantasy points based on custom league specs for Pro Football Reference data"""
     my_df = my_df.copy()
     my_df[f'{my_dict.get("name")}_custom_pts'] = (
-      my_df['receiving_rec'] * my_dict.get('receiving_rec')  
-      + my_df['receiving_yds'] * my_dict.get('receiving_yds')
-      + my_df['receiving_td'] * my_dict.get('receiving_td')
-      + my_df['rushing_yds'] * my_dict.get('rushing_yds')
-      + my_df['rushing_td'] * my_dict.get('rushing_td')
-      + my_df['passing_yds'] * my_dict.get('passing_yds')
-      + my_df['passing_td'] * my_dict.get('passing_td')
-      + my_df['passing_int'] * my_dict.get('passing_int')
-      + my_df['fumbles'] * my_dict.get('fumbles')
-      + my_df['fumbles_lost'] * my_dict.get('fumbles_lost')          
+      my_df['receiving_rec'] * my_dict['receiving_rec']
+      + my_df['receiving_yds'] * my_dict['receiving_yds']
+      + my_df['receiving_td'] * my_dict['receiving_td']
+      + my_df['rushing_yds'] * my_dict['rushing_yds']
+      + my_df['rushing_td'] * my_dict['rushing_td']
+      + my_df['passing_yds'] * my_dict['passing_yds']
+      + my_df['passing_td'] * my_dict['passing_td']
+      + my_df['passing_int'] * my_dict['passing_int']
+      + my_df['fumbles'] * my_dict['fumbles']
+      + my_df['fumbles_lost'] * my_dict['fumbles_lost']
     )
     return my_df
 
