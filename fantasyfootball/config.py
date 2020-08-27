@@ -85,7 +85,7 @@ scoring_List = [sean, justin, work]
 def fantasy_pros_pts(my_df, my_dict):
     """Adds a column to a dataframe for fantasy points based on custom league specs for Fantasy Pros Projections"""
     my_df = my_df.copy()
-    my_df[f'{my_dict.get("name")}_custom_pts'] = (
+    my_df[f'{my_dict['name']}_custom_pts'] = (
       my_df['receiving_rec'] * my_dict['receiving_rec']
       + my_df['receiving_yds'] * my_dict['receiving_yds']
       + my_df['receiving_td'] * my_dict['receiving_td']
@@ -101,7 +101,7 @@ def fantasy_pros_pts(my_df, my_dict):
 def pro_football_reference_pts(my_df, my_dict):
     """Adds a column to a dataframe for fantasy points based on custom league specs for Pro Football Reference data"""
     my_df = my_df.copy()
-    my_df[f'{my_dict.get("name")}_custom_pts'] = (
+    my_df[f'{my_dict['name']}_custom_pts'] = (
       my_df['receiving_rec'] * my_dict['receiving_rec']
       + my_df['receiving_yds'] * my_dict['receiving_yds']
       + my_df['receiving_td'] * my_dict['receiving_td']
@@ -124,9 +124,9 @@ def unique_id_create(my_df, team=False):
     if team:
         my_df = (my_df.assign(id = (
                           my_df['player_name'].replace(symbol_dict, regex=True)
-                                                .str.lower()
-                                                .str.split()
-                                                .str[0].str[0:3]
+                                              .str.lower()
+                                              .str.split()
+                                              .str[0].str[0:3]
                          + '_' 
                          + my_df['player_name'].replace(symbol_dict, regex=True)
                                                .str.lower()
@@ -146,9 +146,9 @@ def unique_id_create(my_df, team=False):
                                                 .str[0].str[0:3]
                          + '_' 
                           + my_df['player_name'].replace(symbol_dict, regex=True)
-                                               .str.lower()
-                                               .str.split()
-                                               .str[1]
+                                                .str.lower()
+                                                .str.split()
+                                                .str[1]
                          + '_' 
                          + my_df['pos']
                                ).str.lower())
@@ -162,8 +162,8 @@ def value_over_last_starter(my_df, my_dict, pos_list):
     my_df = my_df.copy()
     my_df.sort_values('adp', inplace=True)
     for pos in pos_list:
-        pos_cutoff = my_dict.get(pos) * my_dict.get('team_n')
-        tdf = my_df.loc[my_df['pos'] == pos.upper(), [f'{my_dict.get("name")}_custom_pts']]
+        pos_cutoff = my_dict[pos] * my_dict['team_n']
+        tdf = my_df.loc[my_df['pos'] == pos.upper(), [f'{my_dict["name"]}_custom_pts']]
         tdf = tdf.head(pos_cutoff)
         replacement_value[pos.upper()] = float(np.mean(tdf.tail(3)))
     return replacement_value
@@ -174,8 +174,8 @@ def value_over_avg_starter(my_df, my_dict, pos_list):
     my_df = my_df.copy()
     my_df.sort_values('adp', inplace=True)
     for pos in pos_list:
-        pos_cutoff = my_dict.get(pos) * my_dict.get('team_n')
-        tdf = my_df.loc[my_df['pos'] == pos.upper(), [f'{my_dict.get("name")}_custom_pts']]
+        pos_cutoff = my_dict[pos] * my_dict['team_n']
+        tdf = my_df.loc[my_df['pos'] == pos.upper(), [f'{my_dict["name"]}_custom_pts']]
         tdf = tdf.head(pos_cutoff)
         replacement_value[pos.upper()] = float(np.mean(tdf))
     return replacement_value
@@ -186,9 +186,9 @@ def value_over_replacement_player(my_df, my_dict, pos_list):
     my_df = my_df.copy()
     my_df.sort_values('adp', inplace=True)
     for pos in pos_list:
-        draft_cutoff = my_dict.get('rounds') * my_dict.get('team_n')
+        draft_cutoff = my_dict['rounds'] * my_dict['team_n']
         tdf = my_df.head(draft_cutoff)
-        tdf = tdf.loc[my_df['pos'] == pos.upper(), [f'{my_dict.get("name")}_custom_pts']]
+        tdf = tdf.loc[my_df['pos'] == pos.upper(), [f'{my_dict["name"]}_custom_pts']]
         replacement_value[pos.upper()] = float(np.mean(tdf.tail(3)))
     return replacement_value
 
@@ -200,7 +200,7 @@ def value_through_n_picks(my_df, my_dict, pos_list, pick_n=125):
     my_df.reset_index(inplace=True, drop=True)
     my_df = my_df.head(pick_n)
     for pos in pos_list:
-        tdf = my_df.loc[my_df['pos'] == pos.upper(), [f'{my_dict.get("name")}_custom_pts']]
+        tdf = my_df.loc[my_df['pos'] == pos.upper(), [f'{my_dict["name"]}_custom_pts']]
         replacement_value[pos.upper()] = float(np.mean(tdf.tail(1)))
     return replacement_value
 
