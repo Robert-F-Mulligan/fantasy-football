@@ -100,7 +100,7 @@ tier_df = tier_df.rename(columns={
     f'{year}_std_dev': 'py_std_dev'
     })
 tier_df = tier_df[['rank', 'pos_tiers', 'player_name', 'tm', 'pos_rank', 'pos', 'bye', 'best', 'worst', 'avg', 'std dev', 'adp',
-                    'py_avg_ppg', 'py_std_dev', 'custom_points', 'vor', 'adp_vor_delta']]
+                    'adp_vor_delta', 'py_avg_ppg', 'py_std_dev', 'custom_points', 'vor']]
 
 #export to CSVs
 tier_df.to_csv(path.join(DATA_DIR, rf'vor\{date}_{league.get("name")}_draft.csv'), index=False)
