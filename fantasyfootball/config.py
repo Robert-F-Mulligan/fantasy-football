@@ -4,7 +4,7 @@ import pandas as pd
 from os import path
 import numpy as np
 
-DATA_DIR = r'..\data\raw'
+DATA_DIR = r'..\data'
 FIGURE_DIR = r'..\figures'
 
 #scoring systems
