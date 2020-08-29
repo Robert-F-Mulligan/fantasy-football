@@ -71,6 +71,13 @@ replacement_value = config.value_through_n_picks(merged_df, league, pos_list)
 
 #map replacement value to df and calculate value above replacement
 merged_df['vor'] = merged_df[f'{league.get("name")}_custom_pts'] - merged_df['pos'].map(replacement_value)
+
+# add VOR rank normalize VOR, and determine VOR / ADP differential
+merged_df['vor_rank'] = merged_df['vor'].rank(ascending=False)
+merged_df['adp_rank'] = merged_df['overall'].rank()
+merged_df['adp_vor_delta'] = merged_df['adp_rank'] - merged_df['vor_rank']
+merged_df = merged_df.drop(columns=['vor_rank', 'adp_rank'])
+merged_df['vor'] = merged_df['vor'].apply(lambda x: (x - merged_df['vor'].min()) / (merged_df['vor'].max() - merged_df['vor'].min()))
 merged_df = (merged_df.sort_values('vor', ascending=False)
                       .reset_index(drop=True)
             )
@@ -93,7 +100,7 @@ tier_df = tier_df.rename(columns={
     f'{year}_std_dev': 'py_std_dev'
     })
 tier_df = tier_df[['rank', 'pos_tiers', 'player_name', 'tm', 'pos_rank', 'pos', 'bye', 'best', 'worst', 'avg', 'std dev', 'adp',
-                    'py_avg_ppg', 'py_std_dev', 'custom_points', 'vor']]
+                    'py_avg_ppg', 'py_std_dev', 'custom_points', 'vor', 'adp_vor_delta']]
 
 #export to CSVs
 tier_df.to_csv(path.join(DATA_DIR, rf'vor\{date}_{league.get("name")}_draft.csv'), index=False)
