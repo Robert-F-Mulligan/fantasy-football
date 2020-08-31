@@ -34,7 +34,7 @@ justin = {
 
 sean = {
     'name' : 'sean',
-    'team_n' : 12,
+    'team_n' : 12, 
     'scoring' : 'ppr',
     'rounds' : 15-2,
     'passing_yds' : 0.04,
@@ -58,7 +58,7 @@ sean = {
 
 work = {
     'name' : 'work',
-    'team_n' : 14,
+    'team_n' : 10, #2020 season changed from 14 to 10
     'scoring' : 'half-ppr',
     'rounds' : 15-2,
     'passing_yds' : 0.02857143,
