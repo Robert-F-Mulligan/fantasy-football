@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     df.head()
 
-    df.to_csv(path.join(DATA_DIR, f'Advanced Stats Game by Game Breakdown_{min}_{max}.csv'), index=False)
+    df.to_csv(path.join(DATA_DIR, f'{min}_{max}_weekly_advanced.csv'), index=False)
 
     print(f'All done! The dataframe has {rows} rows and {cols} columns.')
 
