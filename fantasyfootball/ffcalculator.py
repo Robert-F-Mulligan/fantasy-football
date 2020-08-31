@@ -9,11 +9,11 @@ def adp_scrape(league):
     """Function to pull ADP table from Fantasy Football Calculator specific to customized league specs"""
     team_number = league.get('team_n')
     scoring = league.get('scoring')
-    if (scoring == 'standard') and (team_number == 12):
+    if scoring == 'standard' and team_number == 12:
         url = 'https://fantasyfootballcalculator.com/adp'
-    elif (scoring == 'ppr' or scoring == 'half-ppr')  & (team_number == 12):
+    elif scoring !='standard' and team_number == 12:
         url = f'https://fantasyfootballcalculator.com/adp/{scoring}'
-    elif team_number == 14:
+    else:
         url = f'https://fantasyfootballcalculator.com/adp/{scoring}/{team_number}-team/all'
     r = requests.get(url)
     adp = BeautifulSoup(r.content, 'html.parser')
