@@ -52,3 +52,5 @@ Run Jupyter Notebook and open the notebooks in 'notebooks/':
 $ jupyter notebook
 
 Select the new kernel fantasyfootball
+
+![Image of Tiers Chart](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/08.12.2020_rangeofrankings_gmm_RB.png)
