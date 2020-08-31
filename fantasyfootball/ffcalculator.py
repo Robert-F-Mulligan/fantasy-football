@@ -7,8 +7,8 @@ import fantasyfootball.config as config
 
 def adp_scrape(league):
     """Function to pull ADP table from Fantasy Football Calculator specific to customized league specs"""
-    team_number = league.get('team_n')
-    scoring = league.get('scoring')
+    team_number = league['team_n']
+    scoring = league['scoring']
     if scoring == 'standard' and team_number == 12:
         url = 'https://fantasyfootballcalculator.com/adp'
     elif scoring !='standard' and team_number == 12:
