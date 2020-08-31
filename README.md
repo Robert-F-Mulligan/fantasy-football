@@ -1,5 +1,7 @@
 # Fantasy-Football
-Repo for Fantasy Football analysis, visualization and modeling 
+Repo for Fantasy Football analysis, data scraping, visualization and modeling
+
+![Image of Tiers Chart](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/08.12.2020_rangeofrankings_gmm_RB.png)
 
 Project Organization
 ------------
@@ -53,4 +55,3 @@ $ jupyter notebook
 
 Select the new kernel fantasyfootball
 
-![Image of Tiers Chart](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/08.12.2020_rangeofrankings_gmm_RB.png)
