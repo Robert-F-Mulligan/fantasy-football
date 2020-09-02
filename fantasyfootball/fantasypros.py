@@ -18,14 +18,20 @@ import numpy as np
 from sklearn.cluster import KMeans
 
 def fantasy_pros_scrape(url):
-    """Scrape Fantasy Pros stat projections given a URL"""
+    """Scrape Fantasy Pros stat projections
+    
+    :param url: url where data will be scraped from
+    """
     r = requests.get(url)
     soup = BeautifulSoup(r.content, 'html.parser')
     table = soup.find_all('table', attrs={'id':'data'})
     return pd.read_html(str(table))[0]
 
 def fantasy_pros_column_clean(df):
-    """Cleans up columns for Fantasy Pros scraped data tables"""
+    """Cleans up columns for Fantasy Pros scraped data tables
+    
+    :param df: dataframe object that has been scraped from a url
+    """
     df = df.copy()
     df.columns = ['_'.join(col) for col in df.columns]
     df.rename(columns={
@@ -44,7 +50,12 @@ def fantasy_pros_column_clean(df):
     return df
 
 def fantasy_pros_column_reindex(df):
-    """Adds columns that are missing from Fantasy Pros tables and reorders columns"""
+    """Adds columns that are missing from Fantasy Pros tables and reorders columns
+       Some tables are missing stats (no passing stats for RBs) so this will fill in the gaps and
+       have '0' as the value for any missing column
+    
+    :param df: cleaned dataframe object resulting from a web scrape
+    """
     full_column_list = [
     'player_name', 'tm', 'pos',
     'receiving_rec', 'receiving_yds', 'receiving_td', 'rushing_att', 'rushing_yds', 'rushing_td', #WR/RB
@@ -64,6 +75,13 @@ def fantasy_pros_stats_process(url):
     return df
 
 def fantasy_pros_pos_projection_scrape(week='draft', league=config.sean, PPR=True, make_id=False):
+    """This function scrapes projected stats for each player across each skill position
+
+    :param week: week of season to scrape
+    :param league: league dict in config.py used to determine scoring rules
+    :param PPR: flag to include PPR or standard scoring columns in the resultant dataframe
+    :param made_id: flag to include a unique ID column that can be used to join to another dataframe
+    """
     df_list = []
     pos_list = pos_list = ['qb', 'wr', 'te', 'rb']
     for pos in pos_list:
@@ -83,7 +101,10 @@ def fantasy_pros_pos_projection_scrape(week='draft', league=config.sean, PPR=Tru
     return df
 
 def fantasy_pros_ecr_scrape(league_dict=config.sean):
-    """Scrape Fantasy Pros ECR given a league scoring format"""
+    """Scrape Fantasy Pros ECR given a league scoring format
+    
+    :param league_dict: league dict in config.py used to determine whether to pull PPR/standard/half-ppr
+    """
     scoring = league_dict.get('scoring')
     if scoring == 'ppr':
         url = 'https://www.fantasypros.com/nfl/rankings/ppr-cheatsheets.php'
@@ -97,7 +118,10 @@ def fantasy_pros_ecr_scrape(league_dict=config.sean):
     return pd.read_html(str(table))[0]
 
 def fantasy_pros_ecr_scrape_column_clean(df):
-    """Cleans data for ECR scrape """
+    """Cleans data for ECR scrape
+    
+    :param df: dataframe object that has been scraped from a url
+    """
     df = df.copy()
     df.columns = [col.lower() for col in df.columns]
     df = (df.drop(columns=['wsid'])
@@ -117,7 +141,10 @@ def fantasy_pros_ecr_scrape_column_clean(df):
     return df
 
 def fantasy_pros_ecr_column_reindex(df):
-    """Reorders columns for ECR data"""
+    """Reorders columns for ECR data
+    
+    :param df: cleaned dataframe object resulting from a web scrape
+    """
     full_column_list = [
         'rank', 'player_name', 'pos', 'tm', 'pos_rank', 'bye', 'best', 'worst', 'avg', 'std dev',
        'adp', 'vs. adp' 
@@ -132,26 +159,11 @@ def fantasy_pros_ecr_process(league):
     df = fantasy_pros_ecr_column_reindex(df)
     return df
 
-def fantasy_pros_ecr_weekly_clean(df):
-    """
-    Cleans Dfs from FantasyPros weekly rankings
-    """
-    df = df.copy()
-    df.columns = [col.lower() for col in df.columns]
-    df = (df.rename(columns={df.columns[2]: 'player_name', 'Rank': 'pos_rank'})
-            .drop(columns=['wsis'])
-            .dropna(subset=['player_name'])
-         )
-    df['pos_rank'] = df['pos_rank'].astype('int')
-    df['tm'] = df['player_name'].str.split().str[-1]
-    #rsplit doesn't support Regex - comment out until bug is fixed
-    #df['player_name'] = df['player_name'].str.rsplit('[A-Z]\.').str[0]
-    df['player_name'] = df['player_name'].str.rsplit(n=1).str[0].str.rsplit(n=1).str[0].str[:-2]
-    df['tm'].replace({'JAC' : 'JAX'}, inplace=True)
-    return df
-
 def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
-    """Scrape Fantasy Pros ECR given a league scoring format (on a week by week basis)"""
+    """Scrape Fantasy Pros ECR given a league scoring format (on a week by week basis)
+    
+    :param league_dict: league dict in config.py used to determine whether to pull PPR/standard/half-ppr
+    """
     scoring = league_dict.get('scoring')
     pos_list = ['RB', 'WR', 'TE', 'QB', 'K'] #'DST'
     df_list = []
@@ -171,6 +183,26 @@ def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
         df = fantasy_pros_ecr_weekly_clean(df)
         df_list.append(df)
     df = pd.concat(df_list)
+    return df
+
+def fantasy_pros_ecr_weekly_clean(df):
+    """
+    Cleans Dfs from FantasyPros weekly rankings
+
+    :param df: dataframe object that has been scraped from a url
+    """
+    df = df.copy()
+    df.columns = [col.lower() for col in df.columns]
+    df = (df.rename(columns={df.columns[2]: 'player_name', 'Rank': 'pos_rank'})
+            .drop(columns=['wsis'])
+            .dropna(subset=['player_name'])
+         )
+    df['pos_rank'] = df['pos_rank'].astype('int')
+    df['tm'] = df['player_name'].str.split().str[-1]
+    #rsplit doesn't support Regex - comment out until bug is fixed
+    #df['player_name'] = df['player_name'].str.rsplit('[A-Z]\.').str[0]
+    df['player_name'] = df['player_name'].str.rsplit(n=1).str[0].str.rsplit(n=1).str[0].str[:-2]
+    df['tm'].replace({'JAC' : 'JAX'}, inplace=True)
     return df
 
 if __name__ == "__main__":
