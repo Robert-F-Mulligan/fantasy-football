@@ -6,7 +6,10 @@ import requests
 import fantasyfootball.config as config
 
 def adp_scrape(league):
-    """Function to pull ADP table from Fantasy Football Calculator specific to customized league specs"""
+    """Function to pull ADP table from Fantasy Football Calculator specific to customized league specs
+    
+    :param league: league dict in config.py used to determine scoring rules
+    """
     team_number = league['team_n']
     scoring = league['scoring']
     if scoring == 'standard' and team_number == 12:
@@ -23,7 +26,11 @@ def adp_scrape(league):
     return df
 
 def adp_column_clean(df, league):
-    """Cleans ADP dataframe from Fantasy Football Calculator"""
+    """Cleans ADP dataframe from Fantasy Football Calculator
+    
+    :param df: dataframe object that has been scraped from a url
+    :param league: league dict in config.py used to determine scoring rules
+    """
     df = df.copy()
     df.columns = [col.lower() for col in df.columns]
     df['scoring'] = league.get('scoring')
