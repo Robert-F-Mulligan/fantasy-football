@@ -60,7 +60,7 @@ work = {
     'name' : 'work',
     'team_n' : 10, #2020 season changed from 14 to 10
     'scoring' : 'half-ppr',
-    'rounds' : 15-2,
+    'rounds' : 17-2, #bench was increased to 8 for covid
     'passing_yds' : 0.02857143,
     'passing_td' : 5,
     'passing_int' : -2,
