@@ -165,7 +165,7 @@ def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
     :param league_dict: league dict in config.py used to determine whether to pull PPR/standard/half-ppr
     """
     scoring = league_dict.get('scoring')
-    pos_list = ['RB', 'WR', 'TE', 'QB', 'K'] #'DST'
+    pos_list = ['RB', 'WR', 'TE', 'QB', 'K', 'DST']
     df_list = []
     for pos in pos_list:
         if scoring == 'ppr' and pos in ['RB', 'WR', 'TE']:
@@ -180,9 +180,10 @@ def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
         table = soup.find_all('table')
         df = pd.read_html(str(table))[0]
         df['pos'] = pos
-        df = fantasy_pros_ecr_weekly_clean(df)
+        df = fantasy_pros_ecr_weekly_clean(df) #must run for each pos or concat will fail; headers are pos specific
         df_list.append(df)
     df = pd.concat(df_list)
+    df['rank'] = df['proj. pts'].rank(ascending=False)
     return df
 
 def fantasy_pros_ecr_weekly_clean(df):
@@ -193,15 +194,16 @@ def fantasy_pros_ecr_weekly_clean(df):
     """
     df = df.copy()
     df.columns = [col.lower() for col in df.columns]
-    df = (df.rename(columns={df.columns[2]: 'player_name', 'Rank': 'pos_rank'})
+    df = (df.rename(columns={df.columns[2]: 'player_name', 'Rank': 'rank'})
             .drop(columns=['wsis'])
             .dropna(subset=['player_name'])
          )
-    df['pos_rank'] = df['pos_rank'].astype('int')
+    df['pos_rank'] = df['pos'] + df['rank'].astype('int').astype('str')
     df['tm'] = df['player_name'].str.split().str[-1]
     #rsplit doesn't support Regex - comment out until bug is fixed
     #df['player_name'] = df['player_name'].str.rsplit('[A-Z]\.').str[0]
-    df['player_name'] = df['player_name'].str.rsplit(n=1).str[0].str.rsplit(n=1).str[0].str[:-2]
+    df.loc[df['pos'] == 'DST', 'player_name'] = df['player_name'].str.split(')').str[0] + ')'
+    df.loc[df['pos'] != 'DST', 'player_name'] = df['player_name'].str.rsplit(n=1).str[0].str.rsplit(n=1).str[0].str[:-2]
     df['tm'].replace({'JAC' : 'JAX'}, inplace=True)
     return df
 
