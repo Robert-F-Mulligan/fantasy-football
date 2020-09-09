@@ -25,7 +25,7 @@ pos_tier_dict_viz = {
     'K' : 4
     }
 
-league = config.sean
+league = config.work
 pos_list = ['qb', 'wr', 'te', 'rb']
 today = date.today()
 date = today.strftime('%Y.%m.%d')
