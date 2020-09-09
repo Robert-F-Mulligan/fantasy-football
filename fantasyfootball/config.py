@@ -195,8 +195,8 @@ def value_over_replacement_player(my_df, my_dict, pos_list):
 def value_through_n_picks(my_df, my_dict, pos_list):
     """Calculates the value per pos through 100 picks, given a datframe, league dict and pos list"""
     replacement_value = {}
-    pick_dict = {10: 100, 12: 125, 14: 140}
-    pick_n = pick_dict.get(my_dict['team_n']), 100)
+    pick_dict = {10: 100, 12: 120, 14: 140}
+    pick_n = pick_dict.get(my_dict['team_n'], 100)
     my_df = my_df.copy()
     my_df.sort_values('adp', inplace=True)
     my_df.reset_index(inplace=True, drop=True)
