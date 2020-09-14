@@ -164,13 +164,13 @@ def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
     
     :param league_dict: league dict in config.py used to determine whether to pull PPR/standard/half-ppr
     """
-    scoring = league_dict.get('scoring')
-    pos_list = ['RB', 'WR', 'TE', 'QB', 'K', 'DST']
+    scoring = league_dict['scoring']
+    pos_list = ['RB', 'WR', 'TE', 'QB', 'K', 'DST', 'FLEX']
     df_list = []
     for pos in pos_list:
-        if scoring == 'ppr' and pos in ['RB', 'WR', 'TE']:
+        if scoring == 'ppr' and pos in ['RB', 'WR', 'TE', 'FLEX']:
             url = f'https://www.fantasypros.com/nfl/rankings/ppr-{pos.lower()}.php'
-        elif scoring == 'half-ppr' and pos in ['RB', 'WR', 'TE']:
+        elif scoring == 'half-ppr' and pos in ['RB', 'WR', 'TE', 'FLEX']:
             url = f'https://www.fantasypros.com/nfl/rankings/half-point-ppr-{pos.lower()}.php'
         else:
             url = f'https://www.fantasypros.com/nfl/rankings/{pos.lower()}.php'
@@ -179,11 +179,17 @@ def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
         soup = BeautifulSoup(r.content, 'html.parser')
         table = soup.find_all('table')
         df = pd.read_html(str(table))[0]
+        #Flex and pos have different columns
+        if pos == 'FLEX':
+            df = df.drop(columns='Pos')
+            df['Proj. Pts'] = np.nan
         df['pos'] = pos
         df = fantasy_pros_ecr_weekly_clean(df) #must run for each pos or concat will fail; headers are pos specific
         df_list.append(df)
     df = pd.concat(df_list)
-    df['rank'] = df['proj. pts'].rank(ascending=False)
+    proj_pts_df = df[['player_name', 'proj. pts']].dropna(subset=['proj. pts'])
+    pts_map = dict(zip(proj_pts_df['player_name'].to_list(), proj_pts_df['proj. pts'].to_list()))
+    df['proj. pts'] = df['player_name'].map(pts_map)
     return df
 
 def fantasy_pros_ecr_weekly_clean(df):
