@@ -22,7 +22,7 @@ def make_clustering_viz_flex(tiers=20, kmeans=False, league=config.sean, player_
     Optional: Pass in a custom pos_n dict to show different numbers of players by position
     """
     pos = 'FLEX'
-    palette = ['red', 'blue', 'green', 'orange', '#900C3F', 'maroon', 'cornflowerblue', 'greenyellow', 'coral', 'orchid', 'firebrick', 'lightsteelblue', 'palegreen', 'darkorange', 'crimson', 'darkred', 'aqcua', 'forestgreen', 'navajowhite', 'mediumpurple']
+    palette = ['red', 'blue', 'green', 'orange', '#900C3F', 'maroon', 'cornflowerblue', 'greenyellow', 'coral', 'orchid', 'firebrick', 'lightsteelblue', 'palegreen', 'darkorange', 'crimson', 'darkred', 'aqua', 'forestgreen', 'navajowhite', 'mediumpurple']
     df = fp.fantasy_pros_ecr_weekly_scrape(league)
     #derive pos for players
     pos_df = df.loc[df['pos'] != pos]
@@ -55,6 +55,7 @@ def make_clustering_viz_flex(tiers=20, kmeans=False, league=config.sean, player_
     
     style.use('ggplot')
     colors = dict(zip(range(1, tiers+1), palette[:tiers]))
+    tier_lookup = dict(zip(palette[:tiers], range(1, tiers+1)))
 
     chart_n = (player_cutoff // player_per_chart) + (player_cutoff % player_per_chart > 0)
 
@@ -62,13 +63,18 @@ def make_clustering_viz_flex(tiers=20, kmeans=False, league=config.sean, player_
         fig, ax = plt.subplots();
         min_tier = min(chunk_df['tiers'])
         max_tier = max(chunk_df['tiers'])
+        patches=[]
+        color_chunk = [colors[i] for i in range(min_tier, max_tier + 1)]
+        for color in color_chunk:
+            patch = mpatches.Patch(color=color, alpha=0.5, label=f'Tier {tier_lookup[color]}')
+            patches.append(patch)
 
         for _, row in chunk_df.iterrows():
             xmin = row['best']
             xmax = row['worst']
             ymin, ymax = row['pos_rank'], row['pos_rank']
             center = row['avg']
-            player = row['player_name'] + ',' +row['tm'] + '(' + row['pos_map'] + ')'
+            player = row['player_name'] + ', ' +row['tm'] + ' (' + row['pos_map'] + ')'
             tier = row['tiers']
             
             plt.scatter(center, ymax, color='gray', zorder=2, s=100)
@@ -76,11 +82,6 @@ def make_clustering_viz_flex(tiers=20, kmeans=False, league=config.sean, player_
             plt.scatter(xmax, ymax, marker= "|", color=colors.get(tier, 'moccasin'), alpha=0.5, zorder=1)
             plt.plot((xmin, xmax), (ymin, ymax), color=colors.get(tier, 'moccasin'), alpha=0.5, zorder=1, linewidth=5.0)
             plt.annotate(player, xy=(xmax+1, ymax))
-
-        patches = []
-        for tier, color in colors.items():
-            patch = mpatches.Patch(color=color, alpha=0.5, label=f'Tier {tier}')
-            patches.append(patch)
 
         plt.legend(handles=patches, borderpad=1, fontsize=12)
         plt.title(f'{date_str} Fantasy Football Weekly - {pos} {ix+1}')
@@ -113,5 +114,5 @@ if __name__ == "__main__":
     'K' : 7
     }
 
-    tiers.make_clustering_viz(tier_dict=pos_tier_dict_viz, league=league, pos_n=35, covariance_type='diag', draft=False, save=False)
+    #tiers.make_clustering_viz(tier_dict=pos_tier_dict_viz, league=league, pos_n=35, covariance_type='diag', draft=False, save=False)
     make_clustering_viz_flex()
