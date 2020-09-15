@@ -22,7 +22,7 @@ def make_clustering_viz_flex(tiers=20, kmeans=False, league=config.sean, player_
     Optional: Pass in a custom pos_n dict to show different numbers of players by position
     """
     pos = 'FLEX'
-    palette = ['red', 'blue', 'green', 'orange', '#900C3F', '#2980B9', '#FFC300', '#581845', 'white', 'cyan', 'yellow', 'navy', 'firebrick', 'springgreen', 'darkorange', 'violet', 'peachpuff', 'dodgerblue', 'deeppink', 'khaki']
+    palette = ['red', 'blue', 'green', 'orange', '#900C3F', 'maroon', 'cornflowerblue', 'greenyellow', 'coral', 'orchid', 'firebrick', 'lightsteelblue', 'palegreen', 'darkorange', 'crimson', 'darkred', 'aqcua', 'forestgreen', 'navajowhite', 'mediumpurple']
     df = fp.fantasy_pros_ecr_weekly_scrape(league)
     #derive pos for players
     pos_df = df.loc[df['pos'] != pos]
@@ -60,6 +60,9 @@ def make_clustering_viz_flex(tiers=20, kmeans=False, league=config.sean, player_
 
     for ix, chunk_df in enumerate(np.array_split(df, chart_n)):
         fig, ax = plt.subplots();
+        min_tier = min(chunk_df['tiers'])
+        max_tier = max(chunk_df['tiers'])
+
         for _, row in chunk_df.iterrows():
             xmin = row['best']
             xmax = row['worst']
