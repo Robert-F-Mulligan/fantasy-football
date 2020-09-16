@@ -193,10 +193,7 @@ def make_clustering_viz(tier_dict=8, kmeans=False, league=config.sean, pos_n=35,
             plt.plot((xmin, xmax), (ymin, ymax), color=colors.get(tier, 'yellow'), alpha=0.5, zorder=1, linewidth=5.0)
             plt.annotate(player, xy=(xmax+1, ymax))
 
-        patches = []
-        for tier, color in colors.items():
-            patch = mpatches.Patch(color=color, alpha=0.5, label=f'Tier {tier}')
-            patches.append(patch)
+        patches = [mpatches.Patch(color=color, alpha=0.5, label=f'Tier {tier}') for tier, color in colors.items()]
 
         plt.legend(handles=patches, borderpad=1, fontsize=12)
         if draft:
