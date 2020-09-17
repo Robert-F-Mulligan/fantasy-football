@@ -15,6 +15,7 @@ from fantasyfootball import config
 from fantasyfootball.config import FIGURE_DIR
 from fantasyfootball import ffcalculator
 from os import path
+from collections import OrderedDict
 
 #run SSE or AIC/BIC chart to pick cluster #s
 pos_tier_dict_viz = {
@@ -168,9 +169,7 @@ def make_clustering_viz(tier_dict=8, kmeans=False, league=config.sean, pos_n=35,
             gmm = GaussianMixture(n_components=k, covariance_type=covariance_type, random_state=0).fit(x)
             labels = gmm.predict(x)
         unique_labels = []
-        for i in labels:
-            if i not in unique_labels:
-                unique_labels.append(i)
+        _ = [unique_labels.append(label) for label in labels if label not in unique_labels]
         rank_dict = dict(zip(unique_labels, range(1,len(unique_labels)+1)))
         pos_df['pos_tiers'] = labels
         pos_df['pos_tiers'] = pos_df['pos_tiers'].map(rank_dict)                             

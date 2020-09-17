@@ -14,6 +14,7 @@ import numpy as np
 import matplotlib.style as style
 from datetime import date
 from os import path
+from collections import OrderedDict
 
 
 def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_cutoff=150, player_per_chart=50, x_size=20, y_size=15, covariance_type='diag', save=True):
@@ -52,9 +53,7 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
         gmm = GaussianMixture(n_components=tiers, covariance_type=covariance_type, random_state=0).fit(x)
         labels = gmm.predict(x)
     unique_labels = []
-    for i in labels:
-        if i not in unique_labels:
-            unique_labels.append(i)
+    _ = [unique_labels.append(label) for label in labels if label not in unique_labels]
     rank_dict = dict(zip(unique_labels, range(1,len(unique_labels)+1)))
     df['tiers'] = labels
     df['tiers'] = df['tiers'].map(rank_dict)                             
