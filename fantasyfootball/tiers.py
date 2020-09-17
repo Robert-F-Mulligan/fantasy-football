@@ -168,8 +168,7 @@ def make_clustering_viz(tier_dict=8, kmeans=False, league=config.sean, pos_n=35,
         else: #gausianmixture
             gmm = GaussianMixture(n_components=k, covariance_type=covariance_type, random_state=0).fit(x)
             labels = gmm.predict(x)
-        unique_labels = []
-        _ = [unique_labels.append(label) for label in labels if label not in unique_labels]
+        unique_labels = list(OrderedDict.fromkeys(labels))
         rank_dict = dict(zip(unique_labels, range(1,len(unique_labels)+1)))
         pos_df['pos_tiers'] = labels
         pos_df['pos_tiers'] = pos_df['pos_tiers'].map(rank_dict)                             

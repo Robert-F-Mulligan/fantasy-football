@@ -52,8 +52,7 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
     else: #gausianmixture
         gmm = GaussianMixture(n_components=tiers, covariance_type=covariance_type, random_state=0).fit(x)
         labels = gmm.predict(x)
-    unique_labels = []
-    _ = [unique_labels.append(label) for label in labels if label not in unique_labels]
+    unique_labels = list(OrderedDict.fromkeys(labels))
     rank_dict = dict(zip(unique_labels, range(1,len(unique_labels)+1)))
     df['tiers'] = labels
     df['tiers'] = df['tiers'].map(rank_dict)                             
