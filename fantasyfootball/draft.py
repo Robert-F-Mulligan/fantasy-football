@@ -67,7 +67,7 @@ merged_df = (merged_df.merge(agg_df, how='left', on='id').reset_index(drop=True)
             )
 
 #run the desired VBD function to calculate replacement player
-replacement_value = config.value_through_n_picks(merged_df, league, pos_list)
+replacement_value = config.value_through_n_picks(merged_df, pos_list, league)
 
 #map replacement value to df and calculate value above replacement
 merged_df['vor'] = merged_df[f'{league.get("name")}_custom_pts'] - merged_df['pos'].map(replacement_value)

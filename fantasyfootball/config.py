@@ -179,7 +179,7 @@ def unique_id_create(my_df, team=False):
     return my_df
 
 #VBD functions
-def value_over_last_starter(my_df, my_dict=ppr, pos_list):
+def value_over_last_starter(my_df, pos_list, my_dict=ppr):
     """Calculates the value for a low-end starter, given a datframe, league dict and pos list"""
     replacement_value = {}
     my_df = my_df.copy()
@@ -191,7 +191,7 @@ def value_over_last_starter(my_df, my_dict=ppr, pos_list):
         replacement_value[pos.upper()] = float(np.mean(tdf.tail(3)))
     return replacement_value
 
-def value_over_avg_starter(my_df, my_dict=ppr, pos_list):
+def value_over_avg_starter(my_df, pos_list, my_dict=ppr):
     """Calculates the avg output for a starter, given a daatframe, league dict and pos list"""
     replacement_value = {}
     my_df = my_df.copy()
@@ -203,7 +203,7 @@ def value_over_avg_starter(my_df, my_dict=ppr, pos_list):
         replacement_value[pos.upper()] = float(np.mean(tdf))
     return replacement_value
 
-def value_over_replacement_player(my_df, my_dict=ppr, pos_list):
+def value_over_replacement_player(my_df, pos_list, my_dict=ppr):
     """Calculates the replacement value for a starter, given a datframe, league dict and pos list"""
     replacement_value = {}
     my_df = my_df.copy()
@@ -215,7 +215,7 @@ def value_over_replacement_player(my_df, my_dict=ppr, pos_list):
         replacement_value[pos.upper()] = float(np.mean(tdf.tail(3)))
     return replacement_value
 
-def value_through_n_picks(my_df, my_dict=ppr, pos_list):
+def value_through_n_picks(my_df, pos_list,  my_dict=ppr):
     """Calculates the value per pos through 100 picks, given a datframe, league dict and pos list"""
     replacement_value = {}
     pick_dict = {10: 100, 12: 120, 14: 140}
