@@ -8,6 +8,29 @@ DATA_DIR = r'..\data'
 FIGURE_DIR = r'..\figures'
 
 #scoring systems
+ppr = {
+    'name' : 'ppr',
+    'team_n' : 12, 
+    'scoring' : 'ppr',
+    'rounds' : 15-2,
+    'passing_yds' : 0.04,
+    'passing_td' : 6,
+    'passing_int' : -1,
+    'rushing_yds' : 0.1,
+    'rushing_td' : 6,
+    'receiving_rec' : 1,
+    'receiving_yds' : 0.1,
+    'receiving_td' : 6,
+    'fumbles' : -1,
+    'fumbles_lost' : -2,
+    'qb' : 1,
+    'rb' : 2,
+    'wr' : 2,
+    'te' : 1,
+    'flex' : 1,
+    'dst' : 1,
+    'k' : 1
+}
 justin = {
     'name' : 'justin',
     'team_n' : 12,
@@ -82,7 +105,7 @@ work = {
 
 scoring_List = [sean, justin, work]
 
-def fantasy_pros_pts(my_df, my_dict):
+def fantasy_pros_pts(my_df, my_dict=ppr):
     """Adds a column to a dataframe for fantasy points based on custom league specs for Fantasy Pros Projections"""
     my_df = my_df.copy()
     my_df[f'{my_dict["name"]}_custom_pts'] = (
@@ -98,7 +121,7 @@ def fantasy_pros_pts(my_df, my_dict):
     )
     return my_df
 
-def pro_football_reference_pts(my_df, my_dict):
+def pro_football_reference_pts(my_df, my_dict=ppr):
     """Adds a column to a dataframe for fantasy points based on custom league specs for Pro Football Reference data"""
     my_df = my_df.copy()
     my_df[f'{my_dict["name"]}_custom_pts'] = (
@@ -156,7 +179,7 @@ def unique_id_create(my_df, team=False):
     return my_df
 
 #VBD functions
-def value_over_last_starter(my_df, my_dict, pos_list):
+def value_over_last_starter(my_df, my_dict=ppr, pos_list):
     """Calculates the value for a low-end starter, given a datframe, league dict and pos list"""
     replacement_value = {}
     my_df = my_df.copy()
@@ -168,7 +191,7 @@ def value_over_last_starter(my_df, my_dict, pos_list):
         replacement_value[pos.upper()] = float(np.mean(tdf.tail(3)))
     return replacement_value
 
-def value_over_avg_starter(my_df, my_dict, pos_list):
+def value_over_avg_starter(my_df, my_dict=ppr, pos_list):
     """Calculates the avg output for a starter, given a daatframe, league dict and pos list"""
     replacement_value = {}
     my_df = my_df.copy()
@@ -180,7 +203,7 @@ def value_over_avg_starter(my_df, my_dict, pos_list):
         replacement_value[pos.upper()] = float(np.mean(tdf))
     return replacement_value
 
-def value_over_replacement_player(my_df, my_dict, pos_list):
+def value_over_replacement_player(my_df, my_dict=ppr, pos_list):
     """Calculates the replacement value for a starter, given a datframe, league dict and pos list"""
     replacement_value = {}
     my_df = my_df.copy()
@@ -192,7 +215,7 @@ def value_over_replacement_player(my_df, my_dict, pos_list):
         replacement_value[pos.upper()] = float(np.mean(tdf.tail(3)))
     return replacement_value
 
-def value_through_n_picks(my_df, my_dict, pos_list):
+def value_through_n_picks(my_df, my_dict=ppr, pos_list):
     """Calculates the value per pos through 100 picks, given a datframe, league dict and pos list"""
     replacement_value = {}
     pick_dict = {10: 100, 12: 120, 14: 140}
