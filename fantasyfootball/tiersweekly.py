@@ -107,12 +107,12 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
         if save:
             if kmeans:
                 if player_list is not None:
-                    plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_kmeans__FLEX_{league_name}.png'))
+                    plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_kmeans__FLEX_{league_name}_{ix+1}.png'))
                 else: 
                     plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_kmeans__{pos}_{ix+1}.png'))
             else:
                 if player_list is not None:
-                    plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_gmm__FLEX_list{league_name}.png'))
+                    plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_gmm__FLEX_list{league_name}_{ix+1}.png'))
                 else:
                     plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_gmm_{pos}_{ix+1}.png'))
         if export:
