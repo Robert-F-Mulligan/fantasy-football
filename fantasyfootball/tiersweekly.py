@@ -17,7 +17,7 @@ from os import path
 from collections import OrderedDict
 
 
-def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_cutoff=150, player_per_chart=50, x_size=20, y_size=15, covariance_type='diag', save=True):
+def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_cutoff=150, player_per_chart=50, x_size=20, y_size=15, covariance_type='diag', save=True, export=False, player_list=None):
     """
     Generates a chart with colored tiers; you can either use kmeans of GMM
     Optional: Pass in a custom tier dict to show varying numbers of tiers; default will be uniform across position
@@ -35,6 +35,8 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
     pos_df = df.loc[df['pos'] != pos]
     pos_map = dict(zip(pos_df['player_name'].to_list(), pos_df['pos'].to_list()))
     df['pos_map'] = df['player_name'].map(pos_map)
+    if isinstance(player_list, list):
+        df = df.loc[df['player_name'].isin(player_list)].copy()
     df = (df.loc[df['pos'] == pos]
         .sort_values('rank')
         .reset_index(drop=True)
@@ -91,7 +93,11 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
         ax = plt.gca().add_artist(first_legend)
         #second legend
         plt.legend(handles=patches, borderpad=1, fontsize=12)
-        plt.title(f'{date_str} Fantasy Football Weekly - {pos} {ix+1}')
+        if player_list is  not None:
+            league_name = league['name']
+            plt.title(f'{date_str} Fantasy Football Weekly - {pos} - {league_name} - {ix+1}')
+        else:
+            plt.title(f'{date_str} Fantasy Football Weekly - {pos} {ix+1}')
         plt.xlabel('Average Expert Overall Rank')
         plt.ylabel('Expert Consensus Position Rank')
 
@@ -100,17 +106,26 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
         #plt.tight_layout()
         if save:
             if kmeans:
-                plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_kmeans__{pos}_{ix+1}.png'))
+                if player_list is not None:
+                    plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_kmeans__FLEX_{league_name}.png'))
+                else: 
+                    plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_kmeans__{pos}_{ix+1}.png'))
             else:
-                plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_gmm_{pos}_{ix+1}.png'))
-            
+                if player_list is not None:
+                    plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_gmm__FLEX_list{league_name}.png'))
+                else:
+                    plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_gmm_{pos}_{ix+1}.png'))
+        if export:
+            df.to_csv(path.join(FIGURE_DIR,fr'{date_str}_ecr_tiers.csv'), index=False)              
     return plt.show()
 
 if __name__ == "__main__":
     #run elbow chart or AIC/BIC chart to estimate optimal number of k for each pos
     #revisit week 1 to see if URL changes for each week - if so, refactor viz func and fp df func
 
-    league = config.sean
+    sean = config.sean
+    work = config.work
+    justin = config.justin
     
     pos_tier_dict_viz = {
     'RB' : 8,
@@ -121,5 +136,89 @@ if __name__ == "__main__":
     'K' : 7
     }
 
+    flex_list = [
+        'Clyde Edwards-Helaire',
+        'Allen Robinson II',
+        'Adam Thielen',
+        'Robert Woods',
+        'Austin Ekeler',
+        'Joe Mixon',
+        'Terry McLaurin',
+        'Todd Gurley II',
+        'Chris Carson',
+        'Stefon Diggs',
+        'Miles Sanders',
+        'Diontae Johnson',
+        'Jarvis Landry',
+        'CeeDee Lamb',
+        'Melvin Gordon III',
+        'John Brown',
+        'Hunter Henry',
+        'Mark Ingram II',
+        'James White',
+        'Hayden Hurst',
+        'Sammy Watkins',
+        'Tarik Cohen',
+        'Christian Kirk',
+        'Chris Herndon IV',
+        'Leonard Fournette',
+        'Boston Scott',
+        'Frank Gore',
+        'Chris Thompson',
+        'Michael Thomas',
+        'George Kittle',
+        'Jack Doyle']
+
+    work_list = [
+        'Robert Woods',
+        'CeeDee Lamb',
+        'Chris Carson',
+        'Hunter Henry',
+        'Stefon Diggs',
+        'Austin Ekeler',
+        'Joe Mixon',
+        'Todd Gurley II',
+        'John Brown',
+        'Miles Sanders',
+        'Hayden Hurst',
+        'Chris Herndon IV',
+        'Leonard Fournette',
+        'Boston Scott',
+        'Michael Thomas',
+        ]
+
+    sean_list = [
+        'Adam Thielen',
+        'Robert Woods',
+        'Joe Mixon',
+        'Todd Gurley II',
+        'Jarvis Landry',
+        'Melvin Gordon III',
+        'Tarik Cohen',
+        'Christian Kirk',
+        'Chris Herndon IV',
+        'Chris Thompson',
+        'George Kittle'
+        ]
+
+    justin_list = [
+        'Clyde Edwards-Helaire',
+        'Allen Robinson II',
+        'Robert Woods',
+        'Austin Ekeler',
+        'Terry McLaurin',
+        'Diontae Johnson',
+        'Hunter Henry',
+        'Mark Ingram II',
+        'James White',
+        'Sammy Watkins',
+        'Frank Gore',
+        'Jack Doyle',
+        'Denzel Mims'
+        ]
+
     #tiers.make_clustering_viz(tier_dict=pos_tier_dict_viz, league=league, pos_n=35, covariance_type='diag', draft=False, save=False)
-    make_clustering_viz_flex()
+    #make_clustering_viz_flex(export=True)
+    make_clustering_viz_flex(tiers=5, league=sean, player_list=sean_list)
+    make_clustering_viz_flex(tiers=5, league=work, player_list=work_list)
+    make_clustering_viz_flex(tiers=5, league=justin, player_list=justin_list)
