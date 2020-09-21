@@ -35,8 +35,6 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
     pos_df = df.loc[df['pos'] != pos]
     pos_map = dict(zip(pos_df['player_name'].to_list(), pos_df['pos'].to_list()))
     df['pos_map'] = df['player_name'].map(pos_map)
-    if isinstance(player_list, list):
-        df = df.loc[df['player_name'].isin(player_list)].copy()
     df = (df.loc[df['pos'] == pos]
         .sort_values('rank')
         .reset_index(drop=True)
@@ -64,7 +62,10 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
     tier_lookup = dict(zip(palette[:tiers], range(1, tiers+1)))
 
     chart_n = (player_cutoff // player_per_chart) + (player_cutoff % player_per_chart > 0)
-
+    #filter current team players
+    if isinstance(player_list, list):
+        df = df.loc[df['player_name'].isin(player_list)].copy()
+    
     for ix, chunk_df in enumerate(np.array_split(df, chart_n)):
         fig, ax = plt.subplots();
         min_tier = min(chunk_df['tiers'])
