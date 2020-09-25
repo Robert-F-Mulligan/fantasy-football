@@ -68,7 +68,7 @@ def make_rb_tgt_share_viz(df, pos='RB', x_size=20, y_size=15, save=True, player_
     week = df['week'].max()
     season = df['date'][0][:4]
     if player_list is not None:
-        player_color = dict.fromkeys(player_list, 'red')
+        player_color = {player: 'red' for player in player_list}
     sns.set_style('whitegrid');
     plt.figure(figsize=(x_size, y_size))
     plt.yticks(np.linspace(0, df['tgt_share'].max(), 15));
