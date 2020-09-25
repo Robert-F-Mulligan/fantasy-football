@@ -16,6 +16,85 @@ from datetime import date
 from os import path
 from collections import OrderedDict
 
+flex_list = [
+        'Clyde Edwards-Helaire',
+        'Allen Robinson II',
+        'Adam Thielen',
+        'Robert Woods',
+        'Austin Ekeler',
+        'Joe Mixon',
+        'Terry McLaurin',
+        'Todd Gurley II',
+        'Chris Carson',
+        'Stefon Diggs',
+        'Miles Sanders',
+        'Diontae Johnson',
+        'Jarvis Landry',
+        'CeeDee Lamb',
+        'Melvin Gordon III',
+        'John Brown',
+        'Hunter Henry',
+        'Mark Ingram II',
+        'James White',
+        'Hayden Hurst',
+        'Sammy Watkins',
+        'Tarik Cohen',
+        'Christian Kirk',
+        'Chris Herndon IV',
+        'Leonard Fournette',
+        'Boston Scott',
+        'Frank Gore',
+        'Chris Thompson',
+        'Michael Thomas',
+        'George Kittle',
+        'Jack Doyle']
+
+work_list = [
+    'Robert Woods',
+    'CeeDee Lamb',
+    'Chris Carson',
+    'Hunter Henry',
+    'Stefon Diggs',
+    'Todd Gurley II',
+    'John Brown',
+    'Miles Sanders',
+    'Hayden Hurst',
+    'Chris Herndon IV',
+    'Leonard Fournette',
+    'Boston Scott',
+    'Michael Thomas',
+    ]
+
+sean_list = [
+    'Adam Thielen',
+    'Robert Woods',
+    'Joe Mixon',
+    'Todd Gurley II',
+    'Jarvis Landry',
+    'Melvin Gordon III',
+    'Tarik Cohen',
+    'Christian Kirk',
+    'Chris Herndon IV',
+    'Chris Thompson',
+    'George Kittle'
+    ]
+
+justin_list = [
+    'Clyde Edwards-Helaire',
+    'Allen Robinson II',
+    'Robert Woods',
+    'Austin Ekeler',
+    'Terry McLaurin',
+    'Diontae Johnson',
+    'Hunter Henry',
+    'Mark Ingram II',
+    'James White',
+    'Sammy Watkins',
+    'Frank Gore',
+    'Jack Doyle',
+    'Denzel Mims'
+    ]
+
 
 def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_cutoff=150, player_per_chart=50, x_size=20, y_size=15, covariance_type='diag', save=True, export=False, player_list=None):
     """
@@ -94,7 +173,7 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
         ax = plt.gca().add_artist(first_legend)
         #second legend
         plt.legend(handles=patches, borderpad=1, fontsize=12)
-        if player_list is  not None:
+        if player_list is not None:
             league_name = league['name']
             plt.title(f'{date_str} Fantasy Football Weekly - {pos} - {league_name} - {ix+1}')
         else:
@@ -137,89 +216,9 @@ if __name__ == "__main__":
     'K' : 7
     }
 
-    flex_list = [
-        'Clyde Edwards-Helaire',
-        'Allen Robinson II',
-        'Adam Thielen',
-        'Robert Woods',
-        'Austin Ekeler',
-        'Joe Mixon',
-        'Terry McLaurin',
-        'Todd Gurley II',
-        'Chris Carson',
-        'Stefon Diggs',
-        'Miles Sanders',
-        'Diontae Johnson',
-        'Jarvis Landry',
-        'CeeDee Lamb',
-        'Melvin Gordon III',
-        'John Brown',
-        'Hunter Henry',
-        'Mark Ingram II',
-        'James White',
-        'Hayden Hurst',
-        'Sammy Watkins',
-        'Tarik Cohen',
-        'Christian Kirk',
-        'Chris Herndon IV',
-        'Leonard Fournette',
-        'Boston Scott',
-        'Frank Gore',
-        'Chris Thompson',
-        'Michael Thomas',
-        'George Kittle',
-        'Jack Doyle']
 
-    work_list = [
-        'Robert Woods',
-        'CeeDee Lamb',
-        'Chris Carson',
-        'Hunter Henry',
-        'Stefon Diggs',
-        'Austin Ekeler',
-        'Joe Mixon',
-        'Todd Gurley II',
-        'John Brown',
-        'Miles Sanders',
-        'Hayden Hurst',
-        'Chris Herndon IV',
-        'Leonard Fournette',
-        'Boston Scott',
-        'Michael Thomas',
-        ]
-
-    sean_list = [
-        'Adam Thielen',
-        'Robert Woods',
-        'Joe Mixon',
-        'Todd Gurley II',
-        'Jarvis Landry',
-        'Melvin Gordon III',
-        'Tarik Cohen',
-        'Christian Kirk',
-        'Chris Herndon IV',
-        'Chris Thompson',
-        'George Kittle'
-        ]
-
-    justin_list = [
-        'Clyde Edwards-Helaire',
-        'Allen Robinson II',
-        'Robert Woods',
-        'Austin Ekeler',
-        'Terry McLaurin',
-        'Diontae Johnson',
-        'Hunter Henry',
-        'Mark Ingram II',
-        'James White',
-        'Sammy Watkins',
-        'Frank Gore',
-        'Jack Doyle',
-        'Denzel Mims'
-        ]
-
-    #tiers.make_clustering_viz(tier_dict=pos_tier_dict_viz, league=league, pos_n=35, covariance_type='diag', draft=False, save=False)
-    #make_clustering_viz_flex(export=True)
+    tiers.make_clustering_viz(tier_dict=pos_tier_dict_viz, league=sean, pos_n=35, covariance_type='diag', draft=False, save=True)
+    make_clustering_viz_flex(export=True)
     make_clustering_viz_flex(tiers=5, league=sean, player_list=sean_list)
     make_clustering_viz_flex(tiers=5, league=work, player_list=work_list)
     make_clustering_viz_flex(tiers=5, league=justin, player_list=justin_list)
