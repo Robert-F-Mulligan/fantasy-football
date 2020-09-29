@@ -5,7 +5,7 @@ import numpy as np
 import requests
 from bs4 import BeautifulSoup
 from os import path
-from fantasyfootball.config import DATA_DIR
+from fantasyfootball.config import DATA_DIR, pfr_to_fantpros
 from pathlib import Path
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -56,6 +56,7 @@ def pfr_clean_data(df):
 def pfr_transform_df(df):
     df = (df.copy()
             .rename(columns={'receiving_tgt': 'tgt_ind', 'rushing_att': 'att_ind'})
+            .replace({'tm': pfr_to_fantpros})
          )
     df['att_tm'] = df.loc[df['pos'] == 'RB'].groupby('tm')['att_ind'].transform('sum')
     df['tgt_tm'] = df.groupby('tm')['tgt_ind'].transform('sum')
