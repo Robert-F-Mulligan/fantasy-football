@@ -277,7 +277,7 @@ nfl_color_map = {
  'WAS': '#773141'
 }
 
-nfl_logo_map = {
+nfl_logo_map_web = {
 'ARI': 'https://content.sportslogos.net/logos/7/177/full/kwth8f1cfa2sch5xhjjfaof90.png',
 'ATL': 'https://content.sportslogos.net/logos/7/173/full/299.png',
  'BAL': 'https://content.sportslogos.net/logos/7/153/full/318.png',
@@ -311,3 +311,79 @@ nfl_logo_map = {
  'TEN': 'https://content.sportslogos.net/logos/7/160/full/1053.png',
  'WAS': 'https://content.sportslogos.net/logos/7/6741/full/8837_washington_football_team-wordmark-20201.png'
 }
+
+nfl_logo_map_wiki = {
+ 'ARI': 'Arizona_Cardinals_logo.png',
+ 'ATL': 'Atlanta_Falcons_logo.png',
+ 'BAL': 'Baltimore_Ravens_logo.png',
+ 'BUF': 'Buffalo_Bills_logo.png',
+ 'CAR': 'Carolina_Panthers_logo.png',
+ 'CHI': 'Chicago_Bears_logo.png',
+ 'CIN': 'Cincinnati_Bengals_logo.png',
+ 'CLE': 'Cleveland_Browns_logo.png',
+ 'DAL': 'Dallas_Cowboys_logo.png',
+ 'DEN': 'Denver_Broncos_logo.png',
+ 'DET': 'Detroit_Lions_logo.png',
+ 'GB': 'Green_Bay_Packers_logo.png',
+ 'HOU': 'Houston_Texans_logo.png',
+ 'IND': 'Indianapolis_Colts_logo.png',
+ 'JAX': 'Jacksonville_Jaguars_logo.png',
+ 'KC': 'Kansas_City_Chiefs_logo.png',
+ 'LAC': 'Los_Angeles_Chargers_logo.png',
+ 'LAR': 'Los_Angeles_Rams_logo..png',
+ 'LV':  'Las_Vegas_Raiders_logo.png',
+ 'MIA': 'Miami_Dolphins_logo.png',
+ 'MIN': 'Minnesota_Vikings_logo.png',
+ 'NE': 'New_England_Patriots_logo.png',
+ 'NO': 'New_Orleans_Saints_logo.png',
+ 'NYG': 'New_York_Giants_logo.png',
+ 'NYJ': 'New_York_Jets_logo.png',
+ 'PHI': 'Philadelphia_Eagles_logo.png',
+ 'PIT': 'Pittsburgh_Steelers_logo.png',
+ 'SF': 'San_Francisco_49ers_logo.png',
+ 'SEA': 'Seattle_Seahawks_logo.png',
+ 'TB': 'Tampa_Bay_Buccaneers_logo.png',
+ 'TEN': 'Tennessee_Titans_logo.png',
+ 'WAS': 'Washington_Football_Team_logo.png'
+ }
+
+nfl_logo_map_espn = {
+    'ARI': 'ARI.png',
+    'ATL': 'ATL.png',
+    'BAL': 'BAL.png',
+    'BUF': 'BUF.png',
+    'CAR': 'CAR.png',
+    'CHI': 'CHI.png',
+    'CIN': 'CIN.png',
+    'CLE': 'CLE.png',
+    'DAL': 'DAL.png',
+    'DEN': 'DEN.png',
+    'DET': 'DET.png',
+    'GB': 'GB.png',
+    'HOU': 'HOU.png',
+    'IND': 'IND.png',
+    'JAX': 'JAX.png',
+    'KC': 'KC.png',
+    'LAC': 'LAC.png',
+    'LAR': 'LAR.png',
+    'LV': 'LV.png',
+    'MIA': 'MIA.png',
+    'MIN': 'MIN.png',
+    'NE': 'NE.png',
+    'NO': 'NO.png',
+    'NYG': 'NYG.png',
+    'NYJ': 'NYJ.png',
+    'PHI': 'PHI.png',
+    'PIT': 'PIT.png',
+    'SF': 'SF.png',
+    'SEA': 'SEA.png',
+    'TB': 'TB.png',
+    'TEN': 'TEN.png',
+    'WAS': 'WAS.png'
+    }
+
+WIKI_DIR = r'..\figures\logos\wikipedia'
+ESPN_DIR = r'..\figures\logos\espn'
+
+nfl_logo_png_path_map = {team: path.join(WIKI_DIR,filename) for team, filename in nfl_logo_map_wiki.items()}
+nfl_logo_espn_path_map = {team: path.join(ESPN_DIR,filename) for team, filename in nfl_logo_map_espn.items()}
