@@ -94,8 +94,13 @@ justin_list = [
     'Jack Doyle',
     'Denzel Mims'
     ]
-
-
+different_spelling = [
+    'Todd Gurley',
+    'Chris Herndon',
+    'Melvin Gordon',
+    'Allen Robinson',
+    'Mark Ingram',
+]
 def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_cutoff=150, player_per_chart=50, x_size=20, y_size=15, covariance_type='diag', save=True, export=False, player_list=None):
     """
     Generates a chart with colored tiers; you can either use kmeans of GMM
