@@ -1,4 +1,5 @@
 # nflfastrfuncs.py
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
@@ -46,13 +47,20 @@ def target_share_vs_air_yard_share(df):
          )
     return df
 
-def target_share_vs_air_yard_share_viz(df, n=60, x_size=20, y_size=15, save=True):
+def target_share_vs_air_yard_share_viz(df, *team_filter, n=60, x_size=20, y_size=15, save=True):
+    if len(team_filter) > 0:
+        team_list = []
+        for team in team_filter:
+            team_list.append(team)
+        df = df.loc[df['posteam'].isin(team_list)].copy()
+    else:
+        df = df.head(n).copy()
     sns.set_style('whitegrid');
-    df = df.head(n).copy()
+    df['color'] = df['posteam'].map(nfl_color_map)
     fig, ax = plt.subplots(figsize=(x_size, y_size))
-    for _, row in df.iterrows():
-        ax.scatter(row['target_share'], row['air_yard_share'], color=nfl_color_map[row['posteam']], alpha=0.5)
-        ax.annotate(row['receiver'], xy=(row['target_share']+.001, row['air_yard_share']), alpha=1.0, zorder=2)
+    ax.scatter(df['target_share'], df['air_yard_share'], color=df['color'], alpha=1.0)
+    text = [ax.annotate(name, xy=(x+.001, y), alpha=1.0, zorder=2) for name, x, y 
+        in zip(df['receiver'], df['target_share'], df['air_yard_share'])]
     #axis formatting
     ax.set_xlabel('Target Share', fontsize=12)
     ax.set_ylabel('Air Yard Share', fontsize=12)
@@ -77,4 +85,58 @@ def target_share_vs_air_yard_share_viz(df, n=60, x_size=20, y_size=15, save=True
     ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
     if save:
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_Target_Share_vs_Air_Yard_Share.png'))
+    return plt.show()
+
+def carries_inside_5_yardline_transform(df):
+    df = df.copy()
+    year = df['game_id'].str.split('_').str[0].max()
+    week = df['week'].max()
+    inside_5 = df.loc[(df['yardline_100']<5) &
+             (df['play_type']=='run')]
+    carries_5 = (
+    inside_5.groupby(['rusher','posteam'])[['play_id']]
+    .count()
+    .reset_index()
+    .sort_values(by=['play_id'],ascending=False)
+    .reset_index(drop=True)
+    )
+    carries_5 = (carries_5.assign(year=year)
+                          .assign(week=week)
+    )
+    return carries_5
+
+def carries_inside_5_yardline_viz(df, *team_filter, n=20, x_size=20, y_size=15, save=True):
+    if len(team_filter) > 0:
+        team_list = []
+        for team in team_filter:
+            team_list.append(team)
+        df = df.loc[df['posteam'].isin(team_list)].copy()
+    else:
+        df = df.head(n).copy()
+    #color and logo mapping
+    df['color'] = df['posteam'].map(nfl_color_map)
+    df['logo'] = df['posteam'].map(nfl_logo_espn_path_map)
+    sns.set_style('whitegrid');
+    fig,ax = plt.subplots(figsize=(x_size, y_size))
+    ax.barh(df['rusher'], df['play_id'], color=df['color'])
+    text = [ax.annotate(carries, xy=(x, y), fontsize=12) for carries, x, y in 
+            zip(df['play_id'], df['play_id'], df['rusher'])]
+    images = [OffsetImage(plt.imread(file_path), zoom=.1) for file_path in df['logo'].to_list()]
+    x0 = [(df['play_id'].max() * 0.02)] * len(df['play_id'])
+    logos = [ax.add_artist(AnnotationBbox(im, xy=(x,y), frameon=False, xycoords='data')) 
+             for im, x, y in zip(images, x0, df['rusher'])]
+    #axis formatting
+    ax.invert_yaxis()
+    ax.margins(x=.05, y=0)
+    ax.yaxis.grid(False)
+    #title
+    year = df['year'].max()
+    week = df['week'].max()
+    ax.set_title(f'{year} Carries Inside the 5 Yardline (Through Week {week})', fontsize=16, fontweight='bold')
+    #margins and footnotes
+    ax.margins(x=.05, y=.01)
+    ax.annotate('Data: @NFLfastR',xy=(.90,-0.05), fontsize=12, xycoords='axes fraction')
+    ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
+    if save:
+        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_Carries_Inside_5_Yardline.png'))
     return plt.show()
