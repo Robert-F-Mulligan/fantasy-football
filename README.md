@@ -1,7 +1,10 @@
 # Fantasy-Football
 Repo for Fantasy Football analysis, data scraping, visualization and modeling
 
+![Image of Air Yards Density](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/2020/05.2020/2020_Air_Yard_Density_Through5.png)
+
 ![Image of Tiers Chart](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/08.12.2020_rangeofrankings_gmm_RB.png)
+
 
 Project Organization
 ------------
