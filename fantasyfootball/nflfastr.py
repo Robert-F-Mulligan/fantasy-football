@@ -147,19 +147,21 @@ def carries_inside_5_yardline_viz(df, *team_filter, n=20, x_size=20, y_size=15, 
 
 def air_yard_density_transform(df):
     df = df.copy()
+    names = df[['receiver_id', 'receiver']].drop_duplicates().dropna().set_index('receiver_id')
     year = df['game_id'].str.split('_').str[0].max()
     week = df['week'].max() 
-    df_cols = ['receiver', 'posteam', 'air_yards']
+    df_cols = ['receiver_id', 'posteam', 'air_yards']
     play_type = df['play_type'] == 'pass'
     air_yard_threshold = ~df['air_yards'].isna()
     df = df.loc[play_type & air_yard_threshold, df_cols]
-    df['total_air_yards'] = df.groupby(['receiver', 'posteam'])['air_yards'].transform('sum')
-    df = df.sort_values(['total_air_yards', 'receiver', 'posteam'], ascending=False).drop(columns='total_air_yards').reset_index(drop=True)
+    df['total_air_yards'] = df.groupby(['receiver_id', 'posteam'])['air_yards'].transform('sum')
+    df = df.sort_values(['total_air_yards', 'receiver_id', 'posteam'], ascending=False).drop(columns='total_air_yards').reset_index(drop=True)
     df['colors'] = df['posteam'].map(nfl_color_map)
     df['logo'] = df['posteam'].map(nfl_logo_espn_path_map)
     df = (df.assign(year=year)
             .assign(week=week)
          )
+    df = df.merge(names, how='left', left_on='receiver_id', right_index=True).drop(columns='receiver_id')
     return df
 
 def headshot_url_join(df, *years):
@@ -332,6 +334,7 @@ def usage_yardline_breakdown_transform(df, player_type='receiver', play_type='pa
     """player_type: rusher, passer, receiver"""
     year = df['game_id'].str.split('_').str[0].max()
     week = df['week'].max()
+    player_id = player_type+'_id'
     if isinstance(play_type, str):
         play_type_list = [play_type]
     else: 
@@ -342,10 +345,10 @@ def usage_yardline_breakdown_transform(df, player_type='receiver', play_type='pa
     cut_bins = [-1, 20, 40, 60, 80, 100]
     df = df.assign(yardline_100_bin = pd.cut(df['yardline_100'], bins=cut_bins, labels=yardline_labels))
     
-    grouped_df_count = df.groupby([player_type, 'yardline_100_bin']).agg(carry_count=('yardline_100_bin', 'count'))
-    grouped_df_total = df.groupby([player_type]).agg(carry_count=('yardline_100_bin', 'count'))
-    grouped_df = grouped_df_count.div(grouped_df_total, level=player_type) * 100
-    sort = df.groupby(player_type)['play_id'].agg(play_count=('play_id', 'count'))
+    grouped_df_count = df.groupby([player_id, 'yardline_100_bin']).agg(total_count=('yardline_100_bin', 'count'))
+    grouped_df_total = df.groupby([player_id]).agg(total_count=('yardline_100_bin', 'count'))
+    grouped_df = grouped_df_count.div(grouped_df_total, level=player_id) * 100
+    sort = df.groupby(player_id)['play_id'].agg(play_count=('play_id', 'count'))
     grouped_df = (grouped_df.merge(sort, left_index=True, right_index=True)
                             .sort_values('play_count', ascending=False)
                             .drop(columns='play_count')
@@ -353,12 +356,20 @@ def usage_yardline_breakdown_transform(df, player_type='receiver', play_type='pa
     grouped_df = (grouped_df.unstack(level=1).droplevel(0, axis='columns')
                             .reindex(grouped_df.index.get_level_values(0).unique())
                  )
+    #bring in player names
+    grouped_df.columns = pd.Index(list(grouped_df.columns))
+    names = df[[player_id, player_type]].drop_duplicates().dropna().set_index(player_id)
+    grouped_df = (grouped_df.merge(names, how='left', left_index=True, right_index=True)
+                           .set_index(player_type, drop=True)
+        )
     #add year, week and change index to non-categorical
     grouped_df.columns = pd.Index(list(grouped_df.columns))
     grouped_df = (grouped_df.assign(year=year)
                            .assign(week=week)
                  )
+                
     return grouped_df
+
 
 def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
     colors = ['#bc0000', '#808080', '#a9a9a9', '#c0c0c0', '#d3d3d3']
