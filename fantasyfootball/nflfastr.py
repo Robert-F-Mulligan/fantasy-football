@@ -10,6 +10,8 @@ import seaborn as sns
 import numpy as np
 from fantasyfootball.config import FIGURE_DIR
 from adjustText import adjust_text
+import requests
+from io import BytesIO
 
 
 def get_nfl_fast_r_data(*years):
@@ -255,4 +257,145 @@ def air_yard_density_viz(df, *team_filter, x_size=30, y_size=35, team_logo=True,
     fig.tight_layout()
 
     if save:
-        fig.savefig(path.join(FIGURE_DIR,f'{year}Air_Yard_Density_Through{week}.png'), bbox_inches='tight')
+        if team_filter:
+            team_str = ('_').join(team_filter)
+            fig.savefig(path.join(FIGURE_DIR,f'{year}_Air_Yard_Density_Through{week}_{team_str}.png'), bbox_inches='tight')           
+        else:
+            fig.savefig(path.join(FIGURE_DIR,f'{year}_Air_Yard_Density_Through{week}.png'), bbox_inches='tight')
+
+def team_scatter_viz(df, x_size=20, y_size=10, save=True):
+    """
+    Pass teams as index, first column=x, second coluns=y
+    """
+    df = df.copy()
+    logos = df.index.map(nfl_logo_espn_path_map)
+    x = df.iloc[:,0]
+    y = df.iloc[:,1]
+    
+    fig, ax = plt.subplots(figsize=(x_size, y_size))
+    
+    for x0, y0, logo_path in zip(x, y, logos):
+        ax.scatter(x0, y0, color='black', s=.001, alpha=0.5)
+        image = OffsetImage(plt.imread(logo_path), zoom=.1)
+        ax.add_artist(AnnotationBbox(image, xy=(x0,y0), frameon=False, xycoords='data'))
+    
+    #mean lines
+    avg_x = x.mean()
+    avg_y = y.mean()  
+    ax.axvline(avg_x, linestyle='--', color='black', alpha=0.5)
+    ax.axhline(avg_y, linestyle='--', color='black', alpha=0.5)
+      
+    #axis formatting
+    x_col = df.columns[0]
+    x_label = x_col.replace('_', ' ').title()
+    y_col = df.columns[1]
+    y_label = y_col.replace('_', ' ').title()
+    ax.set_xlabel(x_label, fontsize=12)
+    ax.set_ylabel(y_label, fontsize=12)
+    ax.grid(zorder=0,alpha=.4)
+    
+    #figure title
+    year = df['year'].max()
+    week = df['week'].max()
+    fig.suptitle(f'{year} {x_label} and {y_label} through Week {week}', fontsize=30, fontweight='bold', y=1.05)
+    plt.figtext(0.92, -0.01, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
+    
+    fig.tight_layout()
+    
+    if save:
+        fig.savefig(path.join(FIGURE_DIR,f'{year}_{x_col}_and_{y_col}_through_week_{week}.png'), bbox_inches='tight')
+    
+def transform_edsr_total_1d(df):
+    """
+    Calculates the early down success rate and the total number of first downs for each NFL team 
+    
+    Early Down Success Rate (EDSR) is the percentage of first downs gained before reaching third down. 
+    It's basically an efficiency metric tracking the gaining of a first down on first or second down.
+    """
+    df = df.copy()
+    year = df['game_id'].str.split('_').str[0].max()
+    week = df['week'].max()
+    #first downs per game
+    first_downs = df.groupby(['posteam'])['first_down'].agg(first_downs_per_game=('first_down', 'sum'))
+    game_count = df.groupby(['posteam'])['game_id'].agg(first_downs_per_game=('first_down', 'nunique'))
+    first_downs_per_game = first_downs / game_count
+    #edsr
+    early_down = df['down'].isin([1,2])
+    play_type = (df['play_type'].isin(['pass', 'run'])) & (df['aborted_play'] == 0)
+    early_down_success = df.loc[early_down & play_type].groupby('posteam')['first_down'].agg(early_down_success_rate=('first_down', 'mean'))
+    scatter_df = pd.merge(early_down_success, first_downs_per_game, left_index=True, right_index=True)
+    scatter_df = (scatter_df.assign(year=year)
+                            .assign(week=week))
+    return scatter_df
+
+def usage_yardline_breakdown_transform(df, player_type='receiver', play_type='pass'):
+    """player_type: rusher, passer, receiver"""
+    year = df['game_id'].str.split('_').str[0].max()
+    week = df['week'].max()
+    if isinstance(play_type, str):
+        play_type_list = [play_type]
+    else: 
+        play_type_list = play_type
+    df = df.loc[df['play_type'].isin(play_type_list)].copy()
+    #create bins
+    yardline_labels = ['1 - 20 yardline', '21 - 40 yardline', '41 - 60 yardline', '61 - 80 yardline', '81 - 100 yardline']
+    cut_bins = [-1, 20, 40, 60, 80, 100]
+    df = df.assign(yardline_100_bin = pd.cut(df['yardline_100'], bins=cut_bins, labels=yardline_labels))
+    
+    grouped_df_count = df.groupby([player_type, 'yardline_100_bin']).agg(carry_count=('yardline_100_bin', 'count'))
+    grouped_df_total = df.groupby([player_type]).agg(carry_count=('yardline_100_bin', 'count'))
+    grouped_df = grouped_df_count.div(grouped_df_total, level=player_type) * 100
+    sort = df.groupby(player_type)['play_id'].agg(play_count=('play_id', 'count'))
+    grouped_df = (grouped_df.merge(sort, left_index=True, right_index=True)
+                            .sort_values('play_count', ascending=False)
+                            .drop(columns='play_count')
+                 )
+    grouped_df = (grouped_df.unstack(level=1).droplevel(0, axis='columns')
+                            .reindex(grouped_df.index.get_level_values(0).unique())
+                 )
+    #add year, week and change index to non-categorical
+    grouped_df.columns = pd.Index(list(grouped_df.columns))
+    grouped_df = (grouped_df.assign(year=year)
+                           .assign(week=week)
+                 )
+    return grouped_df
+
+def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
+    colors = ['#bc0000', '#808080', '#a9a9a9', '#c0c0c0', '#d3d3d3']
+    year = df['year'].max()
+    week = df['week'].max()
+    player_type = df.index.name.title()
+    df = df.drop(columns=['year', 'week']).head(n).copy()
+    
+    fig, ax = plt.subplots(figsize=(x_size,y_size))
+    df.plot(kind='barh', stacked=True, ax=ax, color=colors, linewidth=1, edgecolor='gray')
+    
+    #labels
+    for p in ax.patches:
+        width, height = p.get_width(), p.get_height()
+        if width == 0:
+            continue
+        x, y = p.get_xy() 
+        ax.text(x+width/2, 
+                y+height/2, 
+                '{:.0f}%'.format(width), 
+                horizontalalignment='center', 
+                verticalalignment='center')
+    ax.legend(ncol=len(df.columns), bbox_to_anchor=(0, -.05),
+              loc='lower left', fontsize='medium', handlelength=5)
+    # axes formatting
+    ax.set_xlim(0, 100)
+    ax.xaxis.set_visible(False)
+    ax.set_ylabel(player_type)
+    ax.tick_params(color='gray', labelcolor='black')
+    for spine in ax.spines.values():
+        spine.set_edgecolor('gray')
+    ax.invert_yaxis()
+    
+    #figure title
+    fig.suptitle(f'{year} {player_type} Yardline Breakdown through Week {week}', fontsize=30, fontweight='bold', x=0.55, y=1.02, ha='center')
+    plt.figtext(0.92, -0.01, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
+    fig.tight_layout()
+    if save:
+        player_type_lower = player_type.lower()
+        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{player_type_lower}_play_yardline_breakdown.png'), bbox_inches='tight')
