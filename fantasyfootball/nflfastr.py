@@ -32,6 +32,10 @@ def get_nfl_fast_r_roster_data(*years):
     #df = df.loc[df['teamPlayers.status'] == 'ACT']
     return df
 
+def get_nfl_fast_r_roster_data_decoded(year=2020):
+    df = pd.read_csv(f'https://github.com/mrcaseb/nflfastR-roster/blob/master/data/seasons/roster_{year}.csv?raw=true', low_memory=False)
+    return df
+
 def target_share_vs_air_yard_share_transform(df):
     year = df['game_id'].str.split('_').str[0].max()
     week = df['week'].max()
@@ -169,17 +173,6 @@ def air_yard_density_transform(df):
     df = df.merge(names, how='left', left_on='receiver_id', right_index=True).drop(columns='receiver_id')
     return df
 
-def headshot_url_join(df, *years):
-    df = df.copy()
-    player_df = get_nfl_fast_r_roster_data(years)
-    player_df = player_df.loc[player_df['teamPlayers.positionGroup'].isin(['WR', 'RB', 'TE'])].copy()
-    player_df['abbrev_name'] = player_df['teamPlayers.firstName'].str[0] + '.' + player_df['teamPlayers.lastName']
-    player_df = player_df[['abbrev_name','team.abbr', 'teamPlayers.headshot_url']]
-    df = pd.merge(df, player_df, left_on=['posteam', 'receiver'], right_on=['team.abbr', 'abbrev_name'], how='left')
-    #df = df.fillna({'teamPlayers.headshot_url': nfl_logo_espn_path_map['NFL']})
-    df.drop(columns=['abbrev_name', 'team.abbr'])
-    return df
-
 def air_yard_density_viz(df, *team_filter, x_size=30, y_size=35, team_logo=True, save=True):
     if len(team_filter) > 0:
         team_list = [team for team in team_filter]
@@ -236,20 +229,7 @@ def air_yard_density_viz(df, *team_filter, x_size=30, y_size=35, team_logo=True,
             logo_path = selection['logo'].max()
             image = OffsetImage(plt.imread(logo_path), zoom=.2)
             ax.add_artist(AnnotationBbox(image, xy=(0.9,.9), frameon=False, xycoords='axes fraction'))
-        
-        #headshot logo
-        else:        
-            headshot_url = selection['teamPlayers.headshot_url'].max()
-            if pd.isna(headshot_url):
-                hs_path = nfl_logo_espn_path_map['NFL']
-                hs_image = OffsetImage(plt.imread(hs_path), zoom=.5)
-                ax.add_artist(AnnotationBbox(hs_image, xy=(0.1,0.9), frameon=False, xycoords='axes fraction'))
-            else:
-                response = requests.get(headshot_url)
-                hs_image_bytes = plt.imread(BytesIO(response.content))
-                hs_image = OffsetImage(hs_image_bytes, zoom=.5)
-                ax.add_artist(AnnotationBbox(hs_image, xy=(0.1,0.9), frameon=False, xycoords='axes fraction'))
-     
+             
     for ax in axs_list:
         ax.remove()
 
@@ -374,7 +354,6 @@ def usage_yardline_breakdown_transform(df, player_type='receiver', play_type='pa
                  )
                 
     return grouped_df
-
 
 def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
     colors = ['#bc0000', '#808080', '#a9a9a9', '#c0c0c0', '#d3d3d3']
