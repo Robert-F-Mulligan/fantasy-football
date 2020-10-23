@@ -366,6 +366,7 @@ nfl_logo_map_espn = {
     'JAX': 'JAX.png',
     'KC': 'KC.png',
     'LAC': 'LAC.png',
+    'LA': 'LAR.png',
     'LAR': 'LAR.png',
     'LV': 'LV.png',
     'MIA': 'MIA.png',
@@ -380,7 +381,8 @@ nfl_logo_map_espn = {
     'SEA': 'SEA.png',
     'TB': 'TB.png',
     'TEN': 'TEN.png',
-    'WAS': 'WAS.png'
+    'WAS': 'WAS.png',
+    'NFL': 'NFL.png'
     }
 
 WIKI_DIR = r'..\figures\logos\wikipedia'
