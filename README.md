@@ -3,7 +3,13 @@ Repo for Fantasy Football analysis, data scraping, visualization and modeling
 
 ![Image of Air Yards Density](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/2020/05.2020/2020_Air_Yard_Density_Through5.png)
 
-![Image of Tiers Chart](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/08.12.2020_rangeofrankings_gmm_RB.png)
+![Image of Carries Inside the 5 Chart](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/sample-visualizations/2020_through_week_5_Carries_Inside_5_Yardline.png)
+
+![Image of First Downs vs Early Down Success Rate](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/sample-visualizations/2020_early_down_success_rate_and_first_downs_per_game_through_week_5.png)
+
+![Image of Target Yardlines](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/sample-visualizations/2020_through_week_5_receiver_play_yardline_breakdown.png)
+
+![Image of Tiers Chart](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/sample-visualizations/08.12.2020_rangeofrankings_gmm_QB.png)
 
 
 Project Organization
