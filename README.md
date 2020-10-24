@@ -42,7 +42,7 @@ $ /path/to/new/virtual/environment/Scripts/activate
 
 Install fantasyfootball in the virtual environment by running setup.py:
 
-$ pip install --e .
+$ pip install -e .
 
 Install project dependencies through pip and requirements.txt:
 
