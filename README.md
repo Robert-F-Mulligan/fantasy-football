@@ -36,7 +36,7 @@ Set up
 
 Install the virtual environment with venv and activate it:
 
-$ python venv /path/to/new/virtual/environment
+$ python -m venv /path/to/new/virtual/environment
 
 $ /path/to/new/virtual/environment/Scripts/activate 
 
