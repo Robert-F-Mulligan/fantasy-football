@@ -9,6 +9,8 @@ Repo for Fantasy Football analysis, data scraping, visualization and modeling
 
 ![Image of Target Yardlines](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/sample-visualizations/2020_through_week_5_receiver_play_yardline_breakdown.png)
 
+![Image of Target Share vs Air Yards](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/sample-visualizations/2020_through_week_5_Target_Share_vs_Air_Yard_Share.png)
+
 ![Image of Tiers Chart](https://github.com/Robert-F-Mulligan/fantasy-football/blob/master/figures/sample-visualizations/08.12.2020_rangeofrankings_gmm_QB.png)
 
 
