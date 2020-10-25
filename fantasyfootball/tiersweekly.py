@@ -59,9 +59,7 @@ work_list = [
     'John Brown',
     'Miles Sanders',
     'Hayden Hurst',
-    'Chris Herndon IV',
     'Leonard Fournette',
-    'Boston Scott',
     'Michael Thomas',
     ]
 
@@ -114,7 +112,7 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
         'WR': 's',
         'TE': '^'
         }
-    df = fp.fantasy_pros_ecr_weekly_scrape(league)
+    df = fp.create_fantasy_pros_ecr_df(league)
     #derive pos for flex players
     pos_df = df.loc[df['pos'] != pos]
     pos_map = dict(zip(pos_df['player_name'].to_list(), pos_df['pos'].to_list()))
@@ -162,7 +160,7 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
         for _, row in chunk_df.iterrows():
             xmin = row['best']
             xmax = row['worst']
-            ymin, ymax = row['pos_rank'], row['pos_rank']
+            ymin, ymax = row['rank'], row['rank']
             center = row['avg']
             player = row['player_name'] + ', ' +row['tm'] + ' (' + row['pos_map'] + ')'
             tier = row['tiers']
@@ -222,8 +220,8 @@ if __name__ == "__main__":
     }
 
 
-    tiers.make_clustering_viz(tier_dict=pos_tier_dict_viz, league=sean, pos_n=35, covariance_type='diag', draft=False, save=True)
+    #tiers.make_clustering_viz(tier_dict=pos_tier_dict_viz, league=sean, pos_n=35, covariance_type='diag', draft=False, save=True)
     make_clustering_viz_flex(export=True)
-    make_clustering_viz_flex(league=sean, player_list=sean_list)
-    make_clustering_viz_flex(league=work, player_list=work_list)
-    make_clustering_viz_flex(league=justin, player_list=justin_list)
+    #make_clustering_viz_flex(league=sean, player_list=sean_list)
+    #make_clustering_viz_flex(league=work, player_list=work_list)
+    #make_clustering_viz_flex(league=justin, player_list=justin_list)
