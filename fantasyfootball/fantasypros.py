@@ -170,6 +170,7 @@ def scrape_dynamic_javascript(url):
     options = Options()
     options.headless = True
     options.add_argument("--window-size=1920,1200")
+    options.add_argument("--log-level=3") #suppress non-fatal logs
 
     driver = webdriver.Chrome(options=options, executable_path=DRIVER_PATH)
     driver.get(url)
