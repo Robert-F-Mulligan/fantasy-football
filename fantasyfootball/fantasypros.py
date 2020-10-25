@@ -16,6 +16,13 @@ import matplotlib.style as style
 from sklearn.mixture import GaussianMixture
 import numpy as np
 from sklearn.cluster import KMeans
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import json
+import re
+from time import sleep
+
+DRIVER_PATH = r'C:\Users\rmull\Python-Projects\chrome-driver\chromedriver.exe'
 
 def fantasy_pros_scrape(url):
     """Scrape Fantasy Pros stat projections
@@ -159,58 +166,68 @@ def fantasy_pros_ecr_process(league):
     df = fantasy_pros_ecr_column_reindex(df)
     return df
 
+def scrape_dynamic_javascript(url):
+    options = Options()
+    options.headless = True
+    options.add_argument("--window-size=1920,1200")
+
+    driver = webdriver.Chrome(options=options, executable_path=DRIVER_PATH)
+    driver.get(url)
+    sleep(5)
+    html = driver.execute_script("return document.getElementsByTagName('html')[0].innerHTML")
+    driver.quit()
+    return html
+
+def parse_html(html):
+    values = re.findall(r'var ecrData.*?=\s*(.*?)\s*var\ssosData', html, re.DOTALL | re.MULTILINE)
+    parsed_dict = json.loads(values[0][:-1])
+    return parsed_dict['players']
+
 def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
     """Scrape Fantasy Pros ECR given a league scoring format (on a week by week basis)
     
     :param league_dict: league dict in config.py used to determine whether to pull PPR/standard/half-ppr
     """
     scoring = league_dict['scoring']
-    pos_list = ['RB', 'WR', 'TE', 'QB', 'K', 'DST', 'FLEX']
+    pos_list = ['RB', 'WR', 'TE', 'QB', 'K', 'DST','FLEX']
     df_list = []
     for pos in pos_list:
-        if scoring == 'ppr' and pos in ['RB', 'WR', 'TE', 'FLEX']:
+        if scoring == 'ppr' and pos in ['RB', 'WR', 'TE']:
             url = f'https://www.fantasypros.com/nfl/rankings/ppr-{pos.lower()}.php'
-        elif scoring == 'half-ppr' and pos in ['RB', 'WR', 'TE', 'FLEX']:
+        elif scoring == 'half-ppr' and pos in ['RB', 'WR', 'TE']:
             url = f'https://www.fantasypros.com/nfl/rankings/half-point-ppr-{pos.lower()}.php'
         else:
             url = f'https://www.fantasypros.com/nfl/rankings/{pos.lower()}.php'
         
-        r = requests.get(url)
-        soup = BeautifulSoup(r.content, 'html.parser')
-        table = soup.find_all('table')
-        df = pd.read_html(str(table))[0]
+        html = scrape_dynamic_javascript(url)
+        parsed_dict = parse_html(html)
+        df = pd.DataFrame(parsed_dict)
         #Flex and pos have different columns
         if pos == 'FLEX':
-            df = df.drop(columns='Pos')
-            df['Proj. Pts'] = np.nan
+            df['r2p_pts'] = np.nan
         df['pos'] = pos
-        df = fantasy_pros_ecr_weekly_clean(df) #must run for each pos or concat will fail; headers are pos specific
         df_list.append(df)
     df = pd.concat(df_list)
-    proj_pts_df = df[['player_name', 'proj. pts']].dropna(subset=['proj. pts'])
-    pts_map = dict(zip(proj_pts_df['player_name'].to_list(), proj_pts_df['proj. pts'].to_list()))
-    df['proj. pts'] = df['player_name'].map(pts_map)
+    proj_pts_df = df[['player_name', 'r2p_pts']].dropna(subset=['r2p_pts'])
+    pts_map = dict(zip(proj_pts_df['player_name'].to_list(), proj_pts_df['r2p_pts'].to_list()))
+    df['r2p_pts'] = df['player_name'].map(pts_map)
     return df
 
-def fantasy_pros_ecr_weekly_clean(df):
-    """
-    Cleans Dfs from FantasyPros weekly rankings
-
-    :param df: dataframe object that has been scraped from a url
-    """
+def fantasy_pros_ecr_weekly_transform(df):
     df = df.copy()
-    df.columns = [col.lower() for col in df.columns]
-    df = (df.rename(columns={df.columns[2]: 'player_name', 'Rank': 'rank'})
-            .drop(columns=['wsis'])
-            .dropna(subset=['player_name'])
-         )
-    df['pos_rank'] = df['pos'] + df['rank'].astype('int').astype('str')
-    df['tm'] = df['player_name'].str.split().str[-1]
-    #rsplit doesn't support Regex - comment out until bug is fixed
-    #df['player_name'] = df['player_name'].str.rsplit('[A-Z]\.').str[0]
-    df.loc[df['pos'] == 'DST', 'player_name'] = df['player_name'].str.split(')').str[0] + ')'
-    df.loc[df['pos'] != 'DST', 'player_name'] = df['player_name'].str.rsplit(n=1).str[0].str.rsplit(n=1).str[0].str[:-2]
-    df['tm'].replace({'JAC' : 'JAX'}, inplace=True)
+    new_ecr_cols = ['rank_ecr', 'player_name', 'player_opponent', 
+                    'rank_min', 'rank_max', 'rank_ave', 'rank_std', 'r2p_pts', 'pos', 'pos_rank', 'player_team_id']
+    old_ecr_cols = ['rank', 'player_name', 'opp', 'best', 'worst', 'avg', 'std dev',
+                   'proj. pts', 'pos', 'pos_rank', 'tm']
+    float_cols = ['best', 'worst', 'avg', 'std dev','proj. pts']
+    col_map = dict(zip(new_ecr_cols, old_ecr_cols))
+    df = df.rename(columns=col_map)
+    df[float_cols] = df[float_cols].astype('float')
+    return df.loc[:, old_ecr_cols + ['start_sit_grade']]
+
+def create_fantasy_pros_ecr_df(league_dict=config.sean):
+    df = (fantasy_pros_ecr_weekly_scrape(league_dict)
+            .pipe(fantasy_pros_ecr_weekly_transform))
     return df
 
 if __name__ == "__main__":
