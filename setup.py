@@ -11,7 +11,7 @@ setuptools.setup(
     description="Analysis and data scraping for Fantasy Football",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/rmull61/Fantasy-Football",
+    url="https://github.com/Robert-F-Mulligan/fantasy-football",
     packages=setuptools.find_packages(include=['fantasyfootball']),
     classifiers=[
         "Programming Language :: Python :: 3",
