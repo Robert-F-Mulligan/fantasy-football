@@ -149,7 +149,7 @@ def make_clustering_viz(tier_dict=8, kmeans=False, league=config.sean, pos_n=35,
     if draft:
         df = fp.fantasy_pros_ecr_process(league)
     else:
-        df = fp.fantasy_pros_ecr_weekly_scrape(league)
+        df = fp.create_fantasy_pros_ecr_df(league)
     df['pos_rank'] = (df['pos_rank'].replace('[^0-9]', '', regex=True)
                                     .astype('int')
                      )
