@@ -120,7 +120,7 @@ def fantasy_pros_ecr_scrape(league_dict=config.sean):
     else:
         url = 'https://www.fantasypros.com/nfl/rankings/consensus-cheatsheets.php'
     html = scrape_dynamic_javascript(url)
-    parsed_dict = parse_html(html)
+    parsed_dict = parse_ecr_html(html)
     return pd.DataFrame(parsed_dict)
 
 def fantasy_pros_ecr_scrape_column_clean(df):
@@ -177,10 +177,15 @@ def scrape_dynamic_javascript(url):
     driver.quit()
     return html
 
-def parse_html(html):
+def parse_ecr_html(html):
     values = re.findall(r'var ecrData.*?=\s*(.*?)\s*var\ssosData', html, re.DOTALL | re.MULTILINE)
     parsed_dict = json.loads(values[0][:-1])
     return parsed_dict['players']
+
+def parse_sos_html(html):
+    values = re.findall(r'var sosData.*?=\s*(.*?)\s*var\sadpData', html, re.DOTALL | re.MULTILINE)
+    parsed_dict = json.loads(values[0][:-1])
+    return pd.DataFrame(parsed_dict).T
 
 def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
     """Scrape Fantasy Pros ECR given a league scoring format (on a week by week basis)
@@ -199,7 +204,7 @@ def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
             url = f'https://www.fantasypros.com/nfl/rankings/{pos.lower()}.php'
         
         html = scrape_dynamic_javascript(url)
-        parsed_dict = parse_html(html)
+        parsed_dict = parse_ecr_html(html)
         df = pd.DataFrame(parsed_dict)
         #Flex and pos have different columns
         if pos == 'FLEX':
