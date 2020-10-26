@@ -119,10 +119,9 @@ def fantasy_pros_ecr_scrape(league_dict=config.sean):
         url = 'https://www.fantasypros.com/nfl/rankings/half-point-ppr-cheatsheets.php'
     else:
         url = 'https://www.fantasypros.com/nfl/rankings/consensus-cheatsheets.php'
-    r = requests.get(url)
-    soup = BeautifulSoup(r.content, 'html.parser')
-    table = soup.find_all('table')
-    return pd.read_html(str(table))[0]
+    html = scrape_dynamic_javascript(url)
+    parsed_dict = parse_html(html)
+    return pd.DataFrame(parsed_dict)
 
 def fantasy_pros_ecr_scrape_column_clean(df):
     """Cleans data for ECR scrape
@@ -130,19 +129,19 @@ def fantasy_pros_ecr_scrape_column_clean(df):
     :param df: dataframe object that has been scraped from a url
     """
     df = df.copy()
-    df.columns = [col.lower() for col in df.columns]
-    df = (df.drop(columns=['wsid'])
-            .dropna(subset=['overall (team)'])
-            .rename(columns={'overall (team)' : 'player_name', 'pos' : 'pos_rank'})
-         )
-    df['rank'] = df['rank'].astype('int')
-    df['pos'] = df['pos_rank']
-    df['pos'].replace('\d+', '', regex=True, inplace=True)
-    df['tm'] = ''
-    df.loc[df['pos'] == 'DST', 'tm'] = df.loc[df['pos'] == 'DST', 'player_name'].str.split('(').str[-1].str.split(')').str[0]
-    df.loc[df['pos'] != 'DST', 'tm'] = df.loc[df['pos'] != 'DST', 'player_name'].str.split().str[-1]
-    df.loc[df['pos'] == 'DST', 'player_name'] = df.loc[df['pos'] == 'DST', 'player_name'].str.rsplit('(', n=1).str[0] + '(' + df['tm'] + ')'
-    df.loc[df['pos'] != 'DST', 'player_name'] = df.loc[df['pos'] != 'DST', 'player_name'].str.rsplit(n=1).str[0].str.rsplit(n=1).str[0].str[:-2]
+    ecr_col = {
+    'rank_ecr': 'rank',
+    'player_name': 'player_name',
+    'player_team_id': 'tm',
+    'pos_rank': 'pos_rank',
+    'player_positions': 'pos',
+    'player_bye_week': 'bye',
+    'rank_min': 'best',
+   'rank_max': 'worst',
+    'rank_ave': 'avg',
+    'rank_std': 'std dev'
+    }
+    df = df.rename(columns=ecr_col)
     df['tm'].replace({'JAC' : 'JAX'}, inplace=True)
     df.reset_index(inplace=True, drop=True)
     return df
@@ -153,8 +152,7 @@ def fantasy_pros_ecr_column_reindex(df):
     :param df: cleaned dataframe object resulting from a web scrape
     """
     full_column_list = [
-        'rank', 'player_name', 'pos', 'tm', 'pos_rank', 'bye', 'best', 'worst', 'avg', 'std dev',
-       'adp', 'vs. adp' 
+        'rank', 'player_name', 'pos', 'tm', 'pos_rank', 'bye', 'best', 'worst', 'avg', 'std dev' 
        ]
     df = df.copy()
     df = df.reindex(columns = full_column_list, fill_value = 0)
@@ -169,7 +167,7 @@ def fantasy_pros_ecr_process(league):
 def scrape_dynamic_javascript(url):
     options = Options()
     options.headless = True
-    options.add_argument("--window-size=1920,1200")
+    #options.add_argument("--window-size=1920,1200")
     options.add_argument("--log-level=3") #suppress non-fatal logs
 
     driver = webdriver.Chrome(options=options, executable_path=DRIVER_PATH)
@@ -216,15 +214,23 @@ def fantasy_pros_ecr_weekly_scrape(league_dict=config.sean):
 
 def fantasy_pros_ecr_weekly_transform(df):
     df = df.copy()
-    new_ecr_cols = ['rank_ecr', 'player_name', 'player_opponent', 
-                    'rank_min', 'rank_max', 'rank_ave', 'rank_std', 'r2p_pts', 'pos', 'pos_rank', 'player_team_id']
-    old_ecr_cols = ['rank', 'player_name', 'opp', 'best', 'worst', 'avg', 'std dev',
-                   'proj. pts', 'pos', 'pos_rank', 'tm']
     float_cols = ['best', 'worst', 'avg', 'std dev','proj. pts']
-    col_map = dict(zip(new_ecr_cols, old_ecr_cols))
+    col_map = {
+        'rank_ecr': 'rank',
+        'player_name': 'player_name',
+        'player_opponent': 'opp',
+        'rank_min': 'best',
+        'rank_max': 'worst',
+        'rank_ave': 'avg',
+        'rank_std': 'std dev',
+        'r2p_pts': 'proj. pts',
+        'pos': 'pos',
+        'pos_rank': 'pos_rank',
+        'player_team_id': 'tm'
+        }
     df = df.rename(columns=col_map)
     df[float_cols] = df[float_cols].astype('float')
-    return df.loc[:, old_ecr_cols + ['start_sit_grade']]
+    return df.loc[:, [v for _, v in col_map.items()] + ['start_sit_grade']]
 
 def create_fantasy_pros_ecr_df(league_dict=config.sean):
     df = (fantasy_pros_ecr_weekly_scrape(league_dict)

@@ -85,8 +85,8 @@ merged_df = (merged_df.sort_values('vor', ascending=False)
 #add tiers
 ecr = (fp.fantasy_pros_ecr_process(league)
          .merge(merged_df, how='left', on=['player_name', 'pos', 'tm']).reset_index(drop=True)
-         .drop(columns=['adp_x', 'bye_y'])
-         .rename(columns={'adp_y' : 'adp', 'bye_x': 'bye'})
+         .drop(columns=['bye_y'])
+         .rename(columns={'bye_x': 'bye'})
       )
 
 pos_dict = tiers.draftable_position_quantity(league)
