@@ -37,6 +37,7 @@ def get_nfl_fast_r_roster_data_decoded(year=2020):
     return df
 
 def target_share_vs_air_yard_share_transform(df):
+    df = df.copy()
     year = df['game_id'].str.split('_').str[0].max()
     week = df['week'].max()
     names = df[['receiver_id', 'receiver']].drop_duplicates().dropna()
@@ -51,7 +52,7 @@ def target_share_vs_air_yard_share_transform(df):
            .assign(team_air_yards=df.groupby('posteam')['air_yards'].transform('sum'))
          )
     df = (df.assign(target_share=df['targets'] / df['team_targets'])
-            .assign(air_yard_share= df['air_yards'] / df['team_air_yards'])
+            .assign(air_yard_share=df['air_yards'] / df['team_air_yards'])
             .assign(year=year)
             .assign(week=week)
             .reset_index()
@@ -394,3 +395,58 @@ def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
     if save:
         player_type_lower = player_type.lower()
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{player_type_lower}_play_yardline_breakdown.png'), bbox_inches='tight')
+
+def epa_vs_cpoe_transform(df, minimum_att=200):
+    df = df.copy()
+    year = df['game_id'].str.split('_').str[0].max()
+    week = df['week'].max()
+    names = df[['passer_id', 'passer']].drop_duplicates().dropna()
+    qbs = df.groupby(['passer_id','posteam']).agg({'epa':'mean',
+                                                   'cpoe':'mean',
+                                                   'play_id':'count'})
+    qbs = (qbs.reset_index()
+            .merge(names, how='left', on='passer_id')
+            .drop(columns='passer_id')
+            .set_index('passer')
+            .assign(year=year)
+            .assign(week=week)
+       )
+
+    return qbs.loc[qbs.play_id>minimum_att]
+
+def make_epa_vs_cpoe_viz(df, save=True):
+    fig, ax = plt.subplots(figsize=(15,15))
+    x = df['cpoe']
+    y = df['epa']
+    size = df['play_id']
+    colors = df['posteam'].map(nfl_color_map)
+    
+    ax.scatter(x, y, s=size, alpha=.7, color=colors)
+    #labels
+    text = [ax.annotate(name, xy=(x0, y0), alpha=1.0, zorder=2) for name, x0, y0 
+        in zip(df.index, x, y)]
+    adjust_text(text)
+    #mean lines
+    avg_x = x.mean()
+    avg_y = y.mean()  
+    ax.axvline(avg_x, linestyle='--', color='gray')
+    ax.axhline(avg_y, linestyle='--', color='gray')
+    #title
+    year = df['year'].max()
+    week = df['week'].max()
+    ax.set_title(f'{year} CPOE vs EPA (Through Week {week})', fontsize=16, fontweight='bold')
+    #labels
+    ax.set_xlabel('Completion % Over Expected (CPOE)',fontsize=16,labelpad=15)
+    ax.set_ylabel('EPA per Attempt',fontsize=16,labelpad=15)
+    #Add grid
+    ax.grid(zorder=0,alpha=.4)
+    ax.set_axisbelow(True)
+    #Remove top and right boundary lines
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    #margins and footnotes
+    #ax.margins(x=.05, y=.01)
+    ax.annotate('Data: @NFLfastR',xy=(.90,-0.05), fontsize=12, xycoords='axes fraction')
+    ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction')
+    if save:
+        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_cpoe_vs_epa.png'), bbox_inches='tight')
