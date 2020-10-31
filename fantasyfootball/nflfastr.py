@@ -450,3 +450,56 @@ def make_epa_vs_cpoe_viz(df, save=True):
     ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction')
     if save:
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_cpoe_vs_epa.png'), bbox_inches='tight')
+
+def neutral_pass_rate_transform(df):
+    df = df.copy()
+    year = df['game_id'].str.split('_').str[0].max()
+    week = df['week'].max()
+    downs = df['down'] < 3
+    time = df['half_seconds_remaining'] >120
+    wp_low = df['wp'] >= .2
+    wp_high = df['wp'] <= .8
+    df = (df.loc[downs & time & wp_low & wp_high]
+            .groupby('posteam', as_index=False)['pass'].mean()
+            .assign(year=year)
+            .assign(week=week)
+            .set_index('posteam')
+            .sort_values('pass', ascending=False)
+         )
+    return df
+
+def make_neutral_pass_rate_viz(df):
+    fig, ax = plt.subplots(figsize=(30,15))
+    color = df.index.map(nfl_color_map)
+    logo = df.index.map(nfl_logo_espn_path_map)
+    images = [OffsetImage(plt.imread(logo_path), zoom=.1) for logo_path in logo]
+    x = df.index
+    y = df['pass']
+    ax.bar(x, y, color=color, width=0.5)
+    
+    for x0, y0, im in zip(x, y, images):
+        ax.add_artist(AnnotationBbox(im, xy=(x0,y0), frameon=False, xycoords='data'))
+    
+    #Add league average line
+    ax.axhline(y=df['pass'].mean(),linestyle='--',color='black')
+
+    #Add grid
+    ax.grid(zorder=0,alpha=.6,axis='y')
+    ax.set_axisbelow(True)
+    
+    #title
+    year = df['year'].max()
+    week = df['week'].max()
+    ax.set_title(f'{year} Neutral Pas Rate (Through Week {week})\n 1st & 2nd Down, Win Prob. Between 20-80%, Final Two Minutes Excluded',
+                fontsize=25, fontweight='bold', pad=20)
+    
+    #axis label
+    ax.set_ylabel('Pass Rate',fontsize=20,labelpad=20)
+    ax.tick_params(labelsize=16)
+    
+    #League average line label
+    plt.text(30.5,.53,'NFL Average',fontsize=14)
+    
+    #footnotes
+    ax.annotate('Data: @NFLfastR',xy=(.90,-0.05), fontsize=12, xycoords='axes fraction')
+    ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
