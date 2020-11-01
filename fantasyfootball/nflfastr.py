@@ -481,7 +481,7 @@ def make_neutral_pass_rate_viz(df):
         ax.add_artist(AnnotationBbox(im, xy=(x0,y0), frameon=False, xycoords='data'))
     
     #Add league average line
-    ax.axhline(y=df['pass'].mean(),linestyle='--',color='black')
+    ax.axhline(y=y.mean(),linestyle='--',color='black')
 
     #Add grid
     ax.grid(zorder=0,alpha=.6,axis='y')
@@ -490,7 +490,7 @@ def make_neutral_pass_rate_viz(df):
     #title
     year = df['year'].max()
     week = df['week'].max()
-    ax.set_title(f'{year} Neutral Pas Rate (Through Week {week})\n 1st & 2nd Down, Win Prob. Between 20-80%, Final Two Minutes Excluded',
+    ax.set_title(f'{year} Neutral Pass Rate (Through Week {week})\n 1st & 2nd Down, Win Prob. Between 20-80%, Final Two Minutes Excluded',
                 fontsize=25, fontweight='bold', pad=20)
     
     #axis label
@@ -503,3 +503,65 @@ def make_neutral_pass_rate_viz(df):
     #footnotes
     ax.annotate('Data: @NFLfastR',xy=(.90,-0.05), fontsize=12, xycoords='axes fraction')
     ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
+
+def second_and_long_pass_transform(df):
+    df = df.copy()
+    year = df['game_id'].str.split('_').str[0].max()
+    week = df['week'].max()
+    downs = df['down'] == 2
+    time = df['half_seconds_remaining'] >120
+    wp_low = df['wp'] >= .2
+    wp_high = df['wp'] <= .8
+    to_go = df['ydstogo'] >= 8
+    df = (df.loc[downs & time & wp_low & wp_high & to_go]
+            .groupby('posteam', as_index=False)['pass'].mean()
+            .assign(year=year)
+            .assign(week=week)
+            .set_index('posteam')
+            .sort_values('pass', ascending=False)
+         )
+
+    return df
+
+def make_second_and_long_pass_rate_viz(df, color='team'):
+    fig, ax = plt.subplots(figsize=(40,15))
+    if color == 'team':
+        color = df.index.map(nfl_color_map)
+    else:
+        color = cm.Greys_r(np.linspace(0,1,len(df)))
+    logo = df.index.map(nfl_logo_espn_path_map)
+    images = [OffsetImage(plt.imread(logo_path), zoom=.1) for logo_path in logo]
+    x = df.index
+    y = df['pass']
+    ax.barh(x, y, color=color, height=0.5)
+    
+    for x0, y0, im in zip(x, y, images):
+        ax.add_artist(AnnotationBbox(im, xy=(y0,x0), frameon=False, xycoords='data'))
+    
+    #Add league average line
+    ax.axvline(x=y.mean(),linestyle='--',color='black')
+
+    #Add grid
+    ax.grid(zorder=0,alpha=.6,axis='x')
+    ax.set_axisbelow(True)
+    
+    #title
+    year = df['year'].max()
+    week = df['week'].max()
+    ax.set_title(f'{year} Second and Long Pass Rate (Through Week {week})\n2nd and 8+ To Go, Win Prob. Between 20-80%, Final Two Minutes Excluded',
+                fontsize=25, fontweight='bold', pad=20)
+    #axis label
+    ax.set_xlabel('Pass Rate',fontsize=20,labelpad=20)
+    ax.tick_params(labelsize=16)
+    ax.invert_yaxis()
+    ax.margins(x=.05, y=.001)
+    
+    #League average line label
+    plt.text(y.mean() + 0.005, 30.5, 'NFL Average',fontsize=14)
+    
+    #footnotes
+    ax.annotate('Data: @NFLfastR',xy=(.90,-0.05), fontsize=12, xycoords='axes fraction')
+    ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
+    
+    fig.tight_layout()
+    fig.savefig(f'{year}_Air_Yard_Density_Through_Week_{week}.png', bbox_inches='tight')
