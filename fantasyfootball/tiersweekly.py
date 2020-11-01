@@ -61,6 +61,8 @@ work_list = [
     'Hayden Hurst',
     'Leonard Fournette',
     'Michael Thomas',
+    'Golden Tate',
+    'Rob Gronkowski'
     ]
 
 sean_list = [
@@ -74,7 +76,9 @@ sean_list = [
     'Christian Kirk',
     'Jordan Reed',
     'Chris Thompson',
-    'George Kittle'
+    'George Kittle',
+    'Giovani Bernard',
+    'Carlos Hyde'
     ]
 
 justin_list = [
@@ -90,7 +94,9 @@ justin_list = [
     'Sammy Watkins',
     'Frank Gore',
     'Jack Doyle',
-    'Denzel Mims'
+    'Denzel Mims',
+    'Justin Jackson',
+    'Mercole Hardman'
     ]
 different_spelling = [
     'Todd Gurley',
@@ -198,7 +204,7 @@ def make_clustering_viz_flex(tiers=15, kmeans=False, league=config.sean, player_
                     plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_gmm_{pos}_{ix+1}.png'))
         if export:
             df.to_csv(path.join(FIGURE_DIR,fr'{date_str}_ecr_tiers.csv'), index=False)              
-    return plt.show()
+    #return plt.show()
 
 if __name__ == "__main__":
     #run elbow chart or AIC/BIC chart to estimate optimal number of k for each pos
@@ -221,5 +227,5 @@ if __name__ == "__main__":
     tiers.make_clustering_viz(tier_dict=pos_tier_dict_viz, league=sean, pos_n=35, covariance_type='diag', draft=False, save=True)
     make_clustering_viz_flex(export=True)
     make_clustering_viz_flex(league=sean, player_list=sean_list)
-    #make_clustering_viz_flex(league=work, player_list=work_list)
-    #make_clustering_viz_flex(league=justin, player_list=justin_list)
+    make_clustering_viz_flex(league=work, player_list=work_list)
+    make_clustering_viz_flex(league=justin, player_list=justin_list)
