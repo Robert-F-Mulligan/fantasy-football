@@ -528,7 +528,7 @@ def make_second_and_long_pass_rate_viz(df, color='team'):
     if color == 'team':
         color = df.index.map(nfl_color_map)
     else:
-        color = cm.Greys_r(np.linspace(0,1,len(df)))
+        color = cm.Greys_r(np.linspace(0,.8,len(df)))
     logo = df.index.map(nfl_logo_espn_path_map)
     images = [OffsetImage(plt.imread(logo_path), zoom=.1) for logo_path in logo]
     x = df.index
@@ -564,4 +564,4 @@ def make_second_and_long_pass_rate_viz(df, color='team'):
     ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
     
     fig.tight_layout()
-    fig.savefig(f'{year}_Air_Yard_Density_Through_Week_{week}.png', bbox_inches='tight')
+    fig.savefig(f'{year}_Second_and_Long_Pass_Rate_{week}.png', bbox_inches='tight')
