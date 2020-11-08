@@ -528,7 +528,7 @@ def make_second_and_long_pass_rate_viz(df, color='team'):
     if color == 'team':
         color = df.index.map(nfl_color_map)
     else:
-        color = cm.Greys_r(np.linspace(0,.8,len(df)))
+        color = cm.color(np.linspace(0,.8,len(df)))
     logo = df.index.map(nfl_logo_espn_path_map)
     images = [OffsetImage(plt.imread(logo_path), zoom=.1) for logo_path in logo]
     x = df.index

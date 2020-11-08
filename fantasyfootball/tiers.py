@@ -210,7 +210,7 @@ def make_clustering_viz(tier_dict=8, kmeans=False, league=config.sean, pos_n=35,
             else:
                 plt.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_gmm_{p}.png'))
          
-    return plt.show()
+    #return plt.show()
 
 def assign_tier_to_df(df, tier_dict=8, kmeans=False, pos_n=None, covariance_type='diag'):
     """
