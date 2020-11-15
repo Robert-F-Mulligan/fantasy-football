@@ -390,3 +390,38 @@ ESPN_DIR = r'..\figures\logos\espn'
 
 nfl_logo_png_path_map = {team: path.join(WIKI_DIR,filename) for team, filename in nfl_logo_map_wiki.items()}
 nfl_logo_espn_path_map = {team: path.join(ESPN_DIR,filename) for team, filename in nfl_logo_map_espn.items()}
+
+fftoday_team_map = {
+    'Cardinals': 'ARI',
+    'Seahawks': 'SEA',
+    'Chiefs': 'KC',
+    'Bills': 'BUF',
+    'Packers': 'GB',
+    'Chargers': 'LAC',
+    'Texans': 'HOU',
+    'Saints': 'NO',
+    'Ravens': 'BAL',
+    'Titans': 'TEN',
+    'Buccaneers': 'TB',
+    'Jaguars': 'JAX',
+    'Falcons': 'ATL',
+    'Bengals': 'CIN',
+    'Eagles': 'PHI',
+    'Cowboys': 'DAL',
+    'Raiders': 'LV',
+    'Steelers': 'PIT',
+    'Dolphins': 'MIA',
+    'Panthers': 'CAR',
+    'Lions': 'DET',
+    'Rams': 'LA',
+    'Bears': 'CHI',
+    'Patriots': 'NE',
+    'Colts': 'IND',
+    'Vikings': 'MIN',
+    'Broncos': 'DEN',
+    '49ers': 'SF',
+    'Browns': 'CLE',
+    'Football': 'WAS',
+    'Giants': 'NYG',
+    'Jets': 'NYJ'
+    }

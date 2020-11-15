@@ -12,6 +12,7 @@ from fantasyfootball.config import FIGURE_DIR
 from adjustText import adjust_text
 import requests
 from io import BytesIO
+import codecs
 
 
 def get_nfl_fast_r_data(*years):
@@ -35,6 +36,12 @@ def get_nfl_fast_r_roster_data(*years):
 def get_nfl_fast_r_roster_data_decoded(year=2020):
     df = pd.read_csv(f'https://github.com/mrcaseb/nflfastR-roster/blob/master/data/seasons/roster_{year}.csv?raw=true', low_memory=False)
     return df
+
+def convert_to_gsis_id(new_id):
+    """Apply this function to nflfastr play-by-play in order to join to 2020 roster data gsis_id """
+    if type(new_id) == float:
+        return new_id  
+    return codecs.decode(new_id[4:-8].replace('-',''),"hex").decode('utf-8')
 
 def target_share_vs_air_yard_share_transform(df):
     df = df.copy()
