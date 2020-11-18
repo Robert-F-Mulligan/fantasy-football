@@ -13,7 +13,7 @@ from adjustText import adjust_text
 import requests
 from io import BytesIO
 import codecs
-
+import urllib.request
 
 def get_nfl_fast_r_data(*years):
     df = pd.DataFrame()
@@ -42,6 +42,17 @@ def convert_to_gsis_id(new_id):
     if type(new_id) == float:
         return new_id  
     return codecs.decode(new_id[4:-8].replace('-',''),"hex").decode('utf-8')
+
+def save_team_images(column='team_wordmark'):
+    df = pd.read_csv(r'https://github.com/guga31bb/nflfastR-data/raw/master/teams_colors_logos.csv')
+    my_series = df[column]
+    my_list = my_series.to_list()
+    for im_url in my_list:
+        image_url = im_url
+        filename = image_url.split("/")[-1]
+        local_path = r'..\figures'
+        file_path = path.join(local_path, filename)
+        urllib.request.urlretrieve(image_url, file_path)
 
 def target_share_vs_air_yard_share_transform(df):
     df = df.copy()
