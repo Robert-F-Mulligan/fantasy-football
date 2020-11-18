@@ -385,11 +385,48 @@ nfl_logo_map_espn = {
     'NFL': 'NFL.png'
     }
 
+nfl_wordmarks = {
+    'ARI': 'ARI_fullcolor.png',
+    'ATL': 'ATL_fullcolor.png',
+    'BAL': 'BAL_fullcolor.png',
+    'BUF': 'BUF_fullcolor.png',
+    'CAR': 'CAR_fullcolor.png',
+    'CHI': 'CHI_fullcolor.png',
+    'CIN': 'CIN_fullcolor.png',
+    'CLE': 'CLE_fullcolor.png',
+    'DAL': 'DAL_fullcolor.png',
+    'DEN': 'DEN_fullcolor.png',
+    'DET': 'DET_fullcolor.png',
+    'GB': 'GB_fullcolor.png',
+    'HOU': 'HOU_fullcolor.png',
+    'IND': 'IND_fullcolor.png',
+    'JAX': 'JAX_fullcolor.png',
+    'KC': 'KC_fullcolor.png',
+    'LA': 'LA_fullcolor.png',
+    'LAC': 'LAC_fullcolor.png',
+    'LV': 'LV_fullcolor.png',
+    'MIA': 'MIA_fullcolor.png',
+    'MIN': 'MIN_fullcolor.png',
+    'NE': 'NE_fullcolor.png',
+    'NO': 'NO_fullcolor.png',
+    'NYG': 'NYG_fullcolor.png',
+    'NYJ': 'NYJ_fullcolor.png',
+    'PHI': 'PHI_fullcolor.png',
+    'PIT': 'PIT_fullcolor.png',
+    'SEA': 'SEA_fullcolor.png',
+    'SF': 'SF_fullcolor.png',
+    'TB': 'TB_fullcolor.png',
+    'TEN': 'TEN_fullcolor.png',
+    'WAS': 'WAS_fullcolor.png'
+    }
+
 WIKI_DIR = r'..\figures\logos\wikipedia'
 ESPN_DIR = r'..\figures\logos\espn'
+WORDMARK_DIR = r'..\figures\logos\wordmarks'
 
 nfl_logo_png_path_map = {team: path.join(WIKI_DIR,filename) for team, filename in nfl_logo_map_wiki.items()}
 nfl_logo_espn_path_map = {team: path.join(ESPN_DIR,filename) for team, filename in nfl_logo_map_espn.items()}
+nfl_wordmark_path_map = {team: path.join(WORDMARK_DIR,filename) for team, filename in nfl_wordmarks.items()}
 
 fftoday_team_map = {
     'Cardinals': 'ARI',
