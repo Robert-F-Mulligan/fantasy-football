@@ -462,3 +462,38 @@ fftoday_team_map = {
     'Giants': 'NYG',
     'Jets': 'NYJ'
     }
+
+tean_rankings_map = {
+    'Dallas': 'DAL',
+    'LA Chargers': 'LAC',
+    'Cincinnati': 'CIN',
+    'Atlanta': 'ATL',
+    'LA Rams': 'LA',
+    'Arizona': 'ARI',
+    'Philadelphia': 'PHI',
+    'New Orleans': 'NO',
+    'Denver': 'DEN',
+    'Pittsburgh': 'PIT',
+    'Washington': 'WAS',
+    'Tampa Bay': 'TB',
+    'Indianapolis': 'IND',
+    'Kansas City': 'KC',
+    'Chicago': 'CHI',
+    'Las Vegas': 'LV',
+    'Seattle': 'SEA',
+    'San Francisco': 'SF',
+    'New England': 'NE',
+    'Buffalo': 'BUF',
+    'Tennessee': 'TEN',
+    'Green Bay': 'GB',
+    'Jacksonville': 'JAX',
+    'Baltimore': 'BAL',
+    'Detroit': 'DET',
+    'NY Giants': 'NYG',
+    'Cleveland': 'CLE',
+    'Carolina': 'CAR',
+    'Miami': 'MIA',
+    'NY Jets': 'NYJ',
+    'Minnesota': 'MIN',
+    'Houston': 'HOU'
+    }
