@@ -100,6 +100,15 @@ def fftoday_fantasy_points_scored_by_pos(year=2020, side='Scored', rank=True):
         df = df.rank(method='min')
     return df
 
+def fftoday_fantasy_points_o_vs_by_pos(year=2020, rank=True):
+    off = fftoday_fantasy_points_scored_by_pos(year=year, side='Scored', rank=rank)
+    off['unit'] = 'offense'
+    
+    def_ = fftoday_fantasy_points_scored_by_pos(year=year, side='Allowed', rank=rank)
+    def_['unit'] = 'defense'
+    
+    return pd.concat([off, def_]).set_index('unit', append=True)
+
 def combine_team_data_sources(year, *teams, rank=True):
     #nflfastr
     fastr = nflfastr.get_nfl_fast_r_data(year)
@@ -131,13 +140,15 @@ def call_data_and_combine_off_vs_def_sources(year, offense_tm, defense_tm, rank=
     data_list = [fastr_c, fftoday_df]
     return pd.concat(data_list, axis='columns').assign(year=year).assign(week=week)
 
-def combine_off_vs_def_sources(fastrdf, fftoday_df, offense_tm, defense_tm, rank=True):
+def combine_off_vs_def_sources(year, rank=True):
+    """Combines NFLfastr stats with  FF Todat stats"""
     #nflfastr
+    fastrdf = nflfastr.get_nfl_fast_r_data(year)
     year = fastrdf['game_id'].str.split('_').str[0].max()
     week = fastrdf['week'].max()
-    fastr_c = nflfastr.offense_vs_defense_transform(fastrdf, offense_tm, defense_tm, rank=rank)
+    fastr_c = nflfastr.offense_vs_defense_transform(fastrdf, rank=rank)
     #fftoday
-    fftoday_df = fftoday_df.loc[fftoday_df.index.isin([offense_tm, defense_tm])]
+    fftoday_df = fftoday_fantasy_points_o_vs_by_pos(year, rank)
     #combining data
     data_list = [fastr_c, fftoday_df]
     return pd.concat(data_list, axis='columns').assign(year=year).assign(week=week)
@@ -211,13 +222,17 @@ def make_stats_compare_bar(df, *teams, width=0.75, legend='best', save=False):
         teams_str = '_'.join(teams)
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_h2h_{teams_str}.png'))
 
-def make_h2h_compare_bar(df, width=0.75, legend='best', save=False):
+def make_o_vs_d_compare_bar(df, offense, defense, width=0.75, legend='best', save=False):
     """
     Compare two NFL teams offense vs defense
     """
     year = df['year'].max()
     week = df['week'].max()
-    df = df.copy().drop(columns=['year', 'week'])
+    df = (df.copy()
+            .loc[[(offense, 'offense'), (defense, 'defense')]]
+            .drop(columns=['year', 'week'])
+            .droplevel(1)
+            .reindex([offense, defense]))
     team_list = [team for team in df.index]
     df = df.T
     rank = np.arange(1,33) #create an array for all ranking possibilities
@@ -234,7 +249,7 @@ def make_h2h_compare_bar(df, width=0.75, legend='best', save=False):
     df.plot(kind='bar', ax=ax, color=colors, width=width)
 
     #axis
-    xlabels = ['Pass Eff.', 'Rush Eff.', 'Sack Rate', 'Plays Per Game', 'QB FPPG', 'RB FPPG', 'WR FPPG', 'TE FPPG']
+    xlabels = ['Pass Eff.', 'Rush Eff.', 'Sack Rate', 'Neutral Pace', 'QB FPPG', 'RB FPPG', 'WR FPPG', 'TE FPPG']
     ax.set_ylabel('Ranking',fontsize=20,labelpad=15)
     ax.set_ylim(0,33)
     ax.set_yticklabels([])
@@ -252,7 +267,7 @@ def make_h2h_compare_bar(df, width=0.75, legend='best', save=False):
     ax.set_axisbelow(True)
     
     #legend
-    ax.legend(fontsize=20, loc=legend)
+    ax.legend(labels=[offense + ' O' , defense + ' D'], fontsize=20, loc=legend)
     
     #annotate thr bar charts
     for p in ax.patches:

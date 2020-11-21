@@ -608,19 +608,14 @@ def pass_run_epa_merge(df, rank=True):
 def sack_rate_transform(df, col='posteam', rank=True):
     df = df.copy()
     play_type = df['play_type'] == 'pass'
-    cols = [col, 'sack']
-    df =  (df.loc[play_type, cols]
-             .groupby(col)
+    df =  (df.loc[play_type]
+             .groupby(col)['sack']
              .mean()
              .mul(100))
-    if col == 'posteam':
-        df = df.rename(columns={'sack': 'off_sack_rate'})
-        if rank: 
-                df = df.rank(method='min')
-    elif col == 'defteam':
-        df = df.rename(columns={'sack': 'def_sack_rate'})
-        if rank:
-            df = df.rank(ascending=False, method='min')
+    if rank and col=='posteam':
+        df = df.rank(method='min')
+    elif rank and col=='defteam':
+        df = df.rank(ascending=False, method='min')
     return df
 
 def neutral_pace_transform(df, rank=True, col='posteam', time=120, wp_low=0.2, wp_high=0.8):
@@ -637,9 +632,9 @@ def neutral_pace_transform(df, rank=True, col='posteam', time=120, wp_low=0.2, w
         df = df.rank(ascending=False, method='min')
     elif rank and col=='defteam':
         df = df.rank(method='min')
-    return df
+    return df.squeeze()
 
-def offense_vs_defense_transform(df, offense_tm, defense_tm, rank=True):
+def offense_vs_defense_transform_alternate(df, offense_tm, defense_tm, rank=True):
     #pass o vs d
     pass_epa_off = epa_transform(df, 'pass', col='posteam', rank=rank)
     pass_epa_off = pass_epa_off.loc[pass_epa_off.index.isin([str(offense_tm)])]
@@ -656,9 +651,9 @@ def offense_vs_defense_transform(df, offense_tm, defense_tm, rank=True):
     
     #off sack rate o vs d
     off_sack = sack_rate_transform(df, col='posteam', rank=rank)
-    off_sack = off_sack.loc[off_sack.index.isin([str(offense_tm)])].rename(columns={'off_sack_rate': 'sack_rate'})
+    off_sack = off_sack.loc[off_sack.index.isin([str(offense_tm)])]
     def_sack = sack_rate_transform(df, col='defteam', rank=rank)
-    def_sack = def_sack.loc[def_sack.index.isin([str(defense_tm)])].rename(columns={'def_sack_rate': 'sack_rate'})
+    def_sack = def_sack.loc[def_sack.index.isin([str(defense_tm)])]
     sack = pd.concat([off_sack, def_sack])
 
     #pace o vs d
@@ -666,6 +661,29 @@ def offense_vs_defense_transform(df, offense_tm, defense_tm, rank=True):
     off_pace = off_pace.loc[off_pace.index.isin([str(offense_tm)])]
     def_pace = neutral_pace_transform(df, col='defteam', rank=rank)
     def_pace = def_pace.loc[def_pace.index.isin([str(defense_tm)])]
+    pace = pd.concat([off_pace, def_pace])
+    
+    return pd.concat([pass_epa, run_epa, sack, pace], axis='columns')
+
+def offense_vs_defense_transform(df, rank=True):
+    #pass o vs d
+    pass_epa_off = epa_transform(df, 'pass', col='posteam', rank=rank).to_frame().assign(unit='offense').set_index('unit', append=True)
+    pass_epa_def = epa_transform(df, 'pass', col='defteam', rank=rank).to_frame().assign(unit='defense').set_index('unit', append=True)
+    pass_epa = pd.concat([pass_epa_off, pass_epa_def]).rename(columns={'epa':'pass_epa'})
+    
+    #rush o vs d
+    run_epa_off = epa_transform(df, 'run', col='posteam', rank=rank).to_frame().assign(unit='offense').set_index('unit', append=True)
+    run_epa_def = epa_transform(df, 'run', col='defteam', rank=rank).to_frame().assign(unit='defense').set_index('unit', append=True)
+    run_epa = pd.concat([run_epa_off, run_epa_def]).rename(columns={'epa':'rush_epa'})
+    
+    #off sack rate o vs d
+    off_sack = sack_rate_transform(df, col='posteam', rank=rank).to_frame().assign(unit='offense').set_index('unit', append=True)
+    def_sack = sack_rate_transform(df, col='defteam', rank=rank).to_frame().assign(unit='defense').set_index('unit', append=True)
+    sack = pd.concat([off_sack, def_sack])
+
+    #pace o vs d
+    off_pace = neutral_pace_transform(df, col='posteam', rank=rank).to_frame().assign(unit='offense').set_index('unit', append=True)
+    def_pace = neutral_pace_transform(df, col='defteam', rank=rank).to_frame().assign(unit='defense').set_index('unit', append=True)
     pace = pd.concat([off_pace, def_pace])
     
     return pd.concat([pass_epa, run_epa, sack, pace], axis='columns')
