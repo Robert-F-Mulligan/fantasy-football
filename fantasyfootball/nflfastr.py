@@ -3,12 +3,12 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+from matplotlib import cm
 import fantasyfootball
 from os import path
-from fantasyfootball.config import DATA_DIR, pfr_to_fantpros, nfl_color_map, nfl_logo_espn_path_map
+from fantasyfootball.config import DATA_DIR, FIGURE_DIR, pfr_to_fantpros, nfl_color_map, nfl_logo_espn_path_map
 import seaborn as sns
 import numpy as np
-from fantasyfootball.config import FIGURE_DIR
 from adjustText import adjust_text
 import requests
 from io import BytesIO
@@ -483,7 +483,7 @@ def neutral_pass_rate_transform(df):
             .assign(week=week)
             .set_index('posteam')
             .sort_values('pass', ascending=False)
-         )
+            )
     return df
 
 def make_neutral_pass_rate_viz(df):
@@ -583,3 +583,90 @@ def make_second_and_long_pass_rate_viz(df, color='team'):
     
     fig.tight_layout()
     fig.savefig(f'{year}_Second_and_Long_Pass_Rate_{week}.png', bbox_inches='tight')
+
+def epa_transform(df, *play_type, col='posteam', rank=True):
+    play_type_list=[str(play) for play in play_type]
+    df = df.copy()
+    play_type = df['play_type'].isin(play_type_list)
+    epa_flag = df['epa'].isna() == False
+    df = (df.loc[play_type & epa_flag ]
+            .groupby(col)['epa']
+            .mean())
+    if rank and col=='posteam':
+        df = df.rank(ascending=False, method='min')
+    elif rank and col=='defteam':
+        df = df.rank(method='min')
+    return df
+
+def pass_run_epa_merge(df, rank=True):
+    pass_df = epa_transform(df, 'pass', rank=rank)
+    run_df = epa_transform(df, 'run', rank=rank)
+    joined_df = pd.concat([pass_df, run_df], axis='columns')
+    joined_df.columns = ['pass_epa_rank', 'rush_epa_rank']
+    return joined_df
+
+def sack_rate_transform(df, col='posteam', rank=True):
+    df = df.copy()
+    play_type = df['play_type'] == 'pass'
+    cols = [col, 'sack']
+    df =  (df.loc[play_type, cols]
+             .groupby(col)
+             .mean()
+             .mul(100))
+    if col == 'posteam':
+        df = df.rename(columns={'sack': 'off_sack_rate'})
+        if rank: 
+                df = df.rank(method='min')
+    elif col == 'defteam':
+        df = df.rename(columns={'sack': 'def_sack_rate'})
+        if rank:
+            df = df.rank(ascending=False, method='min')
+    return df
+
+def neutral_pace_transform(df, rank=True, col='posteam', time=120, wp_low=0.2, wp_high=0.8):
+    df = df.copy()
+    time = df['half_seconds_remaining'] > time
+    wp_low = df['wp'] >= wp_low
+    wp_high = df['wp'] <= wp_high
+    play_type = df['play_type'].isin(['pass', 'run'])
+    df = (df.loc[time & wp_low & wp_high & play_type]
+            .groupby(col)
+            .agg(plays=('play_id', 'count'), games=('game_id', 'nunique')))
+    df = df.assign(neutral_pace = df['plays'] / df['games']).drop(columns=['plays', 'games'])
+    if rank and col=='posteam':
+        df = df.rank(ascending=False, method='min')
+    elif rank and col=='defteam':
+        df = df.rank(method='min')
+    return df
+
+def offense_vs_defense_transform(df, offense_tm, defense_tm, rank=True):
+    #pass o vs d
+    pass_epa_off = epa_transform(df, 'pass', col='posteam', rank=rank)
+    pass_epa_off = pass_epa_off.loc[pass_epa_off.index.isin([str(offense_tm)])]
+    pass_epa_def = epa_transform(df, 'pass', col='defteam', rank=rank)
+    pass_epa_def = pass_epa_def.loc[pass_epa_def.index.isin([str(defense_tm)])]
+    pass_epa = pd.concat([pass_epa_off, pass_epa_def]).rename('pass_epa')
+    
+    #rush o vs d
+    run_epa_off = epa_transform(df, 'run', col='posteam', rank=rank)
+    run_epa_off = run_epa_off.loc[run_epa_off.index.isin([str(offense_tm)])]
+    run_epa_def = epa_transform(df, 'run', col='defteam', rank=rank)
+    run_epa_def = run_epa_def.loc[run_epa_def.index.isin([str(defense_tm)])]
+    run_epa = pd.concat([run_epa_off, run_epa_def]).rename('rush_epa')
+    
+    #off sack rate o vs d
+    off_sack = sack_rate_transform(df, col='posteam', rank=rank)
+    off_sack = off_sack.loc[off_sack.index.isin([str(offense_tm)])].rename(columns={'off_sack_rate': 'sack_rate'})
+    def_sack = sack_rate_transform(df, col='defteam', rank=rank)
+    def_sack = def_sack.loc[def_sack.index.isin([str(defense_tm)])].rename(columns={'def_sack_rate': 'sack_rate'})
+    sack = pd.concat([off_sack, def_sack])
+
+    #pace o vs d
+    off_pace = neutral_pace_transform(df, col='posteam', rank=rank)
+    off_pace = off_pace.loc[off_pace.index.isin([str(offense_tm)])]
+    def_pace = neutral_pace_transform(df, col='defteam', rank=rank)
+    def_pace = def_pace.loc[def_pace.index.isin([str(defense_tm)])]
+    pace = pd.concat([off_pace, def_pace])
+    
+    return pd.concat([pass_epa, run_epa, sack, pace], axis='columns')
+
