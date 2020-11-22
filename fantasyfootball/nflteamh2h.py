@@ -6,57 +6,9 @@ import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from bs4 import BeautifulSoup
 import requests
-from fantasyfootball.config import fftoday_team_map, nfl_color_map, nfl_wordmark_path_map, FIGURE_DIR, tean_rankings_map
+from fantasyfootball.config import fftoday_team_map, nfl_color_map, nfl_wordmark_path_map, FIGURE_DIR
 from fantasyfootball import nflfastr
 from os import path
-
-def football_outsiders_offensive_line_scrape(year):
-    url = fr'https://www.footballoutsiders.com/stats/nfl/offensive-line/{year}'
-    r = requests.get(url)
-    soup = BeautifulSoup(r.content, 'html.parser')
-    table = soup.find_all('table')
-    return pd.read_html(str(table))[0]
-
-def football_outsiders_offensive_line_transform(df, rank=True):
-    df = df.copy()
-    df.columns = ['_'.join(col) for col in df.columns]
-    df.columns = [col.lower() for col in df.columns]
-    df = (df[:-1]  #drop NFL average row
-            .replace({'run blocking_team': {'LAR': 'LA'}})
-            .set_index('run blocking_team'))
-    df = df['pass protection_adjusted  sack rate'].rename('sack_rate')
-    df = df.apply(lambda x: x.strip('%')).astype('float').div(100)
-    if rank:
-        df = df.rank(method='min')
-    return df
-
-def get_offensive_line_data(year, rank=True):
-    df = (football_outsiders_offensive_line_scrape(year)
-            .pipe(football_outsiders_offensive_line_transform, rank))
-    return df
-
-def football_outsiders_pace_scrape(year):
-    url = fr'https://www.footballoutsiders.com/stats/nfl/pace-stats/{year}'
-    r = requests.get(url)
-    soup = BeautifulSoup(r.content,'html.parser')
-    table = soup.find_all('table')
-    return pd.read_html(str(table))[0]
-
-def football_outsiders_pace_transform(df, rank=True):
-    df = df.copy()
-    df = df.filter(regex='^((?!RK).)')
-    df.columns = [col.lower() for col in df.columns]
-    df['team'] = df['team'].replace({'LAR':'LA'})
-    df = df[:-1].set_index('team') #drop NFL average row
-    df = df['sec/play  (situation  neutral)'].rename('neutral_pace')
-    if rank:
-        df = df.rank(method='min')
-    return df
-
-def get_nfl_pace_data(year, rank=True):
-    df = (football_outsiders_pace_scrape(year)
-        .pipe(football_outsiders_pace_transform, rank))
-    return df
 
 def fftoday_fantasy_points_scored_scrape(pos, season=2020, side='Scored', league='Yahoo'):
     """
@@ -109,39 +61,8 @@ def fftoday_fantasy_points_o_vs_by_pos(year=2020, rank=True):
     
     return pd.concat([off, def_]).set_index('unit', append=True)
 
-def combine_team_data_sources(year, *teams, rank=True):
-    #nflfastr
-    fastr = nflfastr.get_nfl_fast_r_data(year)
-    week = fastr['week'].max()
-    epa = nflfastr.pass_run_epa_merge(fastr, rank=rank)
-    off_sack = nflfastr.sack_rate_transform(fastr, col='posteam', rank=rank)
-    def_sack = nflfastr.sack_rate_transform(fastr, col='defteam', rank=rank)
-    neutral_pace = nflfastr.neutral_pace_transform(fastr, rank=rank)
-    #fftoday
-    ppg = fftoday_fantasy_points_scored_by_pos(year, rank)
-    #combining data
-    data_list = [epa, off_sack, def_sack, neutral_pace, ppg]
-    df = pd.concat(data_list, axis='columns').assign(year=year).assign(week=week)
-    #team filters
-    if teams:
-        team_list = [team for team in teams]
-        df = df.loc[df.index.isin(team_list)]
-    return df
-
-def call_data_and_combine_off_vs_def_sources(year, offense_tm, defense_tm, rank=True):
-    #nflfastr
-    fastr = nflfastr.get_nfl_fast_r_data(year)
-    week = fastr['week'].max()
-    fastr_c = nflfastr.offense_vs_defense_transform(fastr, offense_tm, defense_tm, rank=rank)
-    #fftoday
-    fftoday_df = fftoday_fantasy_points_scored_by_pos(year, rank)
-    fftoday_df = fftoday_df.loc[fftoday_df.index.isin([offense_tm, defense_tm])]
-    #combining data
-    data_list = [fastr_c, fftoday_df]
-    return pd.concat(data_list, axis='columns').assign(year=year).assign(week=week)
-
 def combine_off_vs_def_sources(year, rank=True):
-    """Combines NFLfastr stats with  FF Todat stats"""
+    """Combines NFLfastr stats with FF Today stats"""
     #nflfastr
     fastrdf = nflfastr.get_nfl_fast_r_data(year)
     year = fastrdf['game_id'].str.split('_').str[0].max()
@@ -153,20 +74,19 @@ def combine_off_vs_def_sources(year, rank=True):
     data_list = [fastr_c, fftoday_df]
     return pd.concat(data_list, axis='columns').assign(year=year).assign(week=week)
 
-
-def make_stats_compare_bar(df, *teams, width=0.75, legend='best', save=False):
+def make_unit_compare_bar(df, *teams, unit='offense', width=0.75, legend='best', save=False):
     year = df['year'].max()
     week = df['week'].max()
     df = df.copy().drop(columns=['year', 'week'])
     if teams:
-        team_list = [team for team in teams]
-        df = df.loc[df.index.isin(team_list)].reindex(team_list)
+        team_list = [(team, unit) for team in teams]
+        df = df.loc[team_list].reindex(team_list).droplevel(1)
     df = df.T
     rank = np.arange(1,33) #create an array for all ranking possibilities
     rank_inv = rank[::-1] #create a reversed list
     rank_map = dict(zip(rank, rank_inv))
     rank_inv_map = dict(zip(rank_inv, rank)) #for labeling the bars
-    
+
     #invert bar rankings, lower rank means taller bar
     df = df.replace(rank_map)
     
@@ -181,7 +101,6 @@ def make_stats_compare_bar(df, *teams, width=0.75, legend='best', save=False):
     ax.set_ylim(0,33)
     ax.set_yticklabels([])
     ax.set_xticklabels(xlabels, rotation=0, ha='center', fontsize=20)
-    
     ax.tick_params(
         which='both',
         bottom=False,
@@ -194,7 +113,8 @@ def make_stats_compare_bar(df, *teams, width=0.75, legend='best', save=False):
     ax.set_axisbelow(True)
     
     #legend
-    ax.legend(fontsize=20, loc=legend)
+    label_list = [team + ' ' + unit[0].upper() for team in df.columns]
+    ax.legend(labels=label_list, fontsize=20, loc=legend)
     
     #annotate thr bar charts
     for p in ax.patches:
@@ -244,7 +164,7 @@ def make_o_vs_d_compare_bar(df, offense, defense, width=0.75, legend='best', sav
     df = df.replace(rank_map)
     
     colors = [nfl_color_map[team] for team in df.columns]
-    #colors[1] = '#000000' override color if red and green
+    #colors[1] = '#000000' #override color if red and green
     fig, ax = plt.subplots(figsize=(30,15))
     df.plot(kind='bar', ax=ax, color=colors, width=width)
 
@@ -292,4 +212,4 @@ def make_o_vs_d_compare_bar(df, offense, defense, width=0.75, legend='best', sav
     
     if save:
         teams_str = '_'.join(team_list)
-        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_Off_vs_Def_{teams_str}.png'))
+        fig.savefig(path.join(FIGURE_DIR, f'{year}_week_{week}_Off_vs_Def_{teams_str}.png'))
