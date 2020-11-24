@@ -585,40 +585,34 @@ def make_second_and_long_pass_rate_viz(df, color='team'):
     fig.savefig(f'{year}_Second_and_Long_Pass_Rate_{week}.png', bbox_inches='tight')
 
 def epa_transform(df, *play_type, col='posteam', rank=True):
+    """Returns a series of avg EPA per play for either the posteam or defteam"""
     play_type_list=[str(play) for play in play_type]
     df = df.copy()
     play_type = df['play_type'].isin(play_type_list)
     epa_flag = df['epa'].isna() == False
-    df = (df.loc[play_type & epa_flag ]
+    ser = (df.loc[play_type & epa_flag ]
             .groupby(col)['epa']
             .mean())
-    if rank and col=='posteam':
-        df = df.rank(ascending=False, method='min')
-    elif rank and col=='defteam':
-        df = df.rank(method='min')
-    return df
-
-def pass_run_epa_merge(df, rank=True):
-    pass_df = epa_transform(df, 'pass', rank=rank)
-    run_df = epa_transform(df, 'run', rank=rank)
-    joined_df = pd.concat([pass_df, run_df], axis='columns')
-    joined_df.columns = ['pass_epa_rank', 'rush_epa_rank']
-    return joined_df
+    if rank:
+        return ser.rank(ascending=False, method='min') if  col=='posteam' else ser.rank(method='min')
+    else:
+        return ser
 
 def sack_rate_transform(df, col='posteam', rank=True):
+    """Returns a series of avg sack rate per pass play for either the posteam or defteam"""
     df = df.copy()
     play_type = df['play_type'] == 'pass'
-    df =  (df.loc[play_type]
+    ser =  (df.loc[play_type]
              .groupby(col)['sack']
              .mean()
              .mul(100))
-    if rank and col=='posteam':
-        df = df.rank(method='min')
-    elif rank and col=='defteam':
-        df = df.rank(ascending=False, method='min')
-    return df
+    if rank:
+        return ser.rank(method='min') if col=='posteam' else ser.rank(ascending=False, method='min')
+    else:
+        return ser
 
 def neutral_pace_transform(df, rank=True, col='posteam', time=120, wp_low=0.2, wp_high=0.8):
+    """Returns a series of avg plays per game for either the posteam or defteam"""
     df = df.copy()
     time = df['half_seconds_remaining'] > time
     wp_low = df['wp'] >= wp_low
@@ -628,11 +622,10 @@ def neutral_pace_transform(df, rank=True, col='posteam', time=120, wp_low=0.2, w
             .groupby(col)
             .agg(plays=('play_id', 'count'), games=('game_id', 'nunique')))
     df = df.assign(neutral_pace = df['plays'] / df['games']).drop(columns=['plays', 'games'])
-    if rank and col=='posteam':
-        df = df.rank(ascending=False, method='min')
-    elif rank and col=='defteam':
-        df = df.rank(method='min')
-    return df.squeeze()
+    if rank:
+        return df.rank(ascending=False, method='min').squeeze() if col=='posteam' else df.rank(method='min').squeeze()
+    else:
+        return df.squeeze()
 
 def offense_vs_defense_transform_alternate(df, offense_tm, defense_tm, rank=True):
     #pass o vs d
