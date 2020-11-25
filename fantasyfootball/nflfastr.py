@@ -305,7 +305,7 @@ def team_scatter_viz(df, x_size=20, y_size=10, save=True):
     if save:
         fig.savefig(path.join(FIGURE_DIR,f'{year}_{x_col}_and_{y_col}_through_week_{week}.png'), bbox_inches='tight')
     
-def transform_edsr_total_1d(df):
+def edsr_total_1d_transform(df):
     """
     Calculates the early down success rate and the total number of first downs for each NFL team 
     
@@ -333,33 +333,41 @@ def usage_yardline_breakdown_transform(df, player_type='receiver', play='pass'):
     week = df['week'].max()
     player_id = player_type+'_id'
     play_type = df['play_type'] == str(play)
-    names = (df.groupby([player_id, player_type], as_index=False)['play_id']
+    #get sort order
+    names = (df.groupby([player_id, player_type, 'posteam'], as_index=False)['play_id']
               .count()
-              .set_index(player_id)
+              .set_index([player_id, 'posteam'])
               .sort_values('play_id', ascending=False)
               .drop(columns='play_id'))
     names_index = names.index
-
-    group = (df.loc[play_type, ['receiver_id', 'receiver', 'play_id', 'yardline_100']]
+    yardline_labels = ['1 - 20 yardline', '21 - 40 yardline', '41 - 60 yardline', '61 - 80 yardline', '81 - 100 yardline']
+    cut_bins = [-1, 20, 40, 60, 80, 100]
+    df = (df.loc[play_type, [player_id, player_type, 'play_id', 'posteam', 'yardline_100']]
                .assign(yardline_100_bin=lambda x: pd.cut(x['yardline_100'], bins=cut_bins, labels=yardline_labels))
-               .groupby(['receiver_id', 'yardline_100_bin']).agg(count=('yardline_100', 'count'))
+               .astype({'yardline_100_bin': 'object'}) #convert from categorical to allow groupby to work more efficiently
+               .groupby([player_id, player_type, 'posteam', 'yardline_100_bin']).agg(count=('yardline_100', 'count'))
                .assign(total= lambda x: x.groupby(level=0).transform('sum'))
                .assign(percent=lambda x: (x['count'] / x['total']) * 100)
                .drop(columns=['count', 'total'])
                .unstack()
-               .reindex(names_index) #unstack cancels the sort
-               .droplevel(0, axis='columns')) #removes multi-level column index
-    #change index to non-categorical
-    group.columns = pd.Index(list(group.columns))
-
-    return pd.concat([group, names], axis='columns').set_index('receiver').assign(year=year).assign(week=week)
+               .reset_index()
+               .set_index([player_id, 'posteam'])
+               .set_axis([player_type] + yardline_labels, axis='columns')
+               .reindex(names_index)
+               .reset_index()
+               .drop(columns=player_id)
+               .set_index(player_type)
+               .fillna(0)
+               .assign(year=year)
+               .assign(week=week))
+    return df
 
 def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
     colors = ['#bc0000', '#808080', '#a9a9a9', '#c0c0c0', '#d3d3d3']
     year = df['year'].max()
     week = df['week'].max()
     player_type = df.index.name.title()
-    df = df.drop(columns=['year', 'week']).head(n).copy()
+    df = df.drop(columns=['year', 'week', 'posteam']).head(n).copy()
 
     fig, ax = plt.subplots(figsize=(x_size,y_size))
     df.plot(kind='barh', stacked=True, ax=ax, color=colors, linewidth=1, edgecolor='gray')
