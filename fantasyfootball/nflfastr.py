@@ -58,26 +58,21 @@ def target_share_vs_air_yard_share_transform(df):
     df = df.copy()
     year = df['game_id'].str.split('_').str[0].max()
     week = df['week'].max()
-    names = df[['receiver_id', 'receiver']].drop_duplicates().dropna()
     my_cols = ['receiver_id', 'posteam', 'play_type', 'air_yards']
     play_type = df['play_type'] == 'pass'
-    df =  df.loc[play_type, my_cols].copy()
-    df = (df.groupby(['receiver_id', 'posteam'])
+    df =  (df.loc[play_type].copy()
+            .groupby(['receiver_id', 'receiver', 'posteam'])
             .agg(targets=('play_type', 'count'), air_yards=('air_yards', 'sum'))
             .sort_values('targets', ascending=False)
-            )
-    df = (df.assign(team_targets=df.groupby('posteam')['targets'].transform('sum'))
-           .assign(team_air_yards=df.groupby('posteam')['air_yards'].transform('sum'))
-         )
-    df = (df.assign(target_share=df['targets'] / df['team_targets'])
-            .assign(air_yard_share=df['air_yards'] / df['team_air_yards'])
+            .assign(team_targets= lambda x: x.groupby('posteam')['targets'].transform('sum'))
+            .assign(team_air_yards=lambda x: x.groupby('posteam')['air_yards'].transform('sum'))
+            .assign(target_share=lambda x: x['targets'] / x['team_targets'])
+            .assign(air_yard_share=lambda x: x['air_yards'] / x['team_air_yards'])
             .assign(year=year)
             .assign(week=week)
+            .droplevel(0)
             .reset_index()
-            .merge(names, how='left', on='receiver_id')
-            .drop(columns='receiver_id')
-            .set_index('receiver')
-         )
+            .set_index('receiver'))
     return df
 
 def target_share_vs_air_yard_share_viz(df, *team_filter, n=60, x_size=20, y_size=15, save=True):
@@ -121,23 +116,20 @@ def target_share_vs_air_yard_share_viz(df, *team_filter, n=60, x_size=20, y_size
 
 def carries_inside_5_yardline_transform(df):
     df = df.copy()
-    names = df[['rusher_id', 'rusher']].drop_duplicates().dropna()
     year = df['game_id'].str.split('_').str[0].max()
     week = df['week'].max()
-    inside_5 = df.loc[(df['yardline_100']<5) &
-             (df['play_type']=='run')]
-    carries_5 = (
-    inside_5.groupby(['rusher_id', 'posteam'])[['play_id']]
-    .count()
-    .reset_index()
-    .sort_values(by=['play_id'],ascending=False)
-    .reset_index(drop=True)
-    )
-    carries_5 = (carries_5.assign(year=year)
-                          .assign(week=week)
-    )
-    carries_5 = carries_5.merge(names, on='rusher_id').drop(columns=['rusher_id']).set_index('rusher')
-    return carries_5
+    play_type = df['play_type']=='run'
+    inside_5 = df['yardline_100']<5
+    df = (df.loc[play_type & inside_5]
+            .groupby(['rusher_id', 'rusher', 'posteam'])[['play_id']]
+            .count()
+            .sort_values(by=['play_id'],ascending=False)
+            .droplevel(0)
+            .reset_index()
+            .set_index('rusher')
+            .assign(year=year)
+            .assign(week=week))
+    return df
 
 def carries_inside_5_yardline_viz(df, *team_filter, n=20, x_size=20, y_size=15, save=True):
     if len(team_filter) > 0:
@@ -175,21 +167,23 @@ def carries_inside_5_yardline_viz(df, *team_filter, n=20, x_size=20, y_size=15, 
 
 def air_yard_density_transform(df):
     df = df.copy()
-    names = df[['receiver_id', 'receiver']].drop_duplicates().dropna().set_index('receiver_id')
     year = df['game_id'].str.split('_').str[0].max()
     week = df['week'].max() 
-    df_cols = ['receiver_id', 'posteam', 'air_yards']
     play_type = df['play_type'] == 'pass'
     air_yard_threshold = ~df['air_yards'].isna()
-    df = df.loc[play_type & air_yard_threshold, df_cols]
-    df['total_air_yards'] = df.groupby(['receiver_id', 'posteam'])['air_yards'].transform('sum')
-    df = df.sort_values(['total_air_yards', 'receiver_id', 'posteam'], ascending=False).drop(columns='total_air_yards').reset_index(drop=True)
-    df['colors'] = df['posteam'].map(nfl_color_map)
-    df['logo'] = df['posteam'].map(nfl_logo_espn_path_map)
-    df = (df.assign(year=year)
-            .assign(week=week)
-         )
-    df = df.merge(names, how='left', left_on='receiver_id', right_index=True).drop(columns='receiver_id')
+    df = (df.loc[play_type & air_yard_threshold]
+            .groupby(['receiver_id', 'receiver', 'posteam', 'play_id'])['air_yards'].sum()
+            .to_frame()
+            .assign(total_air_yards= lambda x: x.groupby(['receiver_id']).transform('sum'))
+            .sort_values(['total_air_yards', 'receiver_id', 'posteam'], ascending=False)
+            .drop(columns='total_air_yards')
+            .droplevel(0)
+            .reset_index()
+            .drop(columns='play_id')
+            .assign(colors= lambda x: x['posteam'].map(nfl_color_map))
+            .assign(logo= lambda x: x['posteam'].map(nfl_logo_espn_path_map))
+            .assign(year=year)
+            .assign(week=week))
     return df
 
 def air_yard_density_viz(df, *team_filter, x_size=30, y_size=35, team_logo=True, save=True):
@@ -334,45 +328,31 @@ def transform_edsr_total_1d(df):
                             .assign(week=week))
     return scatter_df
 
-def usage_yardline_breakdown_transform(df, player_type='receiver', play_type='pass'):
-    """player_type: rusher, passer, receiver"""
+def usage_yardline_breakdown_transform(df, player_type='receiver', play='pass'):
     year = df['game_id'].str.split('_').str[0].max()
     week = df['week'].max()
     player_id = player_type+'_id'
-    if isinstance(play_type, str):
-        play_type_list = [play_type]
-    else: 
-        play_type_list = play_type
-    df = df.loc[df['play_type'].isin(play_type_list)].copy()
-    #create bins
-    yardline_labels = ['1 - 20 yardline', '21 - 40 yardline', '41 - 60 yardline', '61 - 80 yardline', '81 - 100 yardline']
-    cut_bins = [-1, 20, 40, 60, 80, 100]
-    df = df.assign(yardline_100_bin = pd.cut(df['yardline_100'], bins=cut_bins, labels=yardline_labels))
-    
-    grouped_df_count = df.groupby([player_id, 'yardline_100_bin']).agg(total_count=('yardline_100_bin', 'count'))
-    grouped_df_total = df.groupby([player_id]).agg(total_count=('yardline_100_bin', 'count'))
-    grouped_df = grouped_df_count.div(grouped_df_total, level=player_id) * 100
-    sort = df.groupby(player_id)['play_id'].agg(play_count=('play_id', 'count'))
-    grouped_df = (grouped_df.merge(sort, left_index=True, right_index=True)
-                            .sort_values('play_count', ascending=False)
-                            .drop(columns='play_count')
-                 )
-    grouped_df = (grouped_df.unstack(level=1).droplevel(0, axis='columns')
-                            .reindex(grouped_df.index.get_level_values(0).unique())
-                 )
-    #bring in player names
-    grouped_df.columns = pd.Index(list(grouped_df.columns))
-    names = df[[player_id, player_type]].drop_duplicates().dropna().set_index(player_id)
-    grouped_df = (grouped_df.merge(names, how='left', left_index=True, right_index=True)
-                           .set_index(player_type, drop=True)
-        )
-    #add year, week and change index to non-categorical
-    grouped_df.columns = pd.Index(list(grouped_df.columns))
-    grouped_df = (grouped_df.assign(year=year)
-                           .assign(week=week)
-                 )
-                
-    return grouped_df
+    play_type = df['play_type'] == str(play)
+    names = (df.groupby([player_id, player_type], as_index=False)['play_id']
+              .count()
+              .set_index(player_id)
+              .sort_values('play_id', ascending=False)
+              .drop(columns='play_id'))
+    names_index = names.index
+
+    group = (df.loc[play_type, ['receiver_id', 'receiver', 'play_id', 'yardline_100']]
+               .assign(yardline_100_bin=lambda x: pd.cut(x['yardline_100'], bins=cut_bins, labels=yardline_labels))
+               .groupby(['receiver_id', 'yardline_100_bin']).agg(count=('yardline_100', 'count'))
+               .assign(total= lambda x: x.groupby(level=0).transform('sum'))
+               .assign(percent=lambda x: (x['count'] / x['total']) * 100)
+               .drop(columns=['count', 'total'])
+               .unstack()
+               .reindex(names_index) #unstack cancels the sort
+               .droplevel(0, axis='columns')) #removes multi-level column index
+    #change index to non-categorical
+    group.columns = pd.Index(list(group.columns))
+
+    return pd.concat([group, names], axis='columns').set_index('receiver').assign(year=year).assign(week=week)
 
 def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
     colors = ['#bc0000', '#808080', '#a9a9a9', '#c0c0c0', '#d3d3d3']
@@ -380,10 +360,9 @@ def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
     week = df['week'].max()
     player_type = df.index.name.title()
     df = df.drop(columns=['year', 'week']).head(n).copy()
-    
+
     fig, ax = plt.subplots(figsize=(x_size,y_size))
     df.plot(kind='barh', stacked=True, ax=ax, color=colors, linewidth=1, edgecolor='gray')
-    
     #labels
     for p in ax.patches:
         width, height = p.get_width(), p.get_height()
@@ -405,7 +384,6 @@ def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
     for spine in ax.spines.values():
         spine.set_edgecolor('gray')
     ax.invert_yaxis()
-    
     #figure title
     fig.suptitle(f'{year} {player_type} Yardline Breakdown through Week {week}', fontsize=30, fontweight='bold', x=0.55, y=1.02, ha='center')
     plt.figtext(0.92, -0.01, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
@@ -418,19 +396,14 @@ def epa_vs_cpoe_transform(df, minimum_att=200):
     df = df.copy()
     year = df['game_id'].str.split('_').str[0].max()
     week = df['week'].max()
-    names = df[['passer_id', 'passer']].drop_duplicates().dropna()
-    qbs = df.groupby(['passer_id','posteam']).agg({'epa':'mean',
-                                                   'cpoe':'mean',
-                                                   'play_id':'count'})
-    qbs = (qbs.reset_index()
-            .merge(names, how='left', on='passer_id')
-            .drop(columns='passer_id')
+    df = (df.groupby(['passer_id','passer', 'posteam'])
+            .agg({'epa':'mean', 'cpoe':'mean', 'play_id':'count'})
+            .droplevel(0)
+            .reset_index()
             .set_index('passer')
             .assign(year=year)
-            .assign(week=week)
-       )
-
-    return qbs.loc[qbs.play_id>minimum_att]
+            .assign(week=week))
+    return df.loc[df['play_id']>minimum_att]
 
 def make_epa_vs_cpoe_viz(df, save=True):
     fig, ax = plt.subplots(figsize=(15,15))
@@ -482,8 +455,7 @@ def neutral_pass_rate_transform(df):
             .assign(year=year)
             .assign(week=week)
             .set_index('posteam')
-            .sort_values('pass', ascending=False)
-            )
+            .sort_values('pass', ascending=False))
     return df
 
 def make_neutral_pass_rate_viz(df):
@@ -538,7 +510,6 @@ def second_and_long_pass_transform(df):
             .set_index('posteam')
             .sort_values('pass', ascending=False)
          )
-
     return df
 
 def make_second_and_long_pass_rate_viz(df, color='team'):
@@ -590,7 +561,7 @@ def epa_transform(df, *play_type, col='posteam', rank=True):
     df = df.copy()
     play_type = df['play_type'].isin(play_type_list)
     epa_flag = df['epa'].isna() == False
-    ser = (df.loc[play_type & epa_flag ]
+    ser = (df.loc[play_type & epa_flag]
             .groupby(col)['epa']
             .mean())
     if rank:
@@ -620,8 +591,9 @@ def neutral_pace_transform(df, rank=True, col='posteam', time=120, wp_low=0.2, w
     play_type = df['play_type'].isin(['pass', 'run'])
     df = (df.loc[time & wp_low & wp_high & play_type]
             .groupby(col)
-            .agg(plays=('play_id', 'count'), games=('game_id', 'nunique')))
-    df = df.assign(neutral_pace = df['plays'] / df['games']).drop(columns=['plays', 'games'])
+            .agg(plays=('play_id', 'count'), games=('game_id', 'nunique'))
+            .assign(neutral_pace = lambda x: x['plays'] / x['games'])
+            .drop(columns=['plays', 'games']))
     if rank:
         return df.rank(ascending=False, method='min').squeeze() if col=='posteam' else df.rank(method='min').squeeze()
     else:
