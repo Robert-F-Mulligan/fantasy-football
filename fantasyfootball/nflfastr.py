@@ -14,17 +14,18 @@ import requests
 from io import BytesIO
 import codecs
 import urllib.request
+from datetime import datetime
 
 def get_nfl_fast_r_data(*years):
-    df = pd.DataFrame()
-    for year in years:
-        year_df = pd.read_csv('https://github.com/guga31bb/nflfastR-data/blob/master/data/' \
+    """Retrives play by play data from the NFLfastr git repo for a given year(s) """
+    df_list = [pd.read_csv('https://github.com/guga31bb/nflfastR-data/blob/master/data/' \
                             'play_by_play_' + str(year) + '.csv.gz?raw=True',
                             compression='gzip', low_memory=False)
-        df = df.append(year_df, sort=True)
-    return df
+              for year in years]
+    return pd.concat(df_list)
 
 def get_nfl_fast_r_roster_data(*years):
+    """Retrives NFL roster data from the NFLfastr git repo for a given year(s) """
     df = pd.read_csv('https://github.com/guga31bb/nflfastR-data/blob/master/roster-data/' \
                             'roster.csv.gz?raw=true', compression='gzip', low_memory=False)
     if len(years) > 0:
@@ -43,7 +44,14 @@ def convert_to_gsis_id(new_id):
         return new_id  
     return codecs.decode(new_id[4:-8].replace('-',''),"hex").decode('utf-8')
 
+def get_year_and_week(df):
+    """Extracts season and max week in an NFLfastr df; useful for labeling figures """
+    year = datetime.strptime(df['game_id'].str.split('_').str[0].max(), '%Y')
+    week = df['week'].max()
+    return year, week
+
 def save_team_images(column='team_wordmark'):
+    """Fucntion will loop through a dataframe column and save URL images locally"""
     df = pd.read_csv(r'https://github.com/guga31bb/nflfastR-data/raw/master/teams_colors_logos.csv')
     my_series = df[column]
     my_list = my_series.to_list()
@@ -55,10 +63,9 @@ def save_team_images(column='team_wordmark'):
         urllib.request.urlretrieve(image_url, file_path)
 
 def target_share_vs_air_yard_share_transform(df):
+    """Calculates the team target share and total air yards for a given receiver """
     df = df.copy()
-    year = df['game_id'].str.split('_').str[0].max()
-    week = df['week'].max()
-    my_cols = ['receiver_id', 'posteam', 'play_type', 'air_yards']
+    year, week = get_year_and_week
     play_type = df['play_type'] == 'pass'
     df =  (df.loc[play_type].copy()
             .groupby(['receiver_id', 'receiver', 'posteam'])
@@ -115,9 +122,9 @@ def target_share_vs_air_yard_share_viz(df, *team_filter, n=60, x_size=20, y_size
     return plt.show()
 
 def carries_inside_5_yardline_transform(df):
+    """Calculates total carries a rusher has inside the 5 yardline """
     df = df.copy()
-    year = df['game_id'].str.split('_').str[0].max()
-    week = df['week'].max()
+    year, week = get_year_and_week(df)
     play_type = df['play_type']=='run'
     inside_5 = df['yardline_100']<5
     df = (df.loc[play_type & inside_5]
@@ -166,9 +173,12 @@ def carries_inside_5_yardline_viz(df, *team_filter, n=20, x_size=20, y_size=15, 
     return plt.show()
 
 def air_yard_density_transform(df):
+    """
+    Transforms per a play airyard dataset into a format ready for a density plot 
+    DF is sorted by descending total airyards
+    """
     df = df.copy()
-    year = df['game_id'].str.split('_').str[0].max()
-    week = df['week'].max() 
+    year, week = get_year_and_week(df)
     play_type = df['play_type'] == 'pass'
     air_yard_threshold = ~df['air_yards'].isna()
     df = (df.loc[play_type & air_yard_threshold]
@@ -313,8 +323,7 @@ def edsr_total_1d_transform(df):
     It's basically an efficiency metric tracking the gaining of a first down on first or second down.
     """
     df = df.copy()
-    year = df['game_id'].str.split('_').str[0].max()
-    week = df['week'].max()
+    year, week = get_year_and_week(df)
     #first downs per game
     first_downs = df.groupby(['posteam'])['first_down'].agg(first_downs_per_game=('first_down', 'sum'))
     game_count = df.groupby(['posteam'])['game_id'].agg(first_downs_per_game=('first_down', 'nunique'))
@@ -329,8 +338,8 @@ def edsr_total_1d_transform(df):
     return scatter_df
 
 def usage_yardline_breakdown_transform(df, player_type='receiver', play='pass'):
-    year = df['game_id'].str.split('_').str[0].max()
-    week = df['week'].max()
+    """Calculates the given yardline distribution of opportunities for a given player"""
+    year, week = get_year_and_week(df)
     player_id = player_type+'_id'
     play_type = df['play_type'] == str(play)
     #get sort order
@@ -401,9 +410,13 @@ def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{player_type_lower}_play_yardline_breakdown.png'), bbox_inches='tight')
 
 def epa_vs_cpoe_transform(df, minimum_att=200):
+    """
+    Caclulates the average epa per play and average cpoe per play
+    epa = expected points added
+    cpoe = completion percentage over expected
+    """
     df = df.copy()
-    year = df['game_id'].str.split('_').str[0].max()
-    week = df['week'].max()
+    year, week = get_year_and_week(df)
     df = (df.groupby(['passer_id','passer', 'posteam'])
             .agg({'epa':'mean', 'cpoe':'mean', 'play_id':'count'})
             .droplevel(0)
@@ -451,9 +464,13 @@ def make_epa_vs_cpoe_viz(df, save=True):
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_cpoe_vs_epa.png'), bbox_inches='tight')
 
 def neutral_pass_rate_transform(df):
+    """
+    Caclulates the percentage that each team throws in neutral situations
+    Neutral situation is defined as between 20% and 80% win probability, either 1st or 2nd down, 
+    and outside of two minutes remaining in each half
+    """
     df = df.copy()
-    year = df['game_id'].str.split('_').str[0].max()
-    week = df['week'].max()
+    year, week = get_year_and_week(df)
     downs = df['down'] < 3
     time = df['half_seconds_remaining'] >120
     wp_low = df['wp'] >= .2
@@ -503,9 +520,9 @@ def make_neutral_pass_rate_viz(df):
     ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
 
 def second_and_long_pass_transform(df):
+    """Calculates the percentage that each team passes on 2nd down and long (>8 yards)"""
     df = df.copy()
-    year = df['game_id'].str.split('_').str[0].max()
-    week = df['week'].max()
+    year, week = get_year_and_week(df)
     downs = df['down'] == 2
     time = df['half_seconds_remaining'] >120
     wp_low = df['wp'] >= .2
@@ -607,38 +624,11 @@ def neutral_pace_transform(df, rank=True, col='posteam', time=120, wp_low=0.2, w
     else:
         return df.squeeze()
 
-def offense_vs_defense_transform_alternate(df, offense_tm, defense_tm, rank=True):
-    #pass o vs d
-    pass_epa_off = epa_transform(df, 'pass', col='posteam', rank=rank)
-    pass_epa_off = pass_epa_off.loc[pass_epa_off.index.isin([str(offense_tm)])]
-    pass_epa_def = epa_transform(df, 'pass', col='defteam', rank=rank)
-    pass_epa_def = pass_epa_def.loc[pass_epa_def.index.isin([str(defense_tm)])]
-    pass_epa = pd.concat([pass_epa_off, pass_epa_def]).rename('pass_epa')
-    
-    #rush o vs d
-    run_epa_off = epa_transform(df, 'run', col='posteam', rank=rank)
-    run_epa_off = run_epa_off.loc[run_epa_off.index.isin([str(offense_tm)])]
-    run_epa_def = epa_transform(df, 'run', col='defteam', rank=rank)
-    run_epa_def = run_epa_def.loc[run_epa_def.index.isin([str(defense_tm)])]
-    run_epa = pd.concat([run_epa_off, run_epa_def]).rename('rush_epa')
-    
-    #off sack rate o vs d
-    off_sack = sack_rate_transform(df, col='posteam', rank=rank)
-    off_sack = off_sack.loc[off_sack.index.isin([str(offense_tm)])]
-    def_sack = sack_rate_transform(df, col='defteam', rank=rank)
-    def_sack = def_sack.loc[def_sack.index.isin([str(defense_tm)])]
-    sack = pd.concat([off_sack, def_sack])
-
-    #pace o vs d
-    off_pace = neutral_pace_transform(df, col='posteam', rank=rank)
-    off_pace = off_pace.loc[off_pace.index.isin([str(offense_tm)])]
-    def_pace = neutral_pace_transform(df, col='defteam', rank=rank)
-    def_pace = def_pace.loc[def_pace.index.isin([str(defense_tm)])]
-    pace = pd.concat([off_pace, def_pace])
-    
-    return pd.concat([pass_epa, run_epa, sack, pace], axis='columns')
-
 def offense_vs_defense_transform(df, rank=True):
+    """
+    Brings together offesnive and defesnive pass/rush epa, dack rate, plays per game
+    Specify rank=False if you want the actrual values of each stat
+    """
     #pass o vs d
     pass_epa_off = epa_transform(df, 'pass', col='posteam', rank=rank).to_frame().assign(unit='offense').set_index('unit', append=True)
     pass_epa_def = epa_transform(df, 'pass', col='defteam', rank=rank).to_frame().assign(unit='defense').set_index('unit', append=True)
