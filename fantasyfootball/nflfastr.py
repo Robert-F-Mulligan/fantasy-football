@@ -28,7 +28,7 @@ def get_nfl_fast_r_roster_data(*years):
     """Retrives NFL roster data from the NFLfastr git repo for a given year(s) """
     df = pd.read_csv('https://github.com/guga31bb/nflfastR-data/blob/master/roster-data/' \
                             'roster.csv.gz?raw=true', compression='gzip', low_memory=False)
-    if len(years) > 0:
+    if years:
         years = [str(year) for year in years]
         df = df.loc[df['team.season'].isin(years)]
     #df = df.loc[df['teamPlayers.status'] == 'ACT']
@@ -83,7 +83,7 @@ def target_share_vs_air_yard_share_transform(df):
     return df
 
 def target_share_vs_air_yard_share_viz(df, *team_filter, n=60, x_size=20, y_size=15, save=True):
-    if len(team_filter) > 0:
+    if team_filter:
         team_list = [team for team in team_filter]
         df = df.loc[df['posteam'].isin(team_list)].copy()
     else:
@@ -139,7 +139,7 @@ def carries_inside_5_yardline_transform(df):
     return df
 
 def carries_inside_5_yardline_viz(df, *team_filter, n=20, x_size=20, y_size=15, save=True):
-    if len(team_filter) > 0:
+    if team_filter:
         team_list = [team for team in team_filter]
         df = df.loc[df['posteam'].isin(team_list)].copy()
     else:
@@ -197,7 +197,7 @@ def air_yard_density_transform(df):
     return df
 
 def air_yard_density_viz(df, *team_filter, x_size=30, y_size=35, team_logo=True, save=True):
-    if len(team_filter) > 0:
+    if team_filter:
         team_list = [team for team in team_filter]
         df = df.loc[df['posteam'].isin(team_list)].copy()
         fig, axs = plt.subplots(2, 6, sharey=True, figsize=(x_size,y_size))
