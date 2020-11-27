@@ -31,8 +31,10 @@ def get_nfl_fast_r_roster_data(*years):
     if years:
         years = [str(year) for year in years]
         df = df.loc[df['team.season'].isin(years)]
-    #df = df.loc[df['teamPlayers.status'] == 'ACT']
     return df
+
+def get_team_colors_and_logos_dataframe():
+    return pd.read_csv(r'https://github.com/guga31bb/nflfastR-data/raw/master/teams_colors_logos.csv')
 
 def get_nfl_fast_r_roster_data_decoded(year=2020):
     df = pd.read_csv(f'https://github.com/mrcaseb/nflfastR-roster/blob/master/data/seasons/roster_{year}.csv?raw=true', low_memory=False)
