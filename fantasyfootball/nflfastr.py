@@ -15,6 +15,7 @@ from io import BytesIO
 import codecs
 import urllib.request
 from datetime import datetime
+from IPython.display import HTML
 
 def get_nfl_fast_r_data(*years):
     """Retrives play by play data from the NFLfastr git repo for a given year(s) """
@@ -654,11 +655,15 @@ def offense_vs_defense_transform(df, rank=True):
     return pd.concat([pass_epa, run_epa, sack, pace], axis='columns')
 
 def receiver_summary_table(df):
+    """
+    Displays a summary table of WR-related statistics derived from play-by-play data
+    """
     df = df.copy()
     team_logo = get_team_colors_and_logos_dataframe().loc[:,['team_logo_espn', 'team_abbr']]
     team_logo['team_logo_espn'] = team_logo['team_logo_espn'].apply(lambda x: f'<img src="{x}" width="50px">')                                              
     play_type = df['play_type'] == 'pass'
     df = (df.loc[play_type]
+            .assign(ez_tgts= lambda x: (x['air_yards']==x['yardline_100']))
             .groupby(['receiver_id', 'receiver'])
             .agg(posteam=('posteam', 'last'),
                 games=('game_id', 'nunique'),
@@ -667,13 +672,14 @@ def receiver_summary_table(df):
                 rec=('complete_pass', 'sum'),
                 rec_yards=('yards_gained', 'sum'),
                 targets=('play_id', 'count'),
-                tds=('touchdown', 'sum'),
-                rz_tgts=('yardline_100', lambda x: (x <= 20).sum()))
+                tds=('pass_touchdown', 'sum'),
+                rz_tgts=('yardline_100', lambda x: (x <= 20).sum()),
+                ez_tgts=('ez_tgts', 'sum'))
             .assign(target_share= lambda x: x['targets'] / x.groupby('posteam')['targets'].transform('sum') * 100,
                     yards_per_rec= lambda x: x['rec_yards'] / x['rec'],
                     air_yard_share= lambda x: x['air_yards'] / x.groupby('posteam')['air_yards'].transform('sum') * 100,
                     air_yards_pg= lambda x: x['air_yards'] / x['games'],
-                    catch_rate= lambda x: x['rec']/x['targets'],
+                    catch_rate= lambda x: x['rec']/x['targets'] * 100,
                     ppr_pts= lambda x: x['rec']*1 + x['rec_yards']*0.1 + x['tds']*6)
           .sort_values('ppr_pts', ascending=False)
           .reset_index()
@@ -681,9 +687,65 @@ def receiver_summary_table(df):
           .drop(columns='receiver_id')
           .set_index('receiver')
           .round(2)
+          .drop(columns=['games', 'air_yards', 'rec', 'rec_yards', 'targets'])
+          .rename(columns={'team_logo_espn': 'team'})
          )
-    columns = ['team_logo_espn', 'games', 'air_yards', 'adot', 'air_yard_share', 'air_yards_pg', 
-               'rec', 'catch_rate', 'rec_yards', 'targets', 'target_share', 'yards_per_rec', 
-                  'tds', 'rz_tgts', 'ppr_pts']
+    columns = ['team', 'adot', 'air_yard_share', 'air_yards_pg', 
+               'catch_rate', 'target_share', 'yards_per_rec', 
+                  'rz_tgts', 'ez_tgts', 'tds', 'ppr_pts']
     return df.loc[:,columns]
             
+def receiver_table_styler(df, n=20, color='blue'):
+    df = df.copy()
+    cm = sns.light_palette(color, as_cmap=True)
+    return HTML(df.head(n).style
+                          .background_gradient(cmap=cm)
+                          .format('{0:,.1f}%', subset=['air_yard_share','catch_rate', 'target_share'])
+                          .format('{0:,.1f}', subset=['adot', 'air_yards_pg','yards_per_rec', 'ppr_pts'])
+                          .format('{0:,.0f}', subset=['tds', 'rz_tgts', 'ez_tgts'])
+                          .render())
+
+def running_back_table(df, minimum_attempts=100):
+    """
+    Displays a summary table of RB-related statistics derived from play-by-play data, with a focus on PPR leagues
+    """
+    df = df.copy()
+    team_logo = get_team_colors_and_logos_dataframe().loc[:,['team_logo_espn', 'team_abbr']]
+    team_logo['team_logo_espn'] = team_logo['team_logo_espn'].apply(lambda x: f'<img src="{x}" width="50px">')
+    #wr to join to rush stats
+    pass_play = df['play_type'] == 'pass'
+    wr_table = (df.loc[pass_play].groupby(['receiver_id', 'receiver'])
+                                 .agg(rec=('complete_pass', 'sum'), 
+                                      rec_tds=('pass_touchdown', 'sum'),
+                                      rec_yards=('yards_gained', 'sum'))
+                                 .rename_axis(['rusher_id', 'rusher']))
+    play_type = df['play_type'] == 'run'
+    df = (df.loc[play_type]
+            .groupby(['rusher_id', 'rusher'])
+            .agg(posteam=('posteam', 'last'),
+                games=('game_id', 'nunique'),
+                attempts=('play_id', 'count'),
+                rush_yards=('yards_gained', 'sum'),
+                rush_tds=('rush_touchdown', 'sum'),
+                positive_run=('yards_gained', lambda x: (x > 0).mean() * 100),
+                carries_inside_5=('yardline_100', lambda x: (x <= 5).sum()),
+                carries_inside_2=('yardline_100', lambda x: (x <= 2).sum()))
+            .merge(wr_table, how='left', left_index=True, right_index=True)
+            .assign(total_tds= lambda x: x['rush_tds'] + x['rec_tds'],
+                    carry_share= lambda x: x['attempts'] / x.groupby('posteam')['attempts'].transform('sum') * 100,
+                    yards_per_carry= lambda x: x['rush_yards'] / x['attempts'],
+                    td_rate= lambda x: x['rush_tds'] / x['attempts'] * 100,
+                    ppr_pts= lambda x: x['rec'] + x['rush_yards']*0.1 + x['rec_yards']*0.1 + x['total_tds']*6)
+          .sort_values('ppr_pts', ascending=False)
+          .reset_index()
+          .merge(team_logo, left_on='posteam', right_on='team_abbr', how='left')
+          .drop(columns='rusher_id')
+          .set_index('rusher')
+          .round(2)
+          ##.drop(columns=['games', 'air_yards', 'rec', 'rec_yards', 'targets'])
+          .rename(columns={'team_logo_espn': 'team'})
+         )
+    columns = ['team', 'rush_yards', 'attempts', 'carry_share', 
+               'yards_per_carry', 'td_rate', 'positive_run', 
+                  'carries_inside_5', 'carries_inside_2', 'rec', 'rec_tds', 'rush_tds', 'total_tds', 'ppr_pts']
+    return df.loc[df['attempts'] >= minimum_attempts,columns]
