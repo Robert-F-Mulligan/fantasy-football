@@ -672,7 +672,7 @@ def receiver_summary_table(df):
                 rec=('complete_pass', 'sum'),
                 rec_yards=('yards_gained', 'sum'),
                 targets=('play_id', 'count'),
-                tds=('pass_touchdown', 'sum'),
+                rec_tds=('pass_touchdown', 'sum'),
                 rz_tgts=('yardline_100', lambda x: (x <= 20).sum()),
                 ez_tgts=('ez_tgts', 'sum'))
             .assign(target_share= lambda x: x['targets'] / x.groupby('posteam')['targets'].transform('sum') * 100,
@@ -680,19 +680,22 @@ def receiver_summary_table(df):
                     air_yard_share= lambda x: x['air_yards'] / x.groupby('posteam')['air_yards'].transform('sum') * 100,
                     air_yards_pg= lambda x: x['air_yards'] / x['games'],
                     catch_rate= lambda x: x['rec']/x['targets'] * 100,
-                    ppr_pts= lambda x: x['rec']*1 + x['rec_yards']*0.1 + x['tds']*6)
+                    ppr_pts= lambda x: x['rec']*1 + x['rec_yards']*0.1 + x['rec_tds']*6,
+                    rz_tgt_pg= lambda x: x['rz_tgts'] / x['games'],
+                    ez_tgt_pg= lambda x: x['ez_tgts'] / x['games'],
+                    rec_tds_pg= lambda x: x['rec_tds'] / x['games'])
           .sort_values('ppr_pts', ascending=False)
           .reset_index()
           .merge(team_logo, left_on='posteam', right_on='team_abbr', how='left')
           .drop(columns='receiver_id')
           .set_index('receiver')
           .round(2)
-          .drop(columns=['games', 'air_yards', 'rec', 'rec_yards', 'targets'])
+          .drop(columns=['games', 'air_yards', 'rec', 'rec_yards', 'rz_tgts', 'ez_tgts'])
           .rename(columns={'team_logo_espn': 'team'})
          )
-    columns = ['team', 'adot', 'air_yard_share', 'air_yards_pg', 
+    columns = ['team', 'targets', 'adot', 'air_yard_share', 'air_yards_pg', 
                'catch_rate', 'target_share', 'yards_per_rec', 
-                  'rz_tgts', 'ez_tgts', 'tds', 'ppr_pts']
+                  'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg', 'rec_tds', 'ppr_pts']
     return df.loc[:,columns]
             
 def receiver_table_styler(df, n=20, color='blue'):
@@ -701,11 +704,11 @@ def receiver_table_styler(df, n=20, color='blue'):
     return HTML(df.head(n).style
                           .background_gradient(cmap=cm)
                           .format('{0:,.1f}%', subset=['air_yard_share','catch_rate', 'target_share'])
-                          .format('{0:,.1f}', subset=['adot', 'air_yards_pg','yards_per_rec', 'ppr_pts'])
-                          .format('{0:,.0f}', subset=['tds', 'rz_tgts', 'ez_tgts'])
+                          .format('{0:,.1f}', subset=['adot', 'air_yards_pg','yards_per_rec', 'ppr_pts', 'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg'])
+                          .format('{0:,.0f}', subset=['targets', 'rec_tds'])
                           .render())
 
-def running_back_table(df, minimum_attempts=100):
+def running_back_summary_table(df, minimum_attempts=100):
     """
     Displays a summary table of RB-related statistics derived from play-by-play data, with a focus on PPR leagues
     """
@@ -727,25 +730,38 @@ def running_back_table(df, minimum_attempts=100):
                 attempts=('play_id', 'count'),
                 rush_yards=('yards_gained', 'sum'),
                 rush_tds=('rush_touchdown', 'sum'),
-                positive_run=('yards_gained', lambda x: (x > 0).mean() * 100),
-                carries_inside_5=('yardline_100', lambda x: (x <= 5).sum()),
-                carries_inside_2=('yardline_100', lambda x: (x <= 2).sum()))
+                positive_run_rate=('yards_gained', lambda x: (x > 0).mean() * 100),
+                carries_inside_5_rate=('yardline_100', lambda x: (x <= 5).mean() * 100),
+                carries_inside_2_rate=('yardline_100', lambda x: (x <= 2).mean() * 100))
             .merge(wr_table, how='left', left_index=True, right_index=True)
             .assign(total_tds= lambda x: x['rush_tds'] + x['rec_tds'],
                     carry_share= lambda x: x['attempts'] / x.groupby('posteam')['attempts'].transform('sum') * 100,
-                    yards_per_carry= lambda x: x['rush_yards'] / x['attempts'],
+                    ypc= lambda x: x['rush_yards'] / x['attempts'],
                     td_rate= lambda x: x['rush_tds'] / x['attempts'] * 100,
-                    ppr_pts= lambda x: x['rec'] + x['rush_yards']*0.1 + x['rec_yards']*0.1 + x['total_tds']*6)
+                    ppr_pts= lambda x: x['rec'] + x['rush_yards']*0.1 + x['rec_yards']*0.1 + x['total_tds']*6,
+                    rec_pg = lambda x: x['rec'] / x['games'],
+                    rush_td_pg = lambda x: x['rush_tds'] / x['games'],
+                    rec_td_pg = lambda x: x['rec_tds'] / x['games']
+                    )
           .sort_values('ppr_pts', ascending=False)
           .reset_index()
           .merge(team_logo, left_on='posteam', right_on='team_abbr', how='left')
-          .drop(columns='rusher_id')
+          .drop(columns=['rusher_id', 'rush_yards', 'rec', 'rush_tds', 'rec_tds'])
           .set_index('rusher')
           .round(2)
-          ##.drop(columns=['games', 'air_yards', 'rec', 'rec_yards', 'targets'])
+          .drop(columns=['games'])
           .rename(columns={'team_logo_espn': 'team'})
          )
-    columns = ['team', 'rush_yards', 'attempts', 'carry_share', 
-               'yards_per_carry', 'td_rate', 'positive_run', 
-                  'carries_inside_5', 'carries_inside_2', 'rec', 'rec_tds', 'rush_tds', 'total_tds', 'ppr_pts']
+    columns = ['team', 'attempts', 'carry_share', 'ypc', 'td_rate', 'positive_run_rate', 'carries_inside_5_rate', 'carries_inside_2_rate', 
+              'rec_pg', 'rec_td_pg', 'rush_td_pg', 'total_tds', 'ppr_pts']
     return df.loc[df['attempts'] >= minimum_attempts,columns]
+
+def running_back_table_styler(df, n=20, color='green'):
+    df = df.copy()
+    cm = sns.light_palette(color, as_cmap=True)
+    return HTML(df.head(n).style
+                        .background_gradient(cmap=cm)
+                        .format('{0:,.1f}%', subset=['positive_run_rate','carry_share', 'td_rate', 'carries_inside_5_rate', 'carries_inside_2_rate'])
+                        .format('{0:,.1f}', subset=['ypc', 'rec_pg', 'rec_td_pg', 'rush_td_pg', 'ppr_pts'])
+                        .format('{0:,.0f}', subset=['total_tds', 'attempts'])
+                        .render())
