@@ -653,3 +653,37 @@ def offense_vs_defense_transform(df, rank=True):
     
     return pd.concat([pass_epa, run_epa, sack, pace], axis='columns')
 
+def receiver_summary_table(df):
+    df = df.copy()
+    team_logo = get_team_colors_and_logos_dataframe().loc[:,['team_logo_espn', 'team_abbr']]
+    team_logo['team_logo_espn'] = team_logo['team_logo_espn'].apply(lambda x: f'<img src="{x}" width="50px">')                                              
+    play_type = df['play_type'] == 'pass'
+    df = (df.loc[play_type]
+            .groupby(['receiver_id', 'receiver'])
+            .agg(posteam=('posteam', 'last'),
+                games=('game_id', 'nunique'),
+                air_yards=('air_yards', 'sum'),
+                adot=('air_yards', 'mean'),
+                rec=('complete_pass', 'sum'),
+                rec_yards=('yards_gained', 'sum'),
+                targets=('play_id', 'count'),
+                tds=('touchdown', 'sum'),
+                rz_tgts=('yardline_100', lambda x: (x <= 20).sum()))
+            .assign(target_share= lambda x: x['targets'] / x.groupby('posteam')['targets'].transform('sum') * 100,
+                    yards_per_rec= lambda x: x['rec_yards'] / x['rec'],
+                    air_yard_share= lambda x: x['air_yards'] / x.groupby('posteam')['air_yards'].transform('sum') * 100,
+                    air_yards_pg= lambda x: x['air_yards'] / x['games'],
+                    catch_rate= lambda x: x['rec']/x['targets'],
+                    ppr_pts= lambda x: x['rec']*1 + x['rec_yards']*0.1 + x['tds']*6)
+          .sort_values('ppr_pts', ascending=False)
+          .reset_index()
+          .merge(team_logo, left_on='posteam', right_on='team_abbr', how='left')
+          .drop(columns='receiver_id')
+          .set_index('receiver')
+          .round(2)
+         )
+    columns = ['team_logo_espn', 'games', 'air_yards', 'adot', 'air_yard_share', 'air_yards_pg', 
+               'rec', 'catch_rate', 'rec_yards', 'targets', 'target_share', 'yards_per_rec', 
+                  'tds', 'rz_tgts', 'ppr_pts']
+    return df.loc[:,columns]
+            
