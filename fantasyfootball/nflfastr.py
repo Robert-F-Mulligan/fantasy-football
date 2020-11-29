@@ -1,4 +1,4 @@
-# nflfastrfuncs.py
+# nflfastr.py
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -65,10 +65,10 @@ def save_team_images(column='team_wordmark'):
         file_path = path.join(local_path, filename)
         urllib.request.urlretrieve(image_url, file_path)
 
-def target_share_vs_air_yard_share_transform(df):
+def target_share_vs_ay_share_transform(df):
     """Calculates the team target share and total air yards for a given receiver """
     df = df.copy()
-    year, week = get_year_and_week
+    year, week = get_year_and_week(df)
     play_type = df['play_type'] == 'pass'
     df =  (df.loc[play_type].copy()
             .groupby(['receiver_id', 'receiver', 'posteam'])
@@ -77,7 +77,7 @@ def target_share_vs_air_yard_share_transform(df):
             .assign(team_targets= lambda x: x.groupby('posteam')['targets'].transform('sum'))
             .assign(team_air_yards=lambda x: x.groupby('posteam')['air_yards'].transform('sum'))
             .assign(target_share=lambda x: x['targets'] / x['team_targets'])
-            .assign(air_yard_share=lambda x: x['air_yards'] / x['team_air_yards'])
+            .assign(ay_share=lambda x: x['air_yards'] / x['team_air_yards'])
             .assign(year=year)
             .assign(week=week)
             .droplevel(0)
@@ -85,7 +85,7 @@ def target_share_vs_air_yard_share_transform(df):
             .set_index('receiver'))
     return df
 
-def target_share_vs_air_yard_share_viz(df, *team_filter, n=60, x_size=20, y_size=15, save=True):
+def target_share_vs_ay_share_viz(df, *team_filter, n=60, x_size=20, y_size=15, save=True):
     if team_filter:
         team_list = [team for team in team_filter]
         df = df.loc[df['posteam'].isin(team_list)].copy()
@@ -94,26 +94,27 @@ def target_share_vs_air_yard_share_viz(df, *team_filter, n=60, x_size=20, y_size
     sns.set_style('whitegrid');
     df['color'] = df['posteam'].map(nfl_color_map)
     fig, ax = plt.subplots(figsize=(x_size, y_size))
-    ax.scatter(df['target_share'], df['air_yard_share'], color=df['color'], alpha=1.0)
-    text = [ax.annotate(name, xy=(x+.001, y), alpha=1.0, zorder=2) for name, x, y 
-        in zip(df.index, df['target_share'], df['air_yard_share'])]
+    ax.scatter(df['target_share'], df['ay_share'], color=df['color'], s=300, alpha=0.7)
+    text = [ax.annotate(name, xy=(x+.001, y), alpha=1.0, zorder=2, fontsize=12) for name, x, y 
+        in zip(df.index, df['target_share'], df['ay_share'])]
     adjust_text(text)
     #axis formatting
-    ax.set_xlabel('Target Share', fontsize=12)
-    ax.set_ylabel('Air Yard Share', fontsize=12)
+    ax.tick_params(labelsize=14)
+    ax.set_xlabel('Target Share', fontsize=16)
+    ax.set_ylabel('Air Yard Share', fontsize=16)
     ax.set_xticks(np.linspace(0, df['target_share'].max(), 10))
     xlabels = ["{:.2%}".format(x) for x in np.linspace(0, df['target_share'].max(), 10)]
     ax.set_xticklabels(xlabels)
-    ax.set_yticks(np.linspace(0, df['air_yard_share'].max(), 10))
-    ylabels = ["{:.2%}".format(x) for x in np.linspace(0, df['air_yard_share'].max(), 10)]
+    ax.set_yticks(np.linspace(0, df['ay_share'].max(), 10))
+    ylabels = ["{:.2%}".format(x) for x in np.linspace(0, df['ay_share'].max(), 10)]
     ax.set_yticklabels(ylabels)
     #mean lines
     avg_target_share = df['target_share'].mean()
-    avg_air_yard = df['air_yard_share'].mean()  
+    avg_air_yard = df['ay_share'].mean()  
     ax.axvline(avg_target_share, linestyle='--', color='gray')
     ax.axhline(avg_air_yard, linestyle='--', color='gray')
     #title
-    year = df['year'].max()
+    year = str(df['year'].max())[:4]
     week = df['week'].max()
     ax.set_title(f'{year} Target Share vs Air Yard Share (Through Week {week})', fontsize=16, fontweight='bold')
     #margins and footnotes
@@ -121,7 +122,7 @@ def target_share_vs_air_yard_share_viz(df, *team_filter, n=60, x_size=20, y_size
     ax.annotate('Data: @NFLfastR',xy=(.90,-0.05), fontsize=12, xycoords='axes fraction')
     ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
     if save:
-        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_Target_Share_vs_Air_Yard_Share.png'))
+        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_Target_Share_vs_ay_share.png'))
     return plt.show()
 
 def carries_inside_5_yardline_transform(df):
@@ -154,7 +155,7 @@ def carries_inside_5_yardline_viz(df, *team_filter, n=20, x_size=20, y_size=15, 
     fig,ax = plt.subplots(figsize=(x_size, y_size))
     ax.barh(df.index, df['play_id'], color=df['color'])
     for carries, x, y in zip(df['play_id'], df['play_id'], df.index):
-        ax.annotate(carries, xy=(x, y), fontsize=12)
+        ax.annotate(carries, xy=(x+0.02, y), fontsize=14)
     images = [OffsetImage(plt.imread(file_path), zoom=.1) for file_path in df['logo'].to_list()]
     x0 = [(df['play_id'].max() * 0.02)] * len(df['play_id'])
     for im, x, y in zip(images, x0, df.index):
@@ -162,9 +163,11 @@ def carries_inside_5_yardline_viz(df, *team_filter, n=20, x_size=20, y_size=15, 
     #axis formatting
     ax.invert_yaxis()
     ax.margins(x=.05, y=0)
+    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='x', labelsize=14)
     ax.yaxis.grid(False)
     #title
-    year = df['year'].max()
+    year = str(df['year'].max())[:4]
     week = df['week'].max()
     ax.set_title(f'{year} Carries Inside the 5 Yardline (Through Week {week})', fontsize=16, fontweight='bold')
     #margins and footnotes
@@ -260,7 +263,7 @@ def air_yard_density_viz(df, *team_filter, x_size=30, y_size=35, team_logo=True,
         ax.remove()
 
     #labels and footnotes
-    year = df['year'].max()
+    year = str(df['year'].max())[:4]
     week = df['week'].max()
     fig.suptitle(f'{year} Top {axs_list_count} Players By Total Air Yards through Week {week}', fontsize=30, fontweight='bold', y=1.02)
     plt.figtext(0.97, -0.01, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=14)
@@ -276,7 +279,7 @@ def air_yard_density_viz(df, *team_filter, x_size=30, y_size=35, team_logo=True,
         else:
             fig.savefig(path.join(FIGURE_DIR,f'{year}_Air_Yard_Density_Through{week}.png'), bbox_inches='tight')
 
-def team_scatter_viz(df, x_size=20, y_size=10, save=True):
+def team_scatter_viz(df, x_size=20, y_size=15, save=True):
     """
     Pass teams as index, first column=x, second coluns=y
     """
@@ -303,14 +306,15 @@ def team_scatter_viz(df, x_size=20, y_size=10, save=True):
     x_label = x_col.replace('_', ' ').title()
     y_col = df.columns[1]
     y_label = y_col.replace('_', ' ').title()
-    ax.set_xlabel(x_label, fontsize=12)
-    ax.set_ylabel(y_label, fontsize=12)
+    ax.tick_params(labelsize=14)
+    ax.set_xlabel(x_label, fontsize=16)
+    ax.set_ylabel(y_label, fontsize=16)
     ax.grid(zorder=0,alpha=.4)
     
     #figure title
-    year = df['year'].max()
+    year = str(df['year'].max())[:4]
     week = df['week'].max()
-    fig.suptitle(f'{year} {x_label} and {y_label} through Week {week}', fontsize=30, fontweight='bold', y=1.05)
+    fig.suptitle(f'{year} {x_label} and {y_label} through Week {week}', fontsize=30, fontweight='bold', y=1.02)
     plt.figtext(0.92, -0.01, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
     
     fig.tight_layout()
@@ -376,7 +380,7 @@ def usage_yardline_breakdown_transform(df, player_type='receiver', play='pass'):
 
 def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
     colors = ['#bc0000', '#808080', '#a9a9a9', '#c0c0c0', '#d3d3d3']
-    year = df['year'].max()
+    year = str(df['year'].max())[:4]
     week = df['week'].max()
     player_type = df.index.name.title()
     df = df.drop(columns=['year', 'week', 'posteam']).head(n).copy()
@@ -430,7 +434,7 @@ def epa_vs_cpoe_transform(df, minimum_att=200):
     return df.loc[df['play_id']>minimum_att]
 
 def make_epa_vs_cpoe_viz(df, save=True):
-    fig, ax = plt.subplots(figsize=(15,15))
+    fig, ax = plt.subplots(figsize=(20,15))
     x = df['cpoe']
     y = df['epa']
     size = df['play_id']
@@ -447,7 +451,7 @@ def make_epa_vs_cpoe_viz(df, save=True):
     ax.axvline(avg_x, linestyle='--', color='gray')
     ax.axhline(avg_y, linestyle='--', color='gray')
     #title
-    year = df['year'].max()
+    year = str(df['year'].max())[:4]
     week = df['week'].max()
     ax.set_title(f'{year} CPOE vs EPA (Through Week {week})', fontsize=16, fontweight='bold')
     #labels
@@ -506,7 +510,7 @@ def make_neutral_pass_rate_viz(df):
     ax.set_axisbelow(True)
     
     #title
-    year = df['year'].max()
+    year = str(df['year'].max())[:4]
     week = df['week'].max()
     ax.set_title(f'{year} Neutral Pass Rate (Through Week {week})\n 1st & 2nd Down, Win Prob. Between 20-80%, Final Two Minutes Excluded',
                 fontsize=25, fontweight='bold', pad=20)
@@ -541,11 +545,12 @@ def second_and_long_pass_transform(df):
     return df
 
 def make_second_and_long_pass_rate_viz(df, color='team'):
-    fig, ax = plt.subplots(figsize=(40,15))
+    fig, ax = plt.subplots(figsize=(30,20))
     if color == 'team':
         color = df.index.map(nfl_color_map)
     else:
-        color = cm.color(np.linspace(0,.8,len(df)))
+        color = cm.get_cmap(color)
+        color = color(np.linspace(0,.8,len(df)))
     logo = df.index.map(nfl_logo_espn_path_map)
     images = [OffsetImage(plt.imread(logo_path), zoom=.1) for logo_path in logo]
     x = df.index
@@ -563,7 +568,7 @@ def make_second_and_long_pass_rate_viz(df, color='team'):
     ax.set_axisbelow(True)
     
     #title
-    year = df['year'].max()
+    year = str(df['year'].max())[:4]
     week = df['week'].max()
     ax.set_title(f'{year} Second and Long Pass Rate (Through Week {week})\n2nd and 8+ To Go, Win Prob. Between 20-80%, Final Two Minutes Excluded',
                 fontsize=25, fontweight='bold', pad=20)
@@ -577,8 +582,7 @@ def make_second_and_long_pass_rate_viz(df, color='team'):
     plt.text(y.mean() + 0.005, 30.5, 'NFL Average',fontsize=14)
     
     #footnotes
-    ax.annotate('Data: @NFLfastR',xy=(.90,-0.05), fontsize=12, xycoords='axes fraction')
-    ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
+    ax.annotate('Data: @NFLfastR\nFigure: @MulliganRob',xy=(.90,-0.05), fontsize=14, xycoords='axes fraction')
     
     fig.tight_layout()
     fig.savefig(f'{year}_Second_and_Long_Pass_Rate_{week}.png', bbox_inches='tight')
@@ -677,8 +681,8 @@ def receiver_summary_table(df):
                 ez_tgts=('ez_tgts', 'sum'))
             .assign(target_share= lambda x: x['targets'] / x.groupby('posteam')['targets'].transform('sum') * 100,
                     yards_per_rec= lambda x: x['rec_yards'] / x['rec'],
-                    air_yard_share= lambda x: x['air_yards'] / x.groupby('posteam')['air_yards'].transform('sum') * 100,
-                    air_yards_pg= lambda x: x['air_yards'] / x['games'],
+                    ay_share= lambda x: x['air_yards'] / x.groupby('posteam')['air_yards'].transform('sum') * 100,
+                    ay_pg= lambda x: x['air_yards'] / x['games'],
                     catch_rate= lambda x: x['rec']/x['targets'] * 100,
                     ppr_pts= lambda x: x['rec']*1 + x['rec_yards']*0.1 + x['rec_tds']*6,
                     rz_tgt_pg= lambda x: x['rz_tgts'] / x['games'],
@@ -693,7 +697,7 @@ def receiver_summary_table(df):
           .drop(columns=['games', 'air_yards', 'rec', 'rec_yards', 'rz_tgts', 'ez_tgts'])
           .rename(columns={'team_logo_espn': 'team'})
          )
-    columns = ['team', 'targets', 'adot', 'air_yard_share', 'air_yards_pg', 
+    columns = ['team', 'targets', 'adot', 'ay_share', 'ay_pg', 
                'catch_rate', 'target_share', 'yards_per_rec', 
                   'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg', 'rec_tds', 'ppr_pts']
     return df.loc[:,columns]
@@ -703,8 +707,9 @@ def receiver_table_styler(df, n=20, color='blue'):
     cm = sns.light_palette(color, as_cmap=True)
     return HTML(df.head(n).style
                           .background_gradient(cmap=cm)
-                          .format('{0:,.1f}%', subset=['air_yard_share','catch_rate', 'target_share'])
-                          .format('{0:,.1f}', subset=['adot', 'air_yards_pg','yards_per_rec', 'ppr_pts', 'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg'])
+                          #.highlight_max()
+                          .format('{0:,.1f}%', subset=['ay_share','catch_rate', 'target_share'])
+                          .format('{0:,.1f}', subset=['adot', 'ay_pg','yards_per_rec', 'ppr_pts', 'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg'])
                           .format('{0:,.0f}', subset=['targets', 'rec_tds'])
                           .render())
 
@@ -730,9 +735,8 @@ def running_back_summary_table(df, minimum_attempts=100):
                 attempts=('play_id', 'count'),
                 rush_yards=('yards_gained', 'sum'),
                 rush_tds=('rush_touchdown', 'sum'),
-                positive_run_rate=('yards_gained', lambda x: (x > 0).mean() * 100),
-                carries_inside_5_rate=('yardline_100', lambda x: (x <= 5).mean() * 100),
-                carries_inside_2_rate=('yardline_100', lambda x: (x <= 2).mean() * 100))
+                pos_run_rate=('yards_gained', lambda x: (x > 0).mean() * 100),
+                att_5_yd_rate=('yardline_100', lambda x: (x <= 5).mean() * 100))
             .merge(wr_table, how='left', left_index=True, right_index=True)
             .assign(total_tds= lambda x: x['rush_tds'] + x['rec_tds'],
                     carry_share= lambda x: x['attempts'] / x.groupby('posteam')['attempts'].transform('sum') * 100,
@@ -752,7 +756,7 @@ def running_back_summary_table(df, minimum_attempts=100):
           .drop(columns=['games'])
           .rename(columns={'team_logo_espn': 'team'})
          )
-    columns = ['team', 'attempts', 'carry_share', 'ypc', 'td_rate', 'positive_run_rate', 'carries_inside_5_rate', 'carries_inside_2_rate', 
+    columns = ['team', 'attempts', 'carry_share', 'ypc', 'td_rate', 'pos_run_rate', 'att_5_yd_rate', 
               'rec_pg', 'rec_td_pg', 'rush_td_pg', 'total_tds', 'ppr_pts']
     return df.loc[df['attempts'] >= minimum_attempts,columns]
 
@@ -761,7 +765,7 @@ def running_back_table_styler(df, n=20, color='green'):
     cm = sns.light_palette(color, as_cmap=True)
     return HTML(df.head(n).style
                         .background_gradient(cmap=cm)
-                        .format('{0:,.1f}%', subset=['positive_run_rate','carry_share', 'td_rate', 'carries_inside_5_rate', 'carries_inside_2_rate'])
+                        .format('{0:,.1f}%', subset=['pos_run_rate','carry_share', 'td_rate', 'att_5_yd_rate'])
                         .format('{0:,.1f}', subset=['ypc', 'rec_pg', 'rec_td_pg', 'rush_td_pg', 'ppr_pts'])
                         .format('{0:,.0f}', subset=['total_tds', 'attempts'])
                         .render())
