@@ -16,14 +16,18 @@ import codecs
 import urllib.request
 from datetime import datetime
 from IPython.display import HTML
+import dataframe_image as dfi
 
-def get_nfl_fast_r_data(*years):
+def get_nfl_fast_r_data(*years, regular_season=True, two_pt=False):
     """Retrives play by play data from the NFLfastr git repo for a given year(s) """
     df_list = [pd.read_csv('https://github.com/guga31bb/nflfastR-data/blob/master/data/' \
                             'play_by_play_' + str(year) + '.csv.gz?raw=True',
                             compression='gzip', low_memory=False)
               for year in years]
-    return pd.concat(df_list)
+    df = pd.concat(df_list)
+    if regular_season:
+        df = df.loc[df['season_type'] == 'REG']
+    return df if two_pt else df.loc[df['down']<=4]
 
 def get_nfl_fast_r_roster_data(*years):
     """Retrives NFL roster data from the NFLfastr git repo for a given year(s) """
@@ -702,16 +706,18 @@ def receiver_summary_table(df):
                   'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg', 'rec_tds', 'ppr_pts']
     return df.loc[:,columns]
             
-def receiver_table_styler(df, n=20, color='blue'):
+def receiver_table_styler(df, n=20, color='blue', save=False):
     df = df.copy()
     cm = sns.light_palette(color, as_cmap=True)
-    return HTML(df.head(n).style
+    styled_df = (df.head(n).style
                           .background_gradient(cmap=cm)
                           #.highlight_max()
                           .format('{0:,.1f}%', subset=['ay_share','catch_rate', 'target_share'])
                           .format('{0:,.1f}', subset=['adot', 'ay_pg','yards_per_rec', 'ppr_pts', 'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg'])
-                          .format('{0:,.0f}', subset=['targets', 'rec_tds'])
-                          .render())
+                          .format('{0:,.0f}', subset=['targets', 'rec_tds']))
+    if save:
+        dfi.export(styled_df, 'wr_table.png')
+    return HTML(styled_df.render())
 
 def running_back_summary_table(df, minimum_attempts=100):
     """
@@ -760,12 +766,14 @@ def running_back_summary_table(df, minimum_attempts=100):
               'rec_pg', 'rec_td_pg', 'rush_td_pg', 'total_tds', 'ppr_pts']
     return df.loc[df['attempts'] >= minimum_attempts,columns]
 
-def running_back_table_styler(df, n=20, color='green'):
+def running_back_table_styler(df, n=20, color='green', save=False):
     df = df.copy()
     cm = sns.light_palette(color, as_cmap=True)
-    return HTML(df.head(n).style
+    styled_df = (df.head(n).style
                         .background_gradient(cmap=cm)
                         .format('{0:,.1f}%', subset=['pos_run_rate','carry_share', 'td_rate', 'att_5_yd_rate'])
                         .format('{0:,.1f}', subset=['ypc', 'rec_pg', 'rec_td_pg', 'rush_td_pg', 'ppr_pts'])
-                        .format('{0:,.0f}', subset=['total_tds', 'attempts'])
-                        .render())
+                        .format('{0:,.0f}', subset=['total_tds', 'attempts']))
+    if save:
+        dfi.export(styled_df, 'rb_table.png')
+    return HTML(styled_df.render())
