@@ -330,18 +330,19 @@ def edsr_total_1d_transform(df):
     """
     df = df.copy()
     year, week = get_year_and_week(df)
-    #first downs per game
-    first_downs = df.groupby(['posteam'])['first_down'].agg(first_downs_per_game=('first_down', 'sum'))
-    game_count = df.groupby(['posteam'])['game_id'].agg(first_downs_per_game=('first_down', 'nunique'))
-    first_downs_per_game = first_downs / game_count
     #edsr
     early_down = df['down'].isin([1,2])
     play_type = (df['play_type'].isin(['pass', 'run'])) & (df['aborted_play'] == 0)
-    early_down_success = df.loc[early_down & play_type].groupby('posteam')['first_down'].agg(early_down_success_rate=('first_down', 'mean'))
-    scatter_df = pd.merge(early_down_success, first_downs_per_game, left_index=True, right_index=True)
-    scatter_df = (scatter_df.assign(year=year)
-                            .assign(week=week))
-    return scatter_df
+    edsr = (df.loc[early_down & play_type]
+              .groupby('posteam')
+              .agg(early_down_success_rate=('first_down', 'mean')))
+    #first downs per game
+    firstdownpg = (df.groupby('posteam')
+                     .agg(first_downs=('first_down','sum'),
+                          games=('game_id','nunique'))
+                     .assign(first_downs_per_game= lambda x: x['first_downs'] / x['games'])
+                     .drop(columns=['first_downs','games']))
+    return pd.concat([edsr, firstdownpg], axis='columns').assign(year=year).assign(week=week)
 
 def usage_yardline_breakdown_transform(df, player_type='receiver', play='pass'):
     """Calculates the given yardline distribution of opportunities for a given player"""
