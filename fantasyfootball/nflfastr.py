@@ -53,7 +53,7 @@ def convert_to_gsis_id(new_id):
 
 def get_year_and_week(df):
     """Extracts season and max week in an NFLfastr df; useful for labeling figures """
-    year = datetime.strptime(df['game_id'].str.split('_').str[0].max(), '%Y')
+    year = int(df['game_id'].max().split('_')[0])
     week = df['week'].max()
     return year, week
 
@@ -116,7 +116,7 @@ def target_share_vs_ay_share_viz(df, *team_filter, n=60, x_size=20, y_size=15, s
     ax.axvline(avg_target_share, linestyle='--', color='gray')
     ax.axhline(avg_air_yard, linestyle='--', color='gray')
     #title
-    year = str(df['year'].max())[:4]
+    year = df['year'].max()
     week = df['week'].max()
     ax.set_title(f'{year} Target Share vs Air Yard Share (Through Week {week})', fontsize=16, fontweight='bold')
     #margins and footnotes
@@ -167,7 +167,7 @@ def carries_inside_5_yardline_viz(df, *team_filter, n=20, x_size=20, y_size=15, 
     ax.tick_params(axis='x', labelsize=14)
     ax.yaxis.grid(False)
     #title
-    year = str(df['year'].max())[:4]
+    year = df['year'].max()
     week = df['week'].max()
     ax.set_title(f'{year} Carries Inside the 5 Yardline (Through Week {week})', fontsize=16, fontweight='bold')
     #margins and footnotes
@@ -262,7 +262,7 @@ def air_yard_density_viz(df, *team_filter, x_size=30, y_size=35, team_logo=True,
         ax.remove()
 
     #labels and footnotes
-    year = str(df['year'].max())[:4]
+    year = df['year'].max()
     week = df['week'].max()
     fig.suptitle(f'{year} Top {axs_list_count} Players By Total Air Yards through Week {week}', fontsize=30, fontweight='bold', y=1.02)
     plt.figtext(0.97, -0.01, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=14)
@@ -311,7 +311,7 @@ def team_scatter_viz(df, x_size=20, y_size=15, save=True):
     ax.grid(zorder=0,alpha=.4)
     
     #figure title
-    year = str(df['year'].max())[:4]
+    year = df['year'].max()
     week = df['week'].max()
     fig.suptitle(f'{year} {x_label} and {y_label} through Week {week}', fontsize=30, fontweight='bold', y=1.02)
     plt.figtext(0.92, -0.01, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
@@ -380,7 +380,7 @@ def usage_yardline_breakdown_transform(df, player_type='receiver', play='pass'):
 
 def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
     colors = ['#bc0000', '#808080', '#a9a9a9', '#c0c0c0', '#d3d3d3']
-    year = str(df['year'].max())[:4]
+    year = df['year'].max()
     week = df['week'].max()
     player_type = df.index.name.title()
     df = df.drop(columns=['year', 'week', 'posteam']).head(n).copy()
@@ -449,7 +449,7 @@ def make_epa_vs_cpoe_viz(df, save=True):
     ax.axvline(avg_x, linestyle='--', color='gray')
     ax.axhline(avg_y, linestyle='--', color='gray')
     #title
-    year = str(df['year'].max())[:4]
+    year = df['year'].max()
     week = df['week'].max()
     ax.set_title(f'{year} CPOE vs EPA (Through Week {week})', fontsize=16, fontweight='bold')
     #labels
@@ -508,7 +508,7 @@ def make_neutral_pass_rate_viz(df):
     ax.set_axisbelow(True)
     
     #title
-    year = str(df['year'].max())[:4]
+    year = df['year'].max()
     week = df['week'].max()
     ax.set_title(f'{year} Neutral Pass Rate (Through Week {week})\n 1st & 2nd Down, Win Prob. Between 20-80%, Final Two Minutes Excluded',
                 fontsize=25, fontweight='bold', pad=20)
@@ -566,7 +566,7 @@ def make_second_and_long_pass_rate_viz(df, color='team'):
     ax.set_axisbelow(True)
     
     #title
-    year = str(df['year'].max())[:4]
+    year = df['year'].max()
     week = df['week'].max()
     ax.set_title(f'{year} Second and Long Pass Rate (Through Week {week})\n2nd and 8+ To Go, Win Prob. Between 20-80%, Final Two Minutes Excluded',
                 fontsize=25, fontweight='bold', pad=20)
