@@ -75,8 +75,8 @@ def target_share_vs_ay_share_transform(df):
     year, week = get_year_and_week(df)
     play_type = df['play_type'] == 'pass'
     df =  (df.loc[play_type].copy()
-            .groupby(['receiver_id', 'receiver', 'posteam'])
-            .agg(targets=('play_type', 'count'), air_yards=('air_yards', 'sum'))
+            .groupby(['receiver_id', 'receiver'])
+            .agg(posteam=('posteam', 'last'), targets=('play_type', 'count'), air_yards=('air_yards', 'sum'))
             .sort_values('targets', ascending=False)
             .assign(team_targets= lambda x: x.groupby('posteam')['targets'].transform('sum'))
             .assign(team_air_yards=lambda x: x.groupby('posteam')['air_yards'].transform('sum'))
@@ -84,9 +84,7 @@ def target_share_vs_ay_share_transform(df):
             .assign(ay_share=lambda x: x['air_yards'] / x['team_air_yards'])
             .assign(year=year)
             .assign(week=week)
-            .droplevel(0)
-            .reset_index()
-            .set_index('receiver'))
+            .droplevel(0))
     return df
 
 def target_share_vs_ay_share_viz(df, *team_filter, n=60, x_size=20, y_size=15, save=True):
@@ -136,12 +134,10 @@ def carries_inside_5_yardline_transform(df):
     play_type = df['play_type']=='run'
     inside_5 = df['yardline_100']<5
     df = (df.loc[play_type & inside_5]
-            .groupby(['rusher_id', 'rusher', 'posteam'])[['play_id']]
-            .count()
-            .sort_values(by=['play_id'],ascending=False)
+            .groupby(['rusher_id', 'rusher'])
+            .agg(posteam=('posteam', 'last'), play_count=('play_id', 'count'))
+            .sort_values(by=['play_count'],ascending=False)
             .droplevel(0)
-            .reset_index()
-            .set_index('rusher')
             .assign(year=year)
             .assign(week=week))
     return df
@@ -157,11 +153,11 @@ def carries_inside_5_yardline_viz(df, *team_filter, n=20, x_size=20, y_size=15, 
     df['logo'] = df['posteam'].map(nfl_logo_espn_path_map)
     sns.set_style('whitegrid');
     fig,ax = plt.subplots(figsize=(x_size, y_size))
-    ax.barh(df.index, df['play_id'], color=df['color'])
-    for carries, x, y in zip(df['play_id'], df['play_id'], df.index):
+    ax.barh(df.index, df['play_count'], color=df['color'])
+    for carries, x, y in zip(df['play_count'], df['play_count'], df.index):
         ax.annotate(carries, xy=(x+0.02, y), fontsize=14)
     images = [OffsetImage(plt.imread(file_path), zoom=.1) for file_path in df['logo'].to_list()]
-    x0 = [(df['play_id'].max() * 0.02)] * len(df['play_id'])
+    x0 = [(df['play_count'].max() * 0.02)] * len(df['play_count'])
     for im, x, y in zip(images, x0, df.index):
         ax.add_artist(AnnotationBbox(im, xy=(x,y), frameon=False, xycoords='data'))
     #axis formatting
@@ -180,7 +176,6 @@ def carries_inside_5_yardline_viz(df, *team_filter, n=20, x_size=20, y_size=15, 
     ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
     if save:
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_Carries_Inside_5_Yardline.png'))
-    return plt.show()
 
 def air_yard_density_transform(df):
     """
@@ -428,11 +423,9 @@ def epa_vs_cpoe_transform(df, minimum_att=200):
     """
     df = df.copy()
     year, week = get_year_and_week(df)
-    df = (df.groupby(['passer_id','passer', 'posteam'])
-            .agg({'epa':'mean', 'cpoe':'mean', 'play_id':'count'})
+    df = (df.groupby(['passer_id','passer'])
+            .agg({'posteam': 'last', 'epa':'mean', 'cpoe':'mean', 'play_id':'count'})
             .droplevel(0)
-            .reset_index()
-            .set_index('passer')
             .assign(year=year)
             .assign(week=week))
     return df.loc[df['play_id']>minimum_att]
@@ -487,10 +480,10 @@ def neutral_pass_rate_transform(df):
     wp_low = df['wp'] >= .2
     wp_high = df['wp'] <= .8
     df = (df.loc[downs & time & wp_low & wp_high]
-            .groupby('posteam', as_index=False)['pass'].mean()
+            .groupby('posteam')['pass'].mean()
+            .to_frame()
             .assign(year=year)
             .assign(week=week)
-            .set_index('posteam')
             .sort_values('pass', ascending=False))
     return df
 
@@ -540,10 +533,10 @@ def second_and_long_pass_transform(df):
     wp_high = df['wp'] <= .8
     to_go = df['ydstogo'] >= 8
     df = (df.loc[downs & time & wp_low & wp_high & to_go]
-            .groupby('posteam', as_index=False)['pass'].mean()
+            .groupby('posteam')['pass'].mean()
+            .to_frame()
             .assign(year=year)
             .assign(week=week)
-            .set_index('posteam')
             .sort_values('pass', ascending=False)
          )
     return df
