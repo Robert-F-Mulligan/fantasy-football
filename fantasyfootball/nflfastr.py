@@ -359,7 +359,7 @@ def usage_yardline_breakdown_transform(df, player_type='receiver', play='pass'):
     cut_bins = [-1, 20, 40, 60, 80, 100]
     df = (df.loc[play_type, [player_id, player_type, 'play_id', 'posteam', 'yardline_100']]
                .assign(yardline_100_bin=lambda x: pd.cut(x['yardline_100'], bins=cut_bins, labels=yardline_labels))
-               .astype({'yardline_100_bin': 'object'}) #convert from categorical to allow groupby to work more efficiently
+               .astype({'yardline_100_bin': 'object'}) #Groupby will also show “unused” categories, which will increase the size of the DF by a lot
                .groupby([player_id, player_type, 'posteam', 'yardline_100_bin']).agg(count=('yardline_100', 'count'))
                .assign(total= lambda x: x.groupby(level=0).transform('sum'))
                .assign(percent=lambda x: (x['count'] / x['total']) * 100)
@@ -739,6 +739,7 @@ def running_back_summary_table(df, minimum_attempts=100):
             .merge(wr_table, how='left', left_index=True, right_index=True)
             .assign(total_tds= lambda x: x['rush_tds'] + x['rec_tds'],
                     carry_share= lambda x: x['attempts'] / x.groupby('posteam')['attempts'].transform('sum') * 100,
+                    yards_share= lambda x: x['rush_yards'] / x.groupby('posteam')['rush_yards'].transform('sum') * 100,
                     ypc= lambda x: x['rush_yards'] / x['attempts'],
                     td_rate= lambda x: x['rush_tds'] / x['attempts'] * 100,
                     ppr_pts= lambda x: x['rec'] + x['rush_yards']*0.1 + x['rec_yards']*0.1 + x['total_tds']*6,
@@ -755,7 +756,7 @@ def running_back_summary_table(df, minimum_attempts=100):
           .drop(columns=['games'])
           .rename(columns={'team_logo_espn': 'team'})
          )
-    columns = ['team', 'attempts', 'carry_share', 'ypc', 'td_rate', 'pos_run_rate', 'att_5_yd_rate', 
+    columns = ['team', 'attempts', 'carry_share', 'yards_share', 'ypc', 'td_rate', 'pos_run_rate', 'att_5_yd_rate', 
               'rec_pg', 'rec_td_pg', 'rush_td_pg', 'total_tds', 'ppr_pts']
     return df.loc[df['attempts'] >= minimum_attempts,columns]
 
@@ -764,7 +765,7 @@ def running_back_table_styler(df, n=20, color='green', save=False):
     cm = sns.light_palette(color, as_cmap=True)
     styled_df = (df.head(n).style
                         .background_gradient(cmap=cm)
-                        .format('{0:,.1f}%', subset=['pos_run_rate','carry_share', 'td_rate', 'att_5_yd_rate'])
+                        .format('{0:,.1f}%', subset=['pos_run_rate','carry_share', 'td_rate', 'att_5_yd_rate', 'yards_share'])
                         .format('{0:,.1f}', subset=['ypc', 'rec_pg', 'rec_td_pg', 'rush_td_pg', 'ppr_pts'])
                         .format('{0:,.0f}', subset=['total_tds', 'attempts']))
     if save:
