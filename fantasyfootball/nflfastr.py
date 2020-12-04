@@ -58,7 +58,7 @@ def get_year_and_week(df):
     return year, week
 
 def save_team_images(column='team_wordmark'):
-    """Fucntion will loop through a dataframe column and save URL images locally"""
+    """Function will loop through a dataframe column and save URL images locally"""
     df = pd.read_csv(r'https://github.com/guga31bb/nflfastR-data/raw/master/teams_colors_logos.csv')
     my_series = df[column]
     my_list = my_series.to_list()
@@ -187,14 +187,13 @@ def air_yard_density_transform(df):
     play_type = df['play_type'] == 'pass'
     air_yard_threshold = ~df['air_yards'].isna()
     df = (df.loc[play_type & air_yard_threshold]
-            .groupby(['receiver_id', 'receiver', 'posteam', 'play_id'])['air_yards'].sum()
-            .to_frame()
-            .assign(total_air_yards= lambda x: x.groupby(['receiver_id']).transform('sum'))
-            .sort_values(['total_air_yards', 'receiver_id', 'posteam'], ascending=False)
+            .groupby(['receiver_id', 'receiver','play_id'])
+            .agg(posteam=('posteam', 'last'), air_yards=('air_yards','sum'))
+            .assign(total_air_yards= lambda x: x.groupby(['receiver_id'])['air_yards'].transform('sum'))
+            .sort_values(['total_air_yards', 'receiver_id'], ascending=False)
             .drop(columns='total_air_yards')
-            .droplevel(0)
+            .droplevel([0,2])
             .reset_index()
-            .drop(columns='play_id')
             .assign(colors= lambda x: x['posteam'].map(nfl_color_map))
             .assign(logo= lambda x: x['posteam'].map(nfl_logo_espn_path_map))
             .assign(year=year)
