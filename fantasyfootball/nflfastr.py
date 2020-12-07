@@ -698,9 +698,14 @@ def receiver_summary_table(df):
                'catch_rate', 'target_share', 'yards_per_rec', 
                   'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg', 'rec_tds', 'ppr_pts']
     return df.loc[:,columns]
+
+def hover(hover_color='gray'):
+    return dict(selector='td:hover',
+                props=[('background-color', '%s' % hover_color), ('font-color', 'black')])
             
 def receiver_table_styler(df, n=20, color='blue', save=False):
     df = df.copy()
+    df.index.name = None
     cm = sns.light_palette(color, as_cmap=True)
     styled_df = (df.head(n).style
                           .background_gradient(cmap=cm)
@@ -760,14 +765,33 @@ def running_back_summary_table(df, minimum_attempts=100):
               'rec_pg', 'rec_td_pg', 'rush_td_pg', 'total_tds', 'ppr_pts']
     return df.loc[df['attempts'] >= minimum_attempts,columns]
 
-def running_back_table_styler(df, n=20, color='green', save=False):
+def set_selectors_and_props():
+    """Set specific visual attributes for RB Style table
+    selector is based on HTML elements and CSS properties"""
+    return [dict(selector='caption',
+                 props=[('color', 'black'), ('background-color', 'white'), ('font-size', '16px'), ('text-align', 'center'),('font-weight', 'bold')]),
+            dict(selector='th',
+                 props=[('color', 'black')])]
+
+def table_styler(df, pos, n=20, caption='Top Players', color='green', save=False):
     df = df.copy()
+    df.index.name = None
     cm = sns.light_palette(color, as_cmap=True)
     styled_df = (df.head(n).style
                         .background_gradient(cmap=cm)
-                        .format('{0:,.1f}%', subset=['pos_run_rate','carry_share', 'td_rate', 'att_5_yd_rate', 'yards_share'])
-                        .format('{0:,.1f}', subset=['ypc', 'rec_pg', 'rec_td_pg', 'rush_td_pg', 'ppr_pts'])
-                        .format('{0:,.0f}', subset=['total_tds', 'attempts']))
+                        .set_caption(caption))
+    if pos =='RB':
+        styled_df = (styled_df.format('{0:,.1f}%', subset=['pos_run_rate','carry_share', 'td_rate', 'att_5_yd_rate', 'yards_share'])
+                              .format('{0:,.1f}', subset=['ypc', 'rec_pg', 'rec_td_pg', 'rush_td_pg', 'ppr_pts'])
+                              .format('{0:,.0f}', subset=['total_tds', 'attempts']))
+    elif pos =='WR':
+        styled_df = (styled_df.format('{0:,.1f}%', subset=['ay_share','catch_rate', 'target_share'])
+                              .format('{0:,.1f}', subset=['adot', 'ay_pg','yards_per_rec', 'ppr_pts', 'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg'])
+                              .format('{0:,.0f}', subset=['targets', 'rec_tds']))
+    styled_df = styled_df.set_table_styles(set_selectors_and_props())
     if save:
-        dfi.export(styled_df, 'rb_table.png')
+        caption_name = '_'.join(caption.split())
+        dfi.export(styled_df, f'{caption_name}.png')
     return HTML(styled_df.render())
+
+    
