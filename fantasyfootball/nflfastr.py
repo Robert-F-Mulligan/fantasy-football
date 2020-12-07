@@ -699,24 +699,6 @@ def receiver_summary_table(df):
                   'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg', 'rec_tds', 'ppr_pts']
     return df.loc[:,columns]
 
-def hover(hover_color='gray'):
-    return dict(selector='td:hover',
-                props=[('background-color', '%s' % hover_color), ('font-color', 'black')])
-            
-def receiver_table_styler(df, n=20, color='blue', save=False):
-    df = df.copy()
-    df.index.name = None
-    cm = sns.light_palette(color, as_cmap=True)
-    styled_df = (df.head(n).style
-                          .background_gradient(cmap=cm)
-                          #.highlight_max()
-                          .format('{0:,.1f}%', subset=['ay_share','catch_rate', 'target_share'])
-                          .format('{0:,.1f}', subset=['adot', 'ay_pg','yards_per_rec', 'ppr_pts', 'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg'])
-                          .format('{0:,.0f}', subset=['targets', 'rec_tds']))
-    if save:
-        dfi.export(styled_df, 'wr_table.png')
-    return HTML(styled_df.render())
-
 def running_back_summary_table(df, minimum_attempts=100):
     """
     Displays a summary table of RB-related statistics derived from play-by-play data, with a focus on PPR leagues
@@ -772,6 +754,14 @@ def set_selectors_and_props():
                  props=[('color', 'black'), ('background-color', 'white'), ('font-size', '16px'), ('text-align', 'center'),('font-weight', 'bold')]),
             dict(selector='th',
                  props=[('color', 'black')])]
+
+def hover_data(hover_color='gray'):
+    return dict(selector='td:hover',
+                props=[('background-color', '%s' % hover_color)])
+
+def hover_rows(hover_color='gray'):
+    return dict(selector='tr:hover',
+                props=[('background-color', '%s' % hover_color)])
 
 def table_styler(df, pos, n=20, caption='Top Players', color='green', save=False):
     df = df.copy()
