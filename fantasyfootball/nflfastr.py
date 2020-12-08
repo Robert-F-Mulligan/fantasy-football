@@ -747,6 +747,67 @@ def running_back_summary_table(df, minimum_attempts=100):
               'rec_pg', 'rec_td_pg', 'rush_td_pg', 'total_tds', 'ppr_pts']
     return df.loc[df['attempts'] >= minimum_attempts,columns]
 
+def quarterback_summary_table(df, minimum_attempts=200):
+    """
+    Displays a summary table of QB-related statistics derived from play-by-play data
+    """
+    df = df.copy()
+    team_logo = get_team_colors_and_logos_dataframe().loc[:,['team_logo_espn', 'team_abbr']]
+    team_logo['team_logo_espn'] = team_logo['team_logo_espn'].apply(lambda x: f'<img src="{x}" width="50px">')
+    #conditions
+    passer = ~df['passer'].isna()
+    run_play = df['play_type'] == 'run'
+    pass_play = df['play_type'] == 'pass'
+    qb_kneel = df['play_type'] == 'qb_kneel'
+    no_sack = df['sack'] == 0
+    #rushing stats to join to passing stats
+    rb_table = (df.loc[run_play | qb_kneel].groupby(['rusher_id', 'rusher'])
+                                 .agg(rush_tds=('rush_touchdown', 'sum'),
+                                      rush_yards=('yards_gained', 'sum'),
+                                     rush_attempts=('play_id', 'count'),
+                                     rush_epa=('epa', 'sum'))
+                                 .rename_axis(['passer_id', 'passer']))
+    #passing df
+    df = (df.assign(scramble_yds= lambda x: x['yards_gained'].where(passer & run_play & no_sack),
+                    pass_yards= lambda x: x['yards_gained'].where(passer & pass_play  & no_sack),
+                    scramble_tds= lambda x: x['rush_touchdown'].where(passer & run_play),
+                    scramble_attempts= lambda x: x['play_id'].where(passer & run_play),
+                    scramble_epa= lambda x: x['epa'].where(passer & run_play),
+                    pass_epa= lambda x: x['epa'].where(passer & pass_play  & no_sack),
+                    pass_tds= lambda x: x['pass_touchdown'].where(passer & pass_play),
+                    pass_attempts= lambda x: x['play_id'].where(pass_play))
+            .groupby(['passer_id','passer'])
+            .agg(posteam=('posteam','last'),
+                games=('game_id','nunique'),
+                pass_attempts=('pass_attempts','count'),
+                pass_yards=('pass_yards','sum'),
+                scramble_yds=('scramble_yds','sum'),
+                scramble_attempts=('scramble_attempts', 'count'),
+                scramble_epa=('scramble_epa', 'sum'),
+                pass_tds=('pass_tds','sum'),
+                scramble_tds=('scramble_tds','sum'), 
+                pass_epa=('pass_epa','sum'),
+                interception=('interception','sum'))
+            .merge(rb_table, how='left', left_index=True, right_index=True)
+            .assign(total_tds= lambda x: x['rush_tds'] + x['pass_tds'] + x['scramble_tds'],
+                    ppr_pts= lambda x: x['rush_yards']*0.1 + x['pass_yards']*0.04 + x['total_tds']*6,
+                    ppr_pts_pg= lambda x: x['ppr_pts'] / x['games'],
+                    rush_tds= lambda x: x['rush_tds'] + x['scramble_tds'],
+                    rush_yards= lambda x: x['rush_yards'] + x['scramble_yds'],
+                    total_yards_pg= lambda x: (x['rush_yards'] + x['pass_yards']) / x['games'],
+                    epa_pg= lambda x: (x['rush_epa'] + x['scramble_epa'] + x['pass_epa']) / (x['games'])
+                    )
+           .sort_values('ppr_pts', ascending=False)
+           .reset_index()
+           .merge(team_logo, left_on='posteam', right_on='team_abbr', how='left')
+           .set_index('passer')
+           .round(2)
+           .rename(columns={'team_logo_espn': 'team', 'interception': 'int'})
+         )
+    columns = ['team', 'pass_yards', 'pass_tds', 'rush_yards', 'rush_tds', 'total_tds', 
+               'int', 'total_yards_pg', 'epa_pg', 'ppr_pts_pg', 'ppr_pts']
+    return df.loc[df['pass_attempts']>minimum_attempts, columns]
+
 def set_selectors_and_props():
     """Set specific visual attributes for RB Style table
     selector is based on HTML elements and CSS properties"""
@@ -778,10 +839,15 @@ def table_styler(df, pos, n=20, caption='Top Players', color='green', save=False
         styled_df = (styled_df.format('{0:,.1f}%', subset=['ay_share','catch_rate', 'target_share'])
                               .format('{0:,.1f}', subset=['adot', 'ay_pg','yards_per_rec', 'ppr_pts', 'rz_tgt_pg', 'ez_tgt_pg', 'rec_tds_pg'])
                               .format('{0:,.0f}', subset=['targets', 'rec_tds']))
+    elif pos=='QB':
+        styled_df = (styled_df.format('{0:,.1f}', subset=['rush_yards', 'ppr_pts_pg', 'ppr_pts', 'epa_pg', 'total_yards_pg'])
+                              .format('{0:,.0f}', subset=['pass_yards', 'pass_tds', 'rush_yards', 'rush_tds', 'total_tds', 'int']))
     styled_df = styled_df.set_table_styles(set_selectors_and_props())
     if save:
         caption_name = '_'.join(caption.split())
         dfi.export(styled_df, f'{caption_name}.png')
     return HTML(styled_df.render())
 
+columns = ['team', 'pass_yards', 'pass_tds', 'rush_yards', 'rush_tds', 'total_tds', 
+               'int', 'epa_pg', 'ppr_pts_pg', 'ppr_pts']
     
