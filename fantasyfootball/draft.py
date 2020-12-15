@@ -26,85 +26,120 @@ pos_tier_dict_viz = {
     }
 
 league = config.work
-pos_list = ['qb', 'wr', 'te', 'rb']
 today = date.today()
 date = today.strftime('%Y.%m.%d')
-weekly_stats = pd.read_csv(path.join(DATA_DIR, r'game-by-game\2019_weekly.csv'))
-errors_list = []
-try:
-    df = fp.fantasy_pros_pos_projection_scrape(week='draft', league=league, make_id=True)
+weekly_path = path.join(DATA_DIR, r'game-by-game\2019_weekly.csv')
+weekly_stats_year = 2019 
+replacement_method = 'top n'
 
-except Exception as e:
-    # Store the url and the error it causes in a list
-    error =[e]  
-    # then append it to the list of errors
-    errors_list.append(error)
+def get_fantasy_pros_projections(week='draft', league=league, make_id=True):
+    """Grabs fantasy pros stat projections for a given league type
+    make_id :: Boolean option to create a unique id in order to merge to other DFs"""
+    return fp.fantasy_pros_pos_projection_scrape(week=week, league=league, make_id=make_id)
 
-adp_df = (ffcalculator.adp_process(league=league)
-                      .pipe(config.unique_id_create)
-         )
+def get_adp_data(league=league):
+    """Grabs ADP data from FF Calculator and adds a unique ID """
+    return (ffcalculator.adp_process(league=league)
+                        .pipe(config.unique_id_create))
 
-#combines DFs
-merged_df = (df.merge(adp_df, how='left', on='id').sort_values('adp').reset_index(drop=True)
+def combine_fantasy_pros_and_adp_data():
+    """Combines the FP stats DF and the ADP DF """
+    fp = get_fantasy_pros_projections()
+    adp = get_adp_data()
+    return (fp.merge(adp, how='left', on='id')
+               .sort_values('adp')
+               .reset_index(drop=True)
                .drop(columns=['player_name_y', 'pos_y', 'team'])
-               .rename(columns={'pos_x' : 'pos', 'player_name_x': 'player_name'})
-            )
-                
-weekly_stats.columns = [col.lower() for col in weekly_stats.columns]
+               .rename(columns={'pos_x' : 'pos', 'player_name_x': 'player_name'}))
 
-#cleans names so we can create a unique id across different sites
-weekly_stats = config.unique_id_create(weekly_stats)
-year = weekly_stats['year'].max()
-weekly_stats = config.pro_football_reference_pts(weekly_stats, league)
-agg_df = (weekly_stats.groupby('id')
+def transform_weekly_stats(df, league=league):
+    """Transforms col names to lowercase, adds a unique ID and adds a column with custom fantasy points for a given league's rules """
+    df = df.copy()
+    df.columns = [col.lower() for col in df.columns]
+    return df.pipe(config.unique_id_create).pipe(config.pro_football_reference_pts, league)
+
+def aggregate_weekly_stats(df, league=league, year=weekly_stats_year):
+    """Takes a weekly season long DF and adds avg points per game and standard deviation to measure consistency"""
+    df = df.copy()
+    return (df.groupby('id')
                       .agg(avg_ppg=(f'{league.get("name")}_custom_pts', 'mean'),
                            std_dev=(f'{league.get("name")}_custom_pts', 'std'))
                       .rename(columns={'avg_ppg' : f'{year}_avg_ppg', 'std_dev' : f'{year}_std_dev'})
          )
+def get_weekly_data(file_path=weekly_path):
+    """Puts together all weekly data functions in a single call """
+    df = pd.read_csv(file_path)
+    return df.pipe(transform_weekly_stats).pipe(aggregate_weekly_stats)
 
-merged_df = (merged_df.merge(agg_df, how='left', on='id').reset_index(drop=True)
-                      .drop(columns=['id'])
-            )
-
-#run the desired VBD function to calculate replacement player
-replacement_value = config.value_through_n_picks(merged_df, pos_list, league)
-
-#map replacement value to df and calculate value above replacement
-merged_df['vor'] = merged_df[f'{league.get("name")}_custom_pts'] - merged_df['pos'].map(replacement_value)
-
-# add VOR rank normalize VOR, and determine VOR / ADP differential
-merged_df['vor_rank'] = merged_df['vor'].rank(ascending=False)
-merged_df['adp_rank'] = merged_df['overall'].rank()
-merged_df['adp_vor_delta'] = merged_df['adp_rank'] - merged_df['vor_rank']
-merged_df = merged_df.drop(columns=['vor_rank', 'adp_rank'])
-merged_df['vor'] = merged_df['vor'].apply(lambda x: (x - merged_df['vor'].min()) / (merged_df['vor'].max() - merged_df['vor'].min()))
-merged_df = (merged_df.sort_values('vor', ascending=False)
+def merge_weekly_and_fantasy_pros_and_adp_data():
+    """Combines weekly data, fantasy pros stat projections and ADP data in a single DF"""
+    weekly = get_weekly_data()
+    fp = combine_fantasy_pros_and_adp_data()
+    return (fp.merge(weekly, how='left', on='id')
                       .reset_index(drop=True)
-            )
+                      .drop(columns=['id']))
 
-#add tiers
-ecr = (fp.fantasy_pros_ecr_process(league)
-         .merge(merged_df, how='left', on=['player_name', 'pos', 'tm']).reset_index(drop=True)
-         .drop(columns=['bye_y'])
-         .rename(columns={'bye_x': 'bye'})
-      )
+def map_replacement_value(league=league, method=replacement_method):
+    """Calculates a position specific replacement value and maps he value to the merged DF
+    Method :: 'avg starter' : replacement value for an avg starter
+              'top n' : position specific cut-off
+              'replacement player' : player who should be available on waivers
+              'last starter' : value for a low-end starter
+              """
+    pos_list = ['qb', 'wr', 'te', 'rb']
+    df = merge_weekly_and_fantasy_pros_and_adp_data()
+    if method == 'avg starter':
+        replacement_value = config.value_over_avg_starter(df, pos_list, league)
+    elif method == 'top n':
+        replacement_value = config.value_through_n_picks(df, pos_list, league)
+    elif method == 'replacement player':
+        replacement_value = config.value_over_replacement_player(df, pos_list, league)
+    elif method == 'last starter':
+        replacement_value = config.value_over_last_starter(df, pos_list, league)
+    return df.assign(vor= df[f'{league.get("name")}_custom_pts'] - df['pos'].map(replacement_value))
 
-pos_dict = tiers.draftable_position_quantity(league)
-#run elbow or AIC/BIC to determine optimal number of tiers
-tier_df = tiers.assign_tier_to_df(ecr, tier_dict=pos_tier_dict_viz, kmeans=False, pos_n=pos_dict, covariance_type='diag')
+def normalize_series(x):
+    """Function used to normalize the VOR score using min-max normalization"""
+    return (x - x.min()) / (x.max() - x.min())
 
-#cleanup columns
-tier_df = tier_df.rename(columns={
+def transform_ranking_and_vor():
+    """Adds VOR differential, VOR rank and ADP rank; normalizes VOR score"""
+    df = map_replacement_value()
+    return (df.assign(vor_rank= lambda x: x['vor'].rank(ascending=False),
+                              adp_rank= lambda x: x['overall'].rank(),
+                              adp_vor_delta= lambda x: x['adp_rank'] - x['vor_rank'])
+              .drop(columns=['vor_rank', 'adp_rank'])
+              .assign(vor=lambda x: x['vor'].pipe(normalize_series))
+              .sort_values('vor', ascending=False)
+              .reset_index(drop=True))
+
+def merge_ecr_data(league=league):
+    """Takes the finalized VOR DF and combines with the ECR data scraped from Fantasy Pros """
+    df = transform_ranking_and_vor()
+    return (fp.fantasy_pros_ecr_process(league)
+              .merge(df, how='left', on=['player_name', 'pos', 'tm'])
+              .reset_index(drop=True)
+              .drop(columns=['bye_y'])
+              .rename(columns={'bye_x': 'bye'}))
+
+def add_tiers_to_ecr(league=league):
+    """Adds tiers to the ECR DF using Gaussian Mixture Model """
+    df = merge_ecr_data()
+    pos_dict = tiers.draftable_position_quantity(league)
+    return tiers.assign_tier_to_df(df, tier_dict=pos_tier_dict_viz, kmeans=False, pos_n=pos_dict, covariance_type='diag')
+
+def run_draft_script(save=True, year=weekly_stats_year):
+    """Outputs final dataframe with ECR data with the additional tiers, weekly stats aggs, custom points and VOR columns """
+    df = add_tiers_to_ecr()
+    df = df.rename(columns={
     f'{league.get("name")}_custom_pts': 'custom_points',
     f'{year}_avg_ppg': 'py_avg_ppg',
     f'{year}_std_dev': 'py_std_dev'
     })
-tier_df = tier_df[['rank', 'pos_tiers', 'player_name', 'tm', 'pos_rank', 'pos', 'bye', 'best', 'worst', 'avg', 'std dev', 'adp',
+    df = df[['rank', 'pos_tiers', 'player_name', 'tm', 'pos_rank', 'pos', 'bye', 'best', 'worst', 'avg', 'std dev', 'adp',
                     'adp_vor_delta', 'py_avg_ppg', 'py_std_dev', 'custom_points', 'vor']]
+    if save:
+        df.to_csv(path.join(DATA_DIR, rf'vor\{date}_{league.get("name")}_draft.csv'), index=False)
+    return df.head()
 
-#export to CSVs
-tier_df.to_csv(path.join(DATA_DIR, rf'vor\{date}_{league.get("name")}_draft.csv'), index=False)
-
-error_list_len = len(errors_list)
-print(f'There were {error_list_len} errors.\n The error list is: {errors_list}.')
-print(tier_df.head())
+run_draft_script(save=True)
