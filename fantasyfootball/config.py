@@ -6,6 +6,7 @@ import numpy as np
 
 DATA_DIR = r'..\data'
 FIGURE_DIR = r'..\figures'
+DRIVER_PATH = r'..\chrome-driver\chromedriver.exe'
 
 #scoring systems
 ppr = {
