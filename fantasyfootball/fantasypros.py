@@ -2,7 +2,7 @@
 
 import pandas as pd
 from bs4 import BeautifulSoup
-from fantasyfootball.config import DATA_DIR
+from fantasyfootball.config import DATA_DIR, DRIVER_PATH
 import requests
 from os import path
 from datetime import date
@@ -21,8 +21,6 @@ from selenium.webdriver.chrome.options import Options
 import json
 import re
 from time import sleep
-
-DRIVER_PATH = r'C:\Users\rmull\Python-Projects\chrome-driver\chromedriver.exe'
 
 def fantasy_pros_scrape(url):
     """Scrape Fantasy Pros stat projections
