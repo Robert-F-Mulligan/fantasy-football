@@ -1,6 +1,6 @@
 ![Banner](./figures/readme-files/banner.png)
 
-<p align="center">
+<p align="center">-
 <a href="https://github.com/robert-f-mulligan/fantasy-football/commits/master" target="_blank">
     <img src="https://img.shields.io/github/last-commit/robert-f-mulligan/fantasy-football?style=for-the-badge&color=darkblue" alt="GitHub last commit">
   </a>
@@ -189,22 +189,22 @@ $ python
 ## Web Scraping
 ------------
 We can access various fantasy football data for the purposes of further analysis by scraping information from the internet. This is accomplished primarily through `BeautifulSoup`, with the exception of `fantasypros.py`, which requires `selenium`. Data is transformed through the `pandas` module. Currently, the following scrapers are functional:
-- [Fantasy Pros - ECR and stat projections](.\fantasyfootball\fantasypros.py/)
+- [Fantasy Pros - ECR and stat projections](./fantasyfootball/fantasypros.py)
     - Used exclusively by other scripts and for analysis in a notebook
     - Used for draft prep; allows the combination of consensus rankings and projections in order to build a value-based drafting methodology
     - Also used for in-season tier modelling
-- [Pro Football Reference - Game by Game](.\fantasyfootball\pfrgbg.py)
+- [Pro Football Reference - Game by Game](./fantasyfootball/pfrgbg.py)
     - Run on the command line `python pfrgbg.py` or import in a notebook for analysis
     - Used for deriving previous season's fantasy performance metrics
-- [Pro Football Reference - Year by Year](.\fantasyfootball\pfryby.py)
+- [Pro Football Reference - Year by Year](./fantasyfootball/pfryby.py)
     - Run on the command line `python pfryby.py` or import in a notebook for analysis
     - Used for historical analysis
-- [Pro Football Reference - Advanced Stats](.\fantasyfootball\pfradv.py)
+- [Pro Football Reference - Advanced Stats](./fantasyfootball/pfradv.py)
     - Run on the command line `python pfradv.py` or import in a notebook for analysis
-- [FF Calculator - ADP Data](.\fantasyfootball\ffcalculator.py)
+- [FF Calculator - ADP Data](./fantasyfootball/ffcalculator.py)
     - Run on the command line `python ffcalculator.py` or import in a notebook for analysis
     - Used for importing up-to-date average draft position (ADP) data for a given league size and format
-- [nflfastR Github Repo - Play by Play Data](.\fantasyfootball\nflfastr.py)
+- [nflfastR Github Repo - Play by Play Data](./fantasyfootball/nflfastr.py)
     - Used exclusively by other scripts and for analysis in a notebook
     - Primarily used for in-season, week-by-week analysis
     - Used extensively for visualizations
@@ -217,10 +217,12 @@ We can access various fantasy football data for the purposes of further analysis
 
 In season data is scraped primarily through the `nflfastR` github repo. Further documentation can be found [here](https://www.rdocumentation.org/packages/nflscrapR/versions/1.8.1/topics/scrape_json_play_by_play).
 
-In season visualizations can be updated all at once by running all of the cells in the [NFL-Weekly-Vizzes.ipynb](\notebooks\NFL-Weekly-Vizzes.ipynb) file.
+In season visualizations can be updated all at once by running all of the cells in the [NFL-Weekly-Vizzes.ipynb](./notebooks/NFL-Weekly-Vizzes.ipynb) file.
 
 ### Visualizations
 Visualizations usually have a related `transform` function in order to shape the data correctly for either `matplotlib` or `seaborn`. 
+
+[(Back to top)](#table-of-contents)
 
 #### Head to Head
 
@@ -228,18 +230,28 @@ THe purpose of `nflteamh2h.py` is to compare NFL teams against eachother to spot
 
 ![Image of Head to Head Off vs Def](./figures/sample-visualizations/2020_week_11_Off_vs_Def_NO_ATL.png)
 
+[(Back to top)](#table-of-contents)
+
 #### Kernel Density Estimation
 This chart is depicting air yard distribution (specifically the probability of being targeted for a specific air yard amount via a continuous curve). Data is sourced from `nflfastR`. This plot relies on `seaborn`'s `kdeplot()` function. 
 
 ![Image of Air Yards Density](./figures/2020/05.2020/2020_Air_Yard_Density_Through5.png)
+
+[(Back to top)](#table-of-contents)
+
 #### Heat Map
 
 This table shows various fantasy football specific measures of productivity. There is also related chart geared towards WR's and QB's. This chart is relying on `pandas` and `styler` functionality. Data is sourced from `nflfastR`.
 
 ![Image of RB Summary Table](./figures/sample-visualizations/2020_Top_RBs_through_Week_12.png)
+
+[(Back to top)](#table-of-contents)
+
 #### Scatterplots
 Scatter plots are created through `matplotlib`. The drawing function is meant to be flexibile - you can pass any two metrics to visualize the relationship between two variables. Data is sourced from `nflfastR`.
 ![Image of First Downs vs Early Down Success Rate](./figures/sample-visualizations/2020_early_down_success_rate_and_first_downs_per_game_through_week_5.png)
+
+[(Back to top)](#table-of-contents)
 
 #### Bar Charts
 Bar charts are also created through `matplotlib`. Data is sourced from `nflfastR`.
