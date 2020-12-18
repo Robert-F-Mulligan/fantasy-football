@@ -15,7 +15,6 @@
 </p>
 
 ## Table of Contents
-------------
 
 - [Introduction](#introduction)
 - [Project Organization](#project-organization)
@@ -38,7 +37,6 @@
     - [Sample Tier Plot](#sample-tier-plot)
 
 ## Introduction
-------------
 
 This package is designed to give season-long fantasy football players a way to ceate an edge by using `python` as a tool to:
 - Draft using a systematic, value-based model
@@ -53,7 +51,6 @@ This package is designed to give season-long fantasy football players a way to c
 
 ## Project Organization
 
-------------
 
     │
     ├── data/                <- The original, immutable data dump. 
@@ -73,14 +70,11 @@ This package is designed to give season-long fantasy football players a way to c
     ├── README.md            <- Project summary and instructions.
     │
     └── setup.py             <- run this to install source code.
-    
 
 
 [(Back to top)](#table-of-contents)
 
 ## Installation
-
-------------
 
 Clone this repo locally:
 
@@ -128,7 +122,7 @@ Select the new kernel fantasyfootball
 [(Back to top)](#table-of-contents)
 
 ### Config
-------------
+
 In order for this package to be truly customizable, you should add a `dict` to config.py that includes league specific information and then use this dict for any function that requires a `league` argument:
 
 ```python
@@ -164,7 +158,7 @@ The `config.py` file also contains other reference information and general use f
 [(Back to top)](#table-of-contents)
 
 ### Selenium
-------------
+
 Due to a change in the FantasyPros website, you can no longer scrape  simple tables with `BeautifulSoup` for ECR (expert consensus rankings) and stat projections. However it is still possible to pull the data by using using `selenium`, whichs allows the scraping and parsing of dynamic javascript webpages.
 
 Scraping with `selenium` requires the following downloads:
@@ -175,7 +169,7 @@ Scraping with `selenium` requires the following downloads:
 [(Back to top)](#table-of-contents)
 
 ### NLTK Add On
-------------
+
 In order to run a Twitter sentiment analysis, you must install 'vader_lexicon'
 Using Windows Terminal (in addition to installing the main package via `requirements.txt`):
 ```python
@@ -187,7 +181,7 @@ $ python
 [(Back to top)](#table-of-contents)
 
 ## Web Scraping
-------------
+
 We can access various fantasy football data for the purposes of further analysis by scraping information from the internet. This is accomplished primarily through `BeautifulSoup`, with the exception of `fantasypros.py`, which requires `selenium`. Data is transformed through the `pandas` module. Currently, the following scrapers are functional:
 - [Fantasy Pros - ECR and stat projections](./fantasyfootball/fantasypros.py)
     - Used exclusively by other scripts and for analysis in a notebook
@@ -213,7 +207,6 @@ We can access various fantasy football data for the purposes of further analysis
 [(Back to top)](#table-of-contents)
 
 ## In Season
-------------
 
 In season data is scraped primarily through the `nflfastR` github repo. Further documentation can be found [here](https://www.rdocumentation.org/packages/nflscrapR/versions/1.8.1/topics/scrape_json_play_by_play).
 
@@ -260,7 +253,7 @@ Bar charts are also created through `matplotlib`. Data is sourced from `nflfastR
 [(Back to top)](#table-of-contents)
 
 ## Draft Prep
-------------
+
 The main file to run is `draft.py`. This script is designed to tailor draft strategy by league-specific rules. It will take into account point values, league size, and format (i.e. PPR).
 
 In order for the file to run correctly, set the following parameters in the file before running:
@@ -298,7 +291,7 @@ replacement_method = # pick the value-over-replacement methodology
 [(Back to top)](#table-of-contents)
 
 ## Twitter Sentiment Analysis
-------------
+
 The purpose of `twitter.py` is to analyize the text contained in tweets on Twitter to rate each by how positively/negatively the discussion is for a given player. This may allow the capturing of news or expert information that hasn't been made widely available at the time of the analysis. 
 
 You will need to sign up for the [Twitter API](https://developer.twitter.com/en/apply-for-access) and set the following variables in a ```.env``` file in the root directory:
@@ -324,7 +317,7 @@ The list of players is generated from `ffcalculator.py`.
 [(Back to top)](#table-of-contents)
 
 ## Tiers
-------------
+
 `tier.py ` and `tiersweekly.py` are files used to harness a clustering algorithm to determine natural breaks in rankings based on Fantasy Pros ECR data, with the goal of being able to make drafting and weekly line-ups easier by allowing groupings of similar players. 
 - Tiers are determined by default by the following variables:
     - average ranking
