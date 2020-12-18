@@ -1,6 +1,6 @@
 ![Banner](./figures/readme-files/banner.png)
 
-<p align="center">-
+<p align="center">
 <a href="https://github.com/robert-f-mulligan/fantasy-football/commits/master" target="_blank">
     <img src="https://img.shields.io/github/last-commit/robert-f-mulligan/fantasy-football?style=for-the-badge&color=darkblue" alt="GitHub last commit">
   </a>
