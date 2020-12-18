@@ -129,7 +129,8 @@ if __name__ == "__main__":
 
     df.head()
 
-    df.to_csv(path.join(DATA_DIR, f'Game by Game Breakdown_{min}_{max}.csv'), index=False)
+    gbgdir = path.join(DATA_DIR, 'game-by-game')
+    df.to_csv(path.join(gbgdir, f'{max}_weekly.csv'), index=False)
 
     print(f'All done! The dataframe has {rows} rows and {cols} columns.')
 
