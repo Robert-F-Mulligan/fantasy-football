@@ -38,7 +38,7 @@ def player_name_and_pos_grab(soup):
             break
         else:
             pos = '-'
-    player_name = soup.find_all('h1')[0].get_text().rstrip()
+    player_name = soup.find_all('h1')[0].get_text().rstrip().strip('\n')
     return player_name, pos
 
 def player_table_grab(soup):
