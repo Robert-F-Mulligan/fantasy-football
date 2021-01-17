@@ -43,7 +43,7 @@ This package is designed to give season-long fantasy football players a way to c
 - Scrape data to ensure accurate and up-to-date information
 - Quantify weekly performance and uncover hidden productivity using advanced metrics
 - Use data visualization to easily spot both player and team trends and relationships 
-- Apply clustering algoritms to players to reveal natural tiers among players
+- Apply clustering algorithms to players to reveal natural tiers among players
 
 
 [(Back to top)](#table-of-contents)
