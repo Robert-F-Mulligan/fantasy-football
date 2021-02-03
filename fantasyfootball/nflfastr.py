@@ -6,7 +6,7 @@ from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from matplotlib import cm
 import fantasyfootball
 from os import path
-from fantasyfootball.config import DATA_DIR, FIGURE_DIR, pfr_to_fantpros, nfl_color_map, nfl_logo_espn_path_map
+from fantasyfootball.config import DATA_DIR, FIGURE_DIR, pfr_to_fantpros, nfl_color_map, nfl_logo_espn_path_map, nfl_wordmark_path_map
 import seaborn as sns
 import numpy as np
 from adjustText import adjust_text
@@ -850,4 +850,102 @@ def table_styler(df, pos, n=20, caption='Top Players', color='green', save=False
 
 columns = ['team', 'pass_yards', 'pass_tds', 'rush_yards', 'rush_tds', 'total_tds', 
                'int', 'epa_pg', 'ppr_pts_pg', 'ppr_pts']
+
+def team_rec_yards_transform(df):
+    year, week = get_year_and_week(df)
+    play_type = df['play_type'] == 'pass'
+    return (df.loc[play_type]
+             .groupby(['posteam', 'play_id'])
+             .agg(rec_yards=('yards_gained','sum'))
+             .droplevel(1)
+             .assign(year=year)
+             .assign(week=week)
+            )
+
+def make_team_swarm(df, save=True):
+    fig, axs = plt.subplots(4, 8, figsize=(20,25), sharex=True)
+    team_list = sorted(df.index.drop_duplicates())
+    axs_list = [item for sublist in axs for item in sublist] 
     
+    for team, ax in zip(team_list, axs_list):
+        sns.swarmplot(df.loc[df.index==team, df.columns[0]], 
+                    ax=ax, color=nfl_color_map[team])
+        
+        #formatting
+        #ax.set_title(team, fontsize=20)
+        ax.spines['left'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.tick_params(
+            which='both',
+            bottom=False,
+            left=False,
+            right=False,
+            top=False
+        )
+        ax.set_xlabel(None)
+        #Add grid
+        ax.grid(zorder=0,alpha=.4)
+        ax.set_axisbelow(True)
+        
+        # word marks
+        logo_path = nfl_wordmark_path_map[team]
+        image = OffsetImage(plt.imread(logo_path), zoom=.5)
+        ax.add_artist(AnnotationBbox(image, xy=(0.5,1.0), frameon=False, xycoords='axes fraction'))
+    
+    fig.tight_layout()
+
+    #title
+    col_name = df.columns[0].title().replace('_', ' ')
+    year = df['year'].max()
+    week = df['week'].max()
+    fig.suptitle(f'{year} {col_name} Team By Team Distribution (Through Week {week})', fontsize=30, fontweight='bold', x=0.5, y=1.05, ha='center')
+    plt.figtext(0.92, -0.03, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
+
+    if save:
+        col_name_lower = col_name.lower()
+        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_swarmplot.png'), bbox_inches='tight')
+
+def make_team_kde(df, save=True):
+    fig, axs = plt.subplots(4, 8, figsize=(20,15), sharey=True)
+    team_list = sorted(df.index.drop_duplicates())
+    axs_list = [item for sublist in axs for item in sublist] 
+    
+    for team, ax in zip(team_list, axs_list):
+        sns.kdeplot(df.loc[df.index==team, df.columns[0]], 
+                    ax=ax, linewidth=3.0, color=nfl_color_map[team], 
+                    shade=True, clip=[-5, 50])
+        ax.get_legend().remove()
+        
+        #formatting
+        ax.spines['left'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.tick_params(
+            which='both',
+            bottom=False,
+            left=False,
+            right=False,
+            top=False
+        )
+        #Add grid
+        ax.grid(zorder=0,alpha=.4)
+        ax.set_axisbelow(True)
+        
+        # word marks
+        logo_path = nfl_wordmark_path_map[team]
+        image = OffsetImage(plt.imread(logo_path), zoom=.5)
+        ax.add_artist(AnnotationBbox(image, xy=(0.5,1.0), frameon=False, xycoords='axes fraction'))
+    
+    fig.tight_layout()
+    #title
+    col_name = df.columns[0].title().replace('_', ' ')
+    year = df['year'].max()
+    week = df['week'].max()
+    fig.suptitle(f'{year} {col_name} Team By Team Distribution (Through Week {week})', fontsize=30, fontweight='bold', x=0.5, y=1.05, ha='center')
+    plt.figtext(0.92, -0.03, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
+
+    if save:
+        col_name_lower = col_name.lower()
+        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_kdeplot.png'), bbox_inches='tight')
