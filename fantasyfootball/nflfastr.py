@@ -904,7 +904,7 @@ def make_team_swarm(df, save=True):
     plt.figtext(0.92, -0.03, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
 
     if save:
-        col_name_lower = col_name.lower()
+        col_name_lower = col_name.lower().replace(' ', '_')
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_swarmplot.png'), bbox_inches='tight')
 
 def make_team_kde(df, save=True):
@@ -947,5 +947,5 @@ def make_team_kde(df, save=True):
     plt.figtext(0.92, -0.03, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
 
     if save:
-        col_name_lower = col_name.lower()
+        col_name_lower = col_name.lower().replace(' ', '_')
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_kdeplot.png'), bbox_inches='tight')
