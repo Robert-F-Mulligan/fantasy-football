@@ -862,6 +862,17 @@ def team_rec_yards_transform(df):
              .assign(week=week)
             )
 
+def team_yards_gained_transform(df):
+    year, week = get_year_and_week(df)
+    play_type = (df['play_type'].isin(['pass', 'run'])) & (df['aborted_play'] == 0)
+    return (df.loc[play_type]
+             .groupby(['posteam', 'play_id'])
+             .agg(yards_gained=('yards_gained','sum'))
+             .droplevel(1)
+             .assign(year=year)
+            .assign(week=week)
+            )
+
 def make_team_swarm(df, save=True):
     fig, axs = plt.subplots(4, 8, figsize=(20,25), sharex=True)
     team_list = sorted(df.index.drop_duplicates())
@@ -872,7 +883,6 @@ def make_team_swarm(df, save=True):
                     ax=ax, color=nfl_color_map[team])
         
         #formatting
-        #ax.set_title(team, fontsize=20)
         ax.spines['left'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -949,3 +959,48 @@ def make_team_kde(df, save=True):
     if save:
         col_name_lower = col_name.lower().replace(' ', '_')
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_kdeplot.png'), bbox_inches='tight')
+
+def make_team_jitter(df, save=True):
+    fig, axs = plt.subplots(4, 8, figsize=(20,25), sharey=True)
+    team_list = sorted(df.index.drop_duplicates())
+    axs_list = [item for sublist in axs for item in sublist] 
+    
+    for team, ax in zip(team_list, axs_list):
+        sns.stripplot(y=df.loc[df.index==team, df.columns[0]], 
+                    ax=ax, color=nfl_color_map[team], jitter=1.05, alpha=0.5, size=7)
+        
+        #formatting
+        ax.spines['left'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.tick_params(
+            which='both',
+            bottom=False,
+            left=False,
+            right=False,
+            top=False
+        )
+        ax.set_ylabel(None)
+        ax.set_ylim(-10, 60)
+        #Add grid
+        ax.grid(zorder=0,alpha=.4)
+        ax.set_axisbelow(True)
+        
+        # word marks
+        logo_path = nfl_wordmark_path_map[team]
+        image = OffsetImage(plt.imread(logo_path), zoom=.5)
+        ax.add_artist(AnnotationBbox(image, xy=(0.5,1.0), frameon=False, xycoords='axes fraction'))
+    
+    fig.tight_layout()
+
+    #title
+    col_name = df.columns[0].title().replace('_', ' ')
+    year = df['year'].max()
+    week = df['week'].max()
+    fig.suptitle(f'{year} {col_name} Team By Team Distribution (Through Week {week})', fontsize=30, fontweight='bold', x=0.5, y=1.05, ha='center')
+    plt.figtext(0.92, -0.03, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
+
+    if save:
+        col_name_lower = col_name.lower().replace(' ', '_')
+        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_swarmplot.png'), bbox_inches='tight')
