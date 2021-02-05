@@ -279,6 +279,45 @@ nfl_color_map = {
  'WAS': '#773141'
 }
 
+nfl_color_map_secondary = {
+ 'ARI': '#000000',
+ 'ATL': '#000000',
+ 'BAL': '#000000',
+ 'BUF': '#c60c30',
+ 'CAR': '#000000',
+ 'CHI': '#c83803',
+ 'CIN': '#000000', 
+ 'CLE': '#fb4f14', 
+ 'DAL': '#b0b7bc',
+ 'DEN': '#002244', 
+ 'DET': '#b0b7bc',
+ 'GB': '#ffb612',
+ 'HOU': '#a71930',
+ 'IND': '#a5acaf',
+ 'JAX': '#000000', 
+ 'KC': '#ffb612',
+ 'LA': '#FFA300',
+ 'LAC': '#FFC20E', 
+ 'LAR': '#FFA300',
+ 'LV': '#a5acaf',
+ 'MIA': '#f58220',
+ 'MIN': '#ffc62f',
+ 'NE': '#c60c30',
+ 'NO': '#000000',
+ 'NYG': '#a71930',
+ 'NYJ': '#000000',
+ 'OAK': '#000000',
+ 'PHI': '#a5acaf',
+ 'PIT': '#000000',
+ 'SD': '#0073cf',
+ 'SEA': '#002244',
+ 'SF': '#aa0000',
+ 'STL': '#b3995d',
+ 'TB': '#34302b',
+ 'TEN': '#0C2340',
+ 'WAS': '#ffb612'
+}
+
 nfl_logo_map_web = {
 'ARI': 'https://content.sportslogos.net/logos/7/177/full/kwth8f1cfa2sch5xhjjfaof90.png',
 'ATL': 'https://content.sportslogos.net/logos/7/173/full/299.png',
