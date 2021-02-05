@@ -1003,4 +1003,4 @@ def make_team_jitter(df, save=True):
 
     if save:
         col_name_lower = col_name.lower().replace(' ', '_')
-        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_swarmplot.png'), bbox_inches='tight')
+        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_jitterplot.png'), bbox_inches='tight')
