@@ -6,7 +6,7 @@ from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from matplotlib import cm
 import fantasyfootball
 from os import path
-from fantasyfootball.config import DATA_DIR, FIGURE_DIR, pfr_to_fantpros, nfl_color_map, nfl_logo_espn_path_map, nfl_wordmark_path_map
+from fantasyfootball.config import DATA_DIR, FIGURE_DIR, pfr_to_fantpros, nfl_color_map, nfl_color_map_secondary, nfl_logo_espn_path_map, nfl_wordmark_path_map
 import seaborn as sns
 import numpy as np
 from adjustText import adjust_text
@@ -867,13 +867,15 @@ def team_yards_gained_transform(df):
     play_type = (df['play_type'].isin(['pass', 'run'])) & (df['aborted_play'] == 0)
     return (df.loc[play_type]
              .groupby(['posteam', 'play_id'])
-             .agg(yards_gained=('yards_gained','sum'))
+             .agg(yards_gained=('yards_gained','sum'),
+                  play_type=('play_type', 'first'))
              .droplevel(1)
              .assign(year=year)
             .assign(week=week)
+            .sort_values('play_type')
             )
 
-def make_team_swarm(df, save=True):
+def make_team_swarm(df, save=True, y_lim_min=-10, ylim_max=100):
     fig, axs = plt.subplots(4, 8, figsize=(20,25), sharex=True)
     team_list = sorted(df.index.drop_duplicates())
     axs_list = [item for sublist in axs for item in sublist] 
@@ -895,6 +897,7 @@ def make_team_swarm(df, save=True):
             top=False
         )
         ax.set_xlabel(None)
+        ax.set_xlim(y_lim_min, ylim_max)
         #Add grid
         ax.grid(zorder=0,alpha=.4)
         ax.set_axisbelow(True)
@@ -960,15 +963,20 @@ def make_team_kde(df, save=True):
         col_name_lower = col_name.lower().replace(' ', '_')
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_kdeplot.png'), bbox_inches='tight')
 
-def make_team_jitter(df, save=True):
+def make_team_jitter(df, save=True, play_type=False, y_lim_min=-10, ylim_max=60):
     fig, axs = plt.subplots(4, 8, figsize=(20,25), sharey=True)
     team_list = sorted(df.index.drop_duplicates())
     axs_list = [item for sublist in axs for item in sublist] 
     
     for team, ax in zip(team_list, axs_list):
-        sns.stripplot(y=df.loc[df.index==team, df.columns[0]], 
-                    ax=ax, color=nfl_color_map[team], jitter=1.05, alpha=0.5, size=7)
-        
+        if play_type:
+            sns.stripplot(x=df.loc[df.index==team, 'play_type'], y=df.loc[df.index==team, df.columns[0]], 
+                    ax=ax, jitter=True, alpha=0.5, size=7,  palette=[nfl_color_map[team], nfl_color_map_secondary[team]],
+                     dodge=True)
+        else:
+            sns.stripplot(y=df.loc[df.index==team, df.columns[0]], 
+                        ax=ax, color=nfl_color_map[team], jitter=1.05, alpha=0.5, size=7)
+            
         #formatting
         ax.spines['left'].set_visible(False)
         ax.spines['top'].set_visible(False)
@@ -982,7 +990,8 @@ def make_team_jitter(df, save=True):
             top=False
         )
         ax.set_ylabel(None)
-        ax.set_ylim(-10, 60)
+        ax.set_xlabel(None)
+        ax.set_ylim(y_lim_min, ylim_max)
         #Add grid
         ax.grid(zorder=0,alpha=.4)
         ax.set_axisbelow(True)
@@ -990,7 +999,7 @@ def make_team_jitter(df, save=True):
         # word marks
         logo_path = nfl_wordmark_path_map[team]
         image = OffsetImage(plt.imread(logo_path), zoom=.5)
-        ax.add_artist(AnnotationBbox(image, xy=(0.5,1.0), frameon=False, xycoords='axes fraction'))
+        ax.add_artist(AnnotationBbox(image, xy=(0.6,1.0), frameon=False, xycoords='axes fraction'))
     
     fig.tight_layout()
 
