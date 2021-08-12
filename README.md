@@ -103,7 +103,7 @@ $ pip install -e .
 Install project dependencies through pip and requirements.txt:
 
 ```sh
-$ pip install -r requrements.txt
+$ pip install -r requirements.txt
 ```
 
 Install a new ipython kernel:
