@@ -227,7 +227,7 @@ def value_through_n_picks(my_df, pos_list,  my_dict=ppr):
     my_df = my_df.head(pick_n)
     for pos in pos_list:
         tdf = my_df.loc[my_df['pos'] == pos.upper(), [f'{my_dict["name"]}_custom_pts']]
-        replacement_value[pos.upper()] = float(np.mean(tdf.tail(1)))
+        replacement_value[pos.upper()] = float(np.mean(tdf.tail(3))) # take the average of the last three players at the cutoff points
     return replacement_value
 
 
