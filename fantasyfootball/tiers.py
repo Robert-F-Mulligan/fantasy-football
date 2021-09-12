@@ -9,7 +9,6 @@ from matplotlib import patches as mpatches
 import numpy as np
 from mpl_toolkits import mplot3d
 from fantasyfootball import fantasypros as fp
-import matplotlib.style as style
 from datetime import date
 from fantasyfootball import config
 from fantasyfootball.config import FIGURE_DIR
@@ -38,6 +37,135 @@ draftable_quantity_dict = {
     'K' : 15,
     'FLEX': 80
     }
+
+sean_players = [
+    'J.D. McKissic',
+    'Jarvis Landry',
+    'Elijah Moore',
+    'David Johnson',
+    'Adam Thielen',
+    'Kareem Hunt',
+    'Austin Ekeler',
+    "D'Andre Swift",
+    'Deebo Samuel',
+    'Amari Cooper',
+    'DeVante Parker',
+    'George Kittle',
+    'Justin Herbert'
+    ]
+
+justin_players = [
+    'Ty Johnson',
+    'Jarvis Landry',
+    'Calvin Ridley',
+    'Russell Wilson',
+    'D.J. Moore',
+    'T.J. Hockenson',
+    'Chase Edmonds',
+    'Hunter Henry',
+    'Marquise Brown',
+    'Justin Jackson',
+    'Michael Carter',
+    'Damien Harris',
+    'DeAndre Hopkins'
+    ]
+
+work_players = [
+    'Davante Adams',
+    'J.D. McKissic',
+    'Elijah Moore',
+    'Miles Sanders',
+    'Calvin Ridley',
+    'Melvin Gordon III',
+    'Aaron Rodgers',
+    'David Johnson',
+    'Leonard Fournette',
+    "D'Andre Swift",
+    'Logan Thomas',
+    'Chase Edmonds',
+    'Henry Ruggs III'
+    ]
+
+def make_clustering_viz(tier_dict=8, clf='gmm', league=config.sean, pos_n=35, x_size=20, y_size=15, covariance_type='diag', draft=False, save=True, players=None):
+    """
+    Generates a chart with colored tiers; you can either use kmeans of GMM
+    Optional: Pass in a custom tier dict to show varying numbers of tiers; default will be uniform across position
+    Optional: Pass in a custom pos_n dict to show different numbers of players by position
+    """
+    pos_list = ['RB', 'QB', 'WR', 'TE', 'DST', 'K', 'FLEX']
+    palette = ['red', 'blue', 'green', 'orange', '#900C3F', '#2980B9', '#FFC300', '#581845', '#73d01a', '#4c4c4c']
+    if draft:
+        df = fp.fantasy_pros_ecr_process(league)
+    else:
+        df = fp.create_fantasy_pros_ecr_df(league)
+    df['pos_rank'] = (df['pos_rank'].replace('[^0-9]', '', regex=True)
+                                    .astype('int')
+                     )            
+    if not isinstance(tier_dict, dict): # convert a scalar into a dict across pos
+        tier_dict = {pos: int(tier_dict) for pos in pos_list}
+    if not isinstance(pos_n, dict): # convert a scalar into a dict across pos
+        pos_n = {pos: int(pos_n) for pos in pos_list}   
+    
+    plt.style.use('ggplot')
+    fig, ax = plt.subplots(figsize=(x_size, y_size))
+    
+    for p, k in tier_dict.items():
+        colors = dict(zip(range(1, k+1), palette[:k]))
+        cutoff = pos_n[p]
+        pos_df = df.loc[df['pos'] == p].head(cutoff).copy()
+        X = pos_df.loc[:, ['best', 'worst', 'avg']].copy()
+
+        if clf=='kmeans':
+            kmm = KMeans(n_clusters=k).fit(X)
+            labels = kmm.predict(X)
+        else: #gaussian mixture
+            gmm = GaussianMixture(n_components=k, covariance_type=covariance_type, random_state=0).fit(X)
+            labels = gmm.predict(X)
+        # map unordered tiers to tiers starting at 1
+        unique_labels = list(OrderedDict.fromkeys(labels))
+        rank_dict = dict(zip(unique_labels, range(1,len(unique_labels)+1)))
+        pos_df['pos_tiers'] = labels
+        pos_df['pos_tiers'] = pos_df['pos_tiers'].map(rank_dict)   
+
+        for _, row in pos_df.iterrows():
+            xmin = row['best']
+            xmax = row['worst']
+            center = row['avg']
+            player = row['player_name']
+            tier = row['pos_tiers']
+            if p == 'FLEX':
+                ymin, ymax = row['rank'], row['rank']
+            else:
+                ymin, ymax = row['pos_rank'], row['pos_rank']
+            
+            ax.scatter(center, ymax, color='gray', zorder=2, s=100)
+            ax.scatter(xmin, ymax, marker= "|", color=colors.get(tier, 'yellow'), alpha=0.5, zorder=1)
+            ax.scatter(xmax, ymax, marker= "|", color=colors.get(tier, 'yellow'), alpha=0.5, zorder=1)
+            ax.plot((xmin, xmax), (ymin, ymax), color=colors.get(tier, 'yellow'), alpha=0.5, zorder=1, linewidth=5.0)
+            if player in players:
+                bbox = dict(facecolor='yellow', edgecolor='black', alpha=0.2)
+            else: 
+                bbox=None
+            ax.annotate(player, xy=(xmax+1, ymax), bbox=bbox)
+
+        patches = [mpatches.Patch(color=color, alpha=0.5, label=f'Tier {tier}') for tier, color in colors.items()]
+        ax.legend(handles=patches, borderpad=1, fontsize=12)
+
+        today = date.today() 
+        date_str = today.strftime('%m.%d.%Y')
+        if draft:
+            ax.set_title(f'{date_str} Fantasy Football Draft - {p}')
+        else:
+            ax.set_title(f'{date_str} Fantasy Football Weekly - {p}')
+        ax.set_xlabel('Average Expert Overall Rank')
+        ax.set_ylabel('Expert Consensus Position Rank')
+        ax.invert_yaxis()
+
+        if save:
+            league_text = league['name']
+            fig.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_{clf}_{league_text}_{p}.png'))
+        plt.cla() 
+        #return plt.show()
 
 def kmeans_sse_chart(league=config.sean, pos_breakout=True, pos_n=None, clusters=10):
     """
@@ -141,82 +269,6 @@ def gmm_component_silhouette_estimator(league=config.sean, pos_breakout=True, po
         ax.set_xlabel('n_components')    
     return plt.show()
 
-def make_clustering_viz(tier_dict=8, clf='gmm', league=config.sean, pos_n=35, x_size=20, y_size=15, covariance_type='diag', draft=False, save=True):
-    """
-    Generates a chart with colored tiers; you can either use kmeans of GMM
-    Optional: Pass in a custom tier dict to show varying numbers of tiers; default will be uniform across position
-    Optional: Pass in a custom pos_n dict to show different numbers of players by position
-    """
-    pos_list = ['RB', 'QB', 'WR', 'TE', 'DST', 'K', 'FLEX']
-    palette = ['red', 'blue', 'green', 'orange', '#900C3F', '#2980B9', '#FFC300', '#581845', '#73d01a', '#4c4c4c']
-    if draft:
-        df = fp.fantasy_pros_ecr_process(league)
-    else:
-        df = fp.create_fantasy_pros_ecr_df(league)
-    df['pos_rank'] = (df['pos_rank'].replace('[^0-9]', '', regex=True)
-                                    .astype('int')
-                     )            
-    if not isinstance(tier_dict, dict): # convert a scalar into a dict across pos
-        tier_dict = {pos: int(tier_dict) for pos in pos_list}
-    if not isinstance(pos_n, dict): # convert a scalar into a dict across pos
-        pos_n = {pos: int(pos_n) for pos in pos_list}   
-
-    for p, k in tier_dict.items():
-        cutoff = pos_n[p]
-        pos_df = df.loc[df['pos'] == p].head(cutoff).copy()
-        X = pos_df.loc[:, ['best', 'worst', 'avg']].copy()
-
-        if clf=='kmeans':
-            kmm = KMeans(n_clusters=k).fit(X)
-            labels = kmm.predict(X)
-        else: #gaussian mixture
-            gmm = GaussianMixture(n_components=k, covariance_type=covariance_type, random_state=0).fit(X)
-            labels = gmm.predict(X)
-        # map unordered tiers to tiers starting at 1
-        unique_labels = list(OrderedDict.fromkeys(labels))
-        rank_dict = dict(zip(unique_labels, range(1,len(unique_labels)+1)))
-        pos_df['pos_tiers'] = labels
-        pos_df['pos_tiers'] = pos_df['pos_tiers'].map(rank_dict)   
-
-        fig, ax = plt.subplots(figsize=(x_size, y_size))
-        colors = dict(zip(range(1, k+1), palette[:k]))
-        style.use('ggplot')
-        for _, row in pos_df.iterrows():
-            xmin = row['best']
-            xmax = row['worst']
-            center = row['avg']
-            player = row['player_name']
-            tier = row['pos_tiers']
-            if p == 'FLEX':
-                ymin, ymax = row['rank'], row['rank']
-            else:
-                ymin, ymax = row['pos_rank'], row['pos_rank']
-            
-            ax.scatter(center, ymax, color='gray', zorder=2, s=100)
-            ax.scatter(xmin, ymax, marker= "|", color=colors.get(tier, 'yellow'), alpha=0.5, zorder=1)
-            ax.scatter(xmax, ymax, marker= "|", color=colors.get(tier, 'yellow'), alpha=0.5, zorder=1)
-            ax.plot((xmin, xmax), (ymin, ymax), color=colors.get(tier, 'yellow'), alpha=0.5, zorder=1, linewidth=5.0)
-            ax.annotate(player, xy=(xmax+1, ymax))
-
-        patches = [mpatches.Patch(color=color, alpha=0.5, label=f'Tier {tier}') for tier, color in colors.items()]
-
-        ax.legend(handles=patches, borderpad=1, fontsize=12)
-
-        today = date.today() 
-        date_str = today.strftime('%m.%d.%Y')
-        if draft:
-            ax.set_title(f'{date_str} Fantasy Football Draft - {p}')
-        else:
-            ax.set_title(f'{date_str} Fantasy Football Weekly - {p}')
-        ax.set_xlabel('Average Expert Overall Rank')
-        ax.set_ylabel('Expert Consensus Position Rank')
-        ax.invert_yaxis()
-
-        if save:
-            fig.savefig(path.join(FIGURE_DIR,fr'{date_str}_rangeofrankings_{clf}_{p}.png'))
-         
-    # return plt.show()
-
 def assign_tier_to_df(df, tier_dict=8, kmeans=False, pos_n=None, covariance_type='diag'):
     """
     Assigns a tier by position to a dataframe (either kmeans or GMM method)
@@ -261,7 +313,7 @@ def assign_tier_to_df(df, tier_dict=8, kmeans=False, pos_n=None, covariance_type
     return df
 
 def best_worst_avg_3d_viz(league=config.sean, pos_n=35):
-    """Grapsh in 3d best, worst and avg by position """
+    """Graphs in 3d best, worst and avg by position """
     ecr = fp.fantasy_pros_ecr_process(league)
     pos_list = list(ecr['pos'].unique())
     for pos in pos_list:
@@ -275,6 +327,7 @@ def best_worst_avg_3d_viz(league=config.sean, pos_n=35):
         plt.show()
 
 def draftable_position_quantity(league=config.sean):
+    """Analyzes how many of each position are being drafted in mock drafts for the current year"""
     team_n = league.get('team_n')
     draftable_players = team_n * league.get('rounds')
     pos_values = {'DST': 0, 'K': 0}
@@ -289,9 +342,9 @@ def draftable_position_quantity(league=config.sean):
 
 if __name__ == "__main__":
     #run elbow chart or AIC/BIC chart to estimate optimal number of k for each pos
-
-    league = config.sean
     
     #draftable_pos_dict = draftable_position_quantity(league)
 
-    make_clustering_viz(tier_dict=pos_tier_dict_viz, league=league, pos_n=draftable_quantity_dict, covariance_type='diag')
+    make_clustering_viz(tier_dict=pos_tier_dict_viz, league=config.work, pos_n=draftable_quantity_dict, covariance_type='diag', players=work_players)
+    make_clustering_viz(tier_dict=pos_tier_dict_viz, league=config.sean, pos_n=draftable_quantity_dict, covariance_type='diag', players=sean_players)
+    make_clustering_viz(tier_dict=pos_tier_dict_viz, league=config.justin, pos_n=draftable_quantity_dict, covariance_type='diag', players=justin_players)
