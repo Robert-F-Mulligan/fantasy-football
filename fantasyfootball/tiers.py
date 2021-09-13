@@ -167,7 +167,7 @@ def make_clustering_viz(tier_dict=8, clf='gmm', league=config.sean, pos_n=35, x_
         plt.cla() 
         #return plt.show()
 
-def sse_helper_func(ax, models, n_components, title=None):
+def _sse_helper_func(ax, models, n_components, title=None):
     ax.plot(n_components, [m.inertia_ for m in models], label='SSE')
     ax.set_xlabel("Number of clusters")
     ax.legend(loc='best')
@@ -214,13 +214,13 @@ def kmeans_sse_chart(league=config.sean, pos_breakout=True, pos_n=None, clusters
                 X = pos_df[['avg' ,'best', 'worst']].to_numpy()
             models = [KMeans(n_clusters=n).fit(X) 
                     for n in n_components]
-            sse_helper_func(ax, models=models, n_components=n_components, title=p)
+            _sse_helper_func(ax, models=models, n_components=n_components, title=p)
     else:
         X = df[['avg' ,'best', 'worst']].head(200)
         models = [KMeans(n_clusters=n).fit(X) 
                     for n in n_components]
 
-        sse_helper_func(ax, models=models, n_components=n_components)
+        _sse_helper_func(ax, models=models, n_components=n_components)
     return plt.show()
 
 def gmm_component_silhouette_estimator(league=config.sean, pos_breakout=True, pos_n=None, components=10, covariance_type='diag'):
