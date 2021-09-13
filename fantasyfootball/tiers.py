@@ -167,6 +167,14 @@ def make_clustering_viz(tier_dict=8, clf='gmm', league=config.sean, pos_n=35, x_
         plt.cla() 
         #return plt.show()
 
+def sse_helper_func(models, n_components, title=None):
+    ax.plot(n_components, [m.inertia_ for m in models], label='SSE')
+    ax.set_xlabel("Number of clusters")
+    ax.legend(loc='best')
+    ax.set_xticks(np.arange(1, len(n_components), step=1))
+    if title:
+        ax.set_title(title) 
+
 def kmeans_sse_chart(league=config.sean, pos_breakout=True, pos_n=None, clusters=10):
     """
     Plots the SSE for different k-means cluster values for k
@@ -175,8 +183,17 @@ def kmeans_sse_chart(league=config.sean, pos_breakout=True, pos_n=None, clusters
     Optional: Pass a dict with specific quanities per posiiton
     """
     df = fp.fantasy_pros_ecr_process(league)
+    n_components = range(1, clusters+1)
     if pos_breakout:
-        fig, ax = plt.subplots(2, 3); fig.set_size_inches(15, 10)
+        rows = 2
+        cols = 3
+    else:
+        rows=1
+        cols=1
+
+    fig, ax = plt.subplots(rows, cols, figsize=(15,10))
+    
+    if pos_breakout:
         pos = {
             'RB': ax[0][0], # top left
             'WR': ax[0][1], # top middle
@@ -185,37 +202,25 @@ def kmeans_sse_chart(league=config.sean, pos_breakout=True, pos_n=None, clusters
             'DST': ax[0][2], # top right
             'K': ax[1][2] # bottom right
             }
+
         for p, ax in pos.items():
             if pos_n is None:
                 pos_df = df.loc[df['pos'] == p].copy()
-                x = pos_df[['avg' ,'best', 'worst']].to_numpy()
+                X = pos_df[['avg' ,'best', 'worst']]
             else:
                 if not isinstance(pos_n, dict):
                     pos_n = {k: int(pos_n) for k,v in pos.items()} 
                 pos_df = df.loc[df['pos'] == p].head(pos_n[p]).copy()
-                x = pos_df[['avg' ,'best', 'worst']].to_numpy()
-            n_components = range(1, clusters+1)
-            
-            models = [KMeans(n_clusters=n).fit(x) 
+                X = pos_df[['avg' ,'best', 'worst']].to_numpy()
+            models = [KMeans(n_clusters=n).fit(X) 
                     for n in n_components]
-
-            ax.plot(n_components, [m.inertia_ for m in models], label='SSE')
-            ax.set_xlabel("Number of clusters")
-            ax.legend(loc='best')
-            ax.set_xticks(np.arange(1, clusters+1, step=1))
-            ax.set_title(p) 
+            sse_helper_func(models=models, n_components=n_components, title=p)
     else:
-        fig, ax = plt.subplots(); fig.set_size_inches(15, 10)
-        full_df = df.head(200).copy()
-        x = full_df[['avg' ,'best', 'worst']].to_numpy()
-        n_components = range(1, clusters+1)
-        models = [KMeans(n_clusters=n).fit(x) 
+        X = df[['avg' ,'best', 'worst']].head(200)
+        models = [KMeans(n_clusters=n).fit(X) 
                     for n in n_components]
 
-        ax.plot(n_components, [m.inertia_ for m in models], label='SSE')
-        ax.set_xlabel("Number of clusters")
-        ax.legend(loc='best')
-        ax.set_xticks(np.arange(1, clusters+1, step=1)) 
+        sse_helper_func(models=models, n_components=n_components)
     return plt.show()
 
 def gmm_component_silhouette_estimator(league=config.sean, pos_breakout=True, pos_n=None, components=10, covariance_type='diag'):
