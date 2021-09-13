@@ -323,12 +323,11 @@ def best_worst_avg_3d_viz(league=config.sean, pos_n=35):
     pos_list = list(ecr['pos'].unique())
     for pos in pos_list:
         sns.set_style('white')
-        fig = plt.figure(); fig.set_size_inches(5, 5)
+        fig = plt.figure(figsize=(5,5))
         ax = plt.axes(projection='3d')
         df = ecr.loc[ecr['pos'] == pos].head(pos_n).copy()
-        x, y, z = df['avg'].to_numpy(), df['worst'].to_numpy(), df['best'].to_numpy()
+        x, y, z = df['avg'].astype('float'), df['worst'].astype('float'), df['best'].astype('float')
         ax.scatter3D(x, y, z)
-        plt.title(f'{pos}')
         plt.show()
 
 def draftable_position_quantity(league=config.sean):
