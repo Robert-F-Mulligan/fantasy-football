@@ -167,23 +167,31 @@ def make_clustering_viz(tier_dict=8, clf='gmm', league=config.sean, pos_n=35, x_
         plt.cla() 
         #return plt.show()
 
-def _sse_helper_func(ax, models, n_components, title=None):
-    ax.plot(n_components, [m.inertia_ for m in models], label='SSE')
-    ax.set_xlabel("Number of clusters")
+def _k_helper_func(ax, models, n_components, clf, title=None):
+    if clf == 'gmm':
+        ax.plot(n_components, [m.bic(X) for m in models], label='BIC')
+        ax.plot(n_components, [m.aic(X) for m in models], label='AIC')
+    elif clf == 'kmeans':
+        ax.plot(n_components, [m.inertia_ for m in models], label='SSE')
+    ax.set_xlabel("k")
     ax.legend(loc='best')
     ax.set_xticks(np.arange(1, len(n_components), step=1))
     if title:
         ax.set_title(title) 
 
-def kmeans_sse_chart(league=config.sean, pos_breakout=True, pos_n=None, clusters=10):
+def show_k_number(league=config.sean, clf='gmm', pos_breakout=True, pos_n=None, k=10, covariance_type='diag'):
     """
-    Plots the SSE for different k-means cluster values for k
+    clf: 'gmm' or 'kmeans'
+    'kmeans' : Plots the SSE for different k-means cluster values for k
     Specify a number for n if you wish to segment position groups by a cutoff number
     Plots distorition for a given cluster # - the optimal cluster # will be the point in which the line flattens out, forming an elbow
+    'gmm' : Plots the Akaike's Information Criterion (AIC) and Bayesian Information Criterion (BIC) for clusters in a range for a dataset
+    The goal is to pick the number of clusters that minimize the AIC or BIC
     Optional: Pass a dict with specific quanities per posiiton
     """
-    df = fp.fantasy_pros_ecr_process(league)
-    n_components = range(1, clusters+1)
+    #df = fp.fantasy_pros_ecr_process(league)
+    n_components = range(1, k+1)
+    X_cols = ['avg' ,'best', 'worst']
     if pos_breakout:
         rows = 2
         cols = 3
@@ -204,74 +212,28 @@ def kmeans_sse_chart(league=config.sean, pos_breakout=True, pos_n=None, clusters
             }
 
         for p, ax in pos.items():
-            if pos_n is None:
-                pos_df = df.loc[df['pos'] == p].copy()
-                X = pos_df[['avg' ,'best', 'worst']]
-            else:
-                if not isinstance(pos_n, dict):
-                    pos_n = {k: int(pos_n) for k,v in pos.items()} 
-                pos_df = df.loc[df['pos'] == p].head(pos_n[p]).copy()
-                X = pos_df[['avg' ,'best', 'worst']].to_numpy()
-            models = [KMeans(n_clusters=n).fit(X) 
-                    for n in n_components]
-            _sse_helper_func(ax, models=models, n_components=n_components, title=p)
+            if isinstance(pos_n, int):
+                pos_num = {k: pos_n for k,v in pos.items()}
+            elif pos_n is None:
+                pos_num = df.loc[df['pos']==p].shape[0]
+            elif isinstance(pos_n, dict):
+                pos_num = pos_n[p]
+            print(p)
+            print(pos_num)
+            pos_df = df.loc[df['pos'] == p].head(pos_num).copy()
+            X = pos_df[X_cols].copy()
+            if clf == 'gmm':
+                models = [GaussianMixture(n_components=n, covariance_type=covariance_type, random_state=0).fit(X) for n in n_components]
+            elif clf == 'kmeans':
+                models = [KMeans(n_clusters=n).fit(X) for n in n_components]
+            _k_helper_func(ax, clf=clf, models=models, n_components=n_components, title=p)
     else:
-        X = df[['avg' ,'best', 'worst']].head(200)
-        models = [KMeans(n_clusters=n).fit(X) 
-                    for n in n_components]
-
-        _sse_helper_func(ax, models=models, n_components=n_components)
-    return plt.show()
-
-def gmm_component_silhouette_estimator(league=config.sean, pos_breakout=True, pos_n=None, components=10, covariance_type='diag'):
-    """
-    Plots the Akaike's Information Criterion (AIC) and Bayesian Information Criterion (BIC) for clusters in a range for a dataset
-    The goal is to pick the number of clusters that minimize the AIC or BIC
-    """
-    df = fp.fantasy_pros_ecr_process(league)
-    if pos_breakout:
-        fig, ax = plt.subplots(2, 3); fig.set_size_inches(15, 10)
-        pos = {
-            'RB': ax[0][0], # top left
-            'WR': ax[0][1], # top middle
-            'QB': ax[1][0], # bottom left
-            'TE': ax[1][1],  # bottom middle
-            'DST': ax[0][2], # top right
-            'K': ax[1][2] # bottom right
-            }
-
-        for p, ax in pos.items():
-            if pos_n is None:
-                pos_df = df.loc[df['pos'] == p].copy()
-                x = pos_df[['avg' ,'best', 'worst']].to_numpy()
-            else:
-                if not isinstance(pos_n, dict):
-                    pos_n = {k: int(pos_n) for k,v in pos.items()} 
-                pos_df = df.loc[df['pos'] == p].head(pos_n[p]).copy()
-                x = pos_df[['avg' ,'best', 'worst']].to_numpy()
-            n_components = range(1, components+1)
-            models = [GaussianMixture(n_components=n, covariance_type=covariance_type, random_state=0).fit(x)
-                    for n in n_components]
-
-            ax.plot(n_components, [m.bic(x) for m in models], label='BIC')
-            ax.plot(n_components, [m.aic(x) for m in models], label='AIC')
-            ax.set_xticks(np.arange(1, components+1, step=1))
-            ax.legend(loc='best')
-            ax.set_xlabel('n_components')                                                               
-            ax.set_title(p)
-    else:
-        fig, ax = plt.subplots(); fig.set_size_inches(15, 10)
-        full_df = df.head(200).copy()
-        x = full_df[['avg' ,'best', 'worst']].to_numpy()
-        n_components = range(1, components+1)
-        models = [GaussianMixture(n_components=n, covariance_type=covariance_type, random_state=0).fit(x)
-                for n in n_components]
-
-        ax.plot(n_components, [m.bic(x) for m in models], label='BIC')
-        ax.plot(n_components, [m.aic(x) for m in models], label='AIC')
-        ax.set_xticks(np.arange(1, components+1, step=1))
-        ax.legend(loc='best')
-        ax.set_xlabel('n_components')    
+        X = df[X_cols].head(200).copy()
+        if clf == 'gmm':
+            models = [GaussianMixture(n_components=n, covariance_type=covariance_type, random_state=0).fit(X) for n in n_components]
+        elif clf == 'kmeans':
+            models = [KMeans(n_clusters=n).fit(X) for n in n_components]
+        _k_helper_func(ax, clf=clf, models=models, n_components=n_components)
     return plt.show()
 
 def assign_tier_to_df(df, tier_dict=8, kmeans=False, pos_n=None, covariance_type='diag'):
