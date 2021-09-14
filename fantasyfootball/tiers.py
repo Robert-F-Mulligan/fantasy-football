@@ -143,7 +143,7 @@ def make_clustering_viz(tier_dict=8, clf='gmm', league=config.sean, pos_n=35, x_
             ax.scatter(xmax, ymax, marker= "|", color=colors.get(tier, 'yellow'), alpha=0.5, zorder=1)
             ax.plot((xmin, xmax), (ymin, ymax), color=colors.get(tier, 'yellow'), alpha=0.5, zorder=1, linewidth=5.0)
             if player in players:
-                bbox = dict(facecolor='yellow', edgecolor='black', alpha=0.2)
+                bbox = dict(facecolor='yellow', alpha=0.2)
             else: 
                 bbox=None
             ax.annotate(player, xy=(xmax+1, ymax), bbox=bbox)
