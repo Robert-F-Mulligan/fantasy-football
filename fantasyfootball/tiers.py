@@ -40,9 +40,9 @@ draftable_quantity_dict = {
 
 sean_players = [
     'J.D. McKissic',
-    'Jarvis Landry',
-    'Elijah Moore',
-    'David Johnson',
+    'Zach Ertz',
+    'Hunter Renfrow',
+    'Robby Anderson',
     'Adam Thielen',
     'Kareem Hunt',
     'Austin Ekeler',
@@ -64,10 +64,12 @@ justin_players = [
     'Chase Edmonds',
     'Hunter Henry',
     'Marquise Brown',
-    'Justin Jackson',
     'Michael Carter',
     'Damien Harris',
-    'DeAndre Hopkins'
+    'DeAndre Hopkins',
+    'Sam Darnold',
+    'Kirk Cousins',
+    'DeVante Parker'
     ]
 
 work_players = [
@@ -78,12 +80,13 @@ work_players = [
     'Calvin Ridley',
     'Melvin Gordon III',
     'Aaron Rodgers',
-    'David Johnson',
     'Leonard Fournette',
     "D'Andre Swift",
     'Logan Thomas',
     'Chase Edmonds',
-    'Henry Ruggs III'
+    'Henry Ruggs III',
+    'Jonnu Smith',
+    'Curtis Samuel'
     ]
 
 def make_clustering_viz(tier_dict=8, clf='gmm', league=config.sean, pos_n=35, x_size=20, y_size=15, covariance_type='diag', draft=False, save=True, players=None):
