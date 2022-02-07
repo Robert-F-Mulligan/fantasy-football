@@ -20,7 +20,7 @@ import dataframe_image as dfi
 
 def get_nfl_fast_r_data(*years, regular_season=True, two_pt=False):
     """Retrives play by play data from the NFLfastr git repo for a given year(s) """
-    df_list = [pd.read_csv('https://github.com/guga31bb/nflfastR-data/blob/master/data/' \
+    df_list = [pd.read_csv('https://github.com/nflverse/nflfastR-data/blob/master/data/' \
                             'play_by_play_' + str(year) + '.csv.gz?raw=True',
                             compression='gzip', low_memory=False)
               for year in years]
@@ -29,20 +29,24 @@ def get_nfl_fast_r_data(*years, regular_season=True, two_pt=False):
         df = df.loc[df['season_type'] == 'REG']
     return df if two_pt else df.loc[df['down']<=4]
 
-def get_nfl_fast_r_roster_data(*years):
-    """Retrives NFL roster data from the NFLfastr git repo for a given year(s) """
-    df = pd.read_csv('https://github.com/guga31bb/nflfastR-data/blob/master/roster-data/' \
-                            'roster.csv.gz?raw=true', compression='gzip', low_memory=False)
+def get_nfl_fast_r_roster(*years):
+    """Retrives roster data from the NFLfastr git repo for a given year(s) """
+    df = pd.read_csv('https://github.com/nflverse/nflfastR-roster/blob/master/' \
+                           'data/nflfastR-roster.csv.gz?raw=True', compression='gzip', low_memory=False)
     if years:
-        years = [str(year) for year in years]
-        df = df.loc[df['team.season'].isin(years)]
+        year_list = [int(year) for year in years]
+    roster = df.loc[df['season'].isin(year_list)]
     return df
 
 def get_team_colors_and_logos_dataframe():
-    return pd.read_csv(r'https://github.com/guga31bb/nflfastR-data/raw/master/teams_colors_logos.csv')
+    return pd.read_csv(r'https://raw.githubusercontent.com/nflverse/nflfastR-data/master/teams_colors_logos.csv')
 
-def get_nfl_fast_r_roster_data_decoded(year=2020):
-    df = pd.read_csv(f'https://github.com/mrcaseb/nflfastR-roster/blob/master/data/seasons/roster_{year}.csv?raw=true', low_memory=False)
+def get_nfl_draft_data(*years):
+    """Retrives team draft results from the NFLfastr git repo for a given year(s) """
+    df = pd.read_csv('https://raw.githubusercontent.com/nflverse/nfldata/master/data/draft_picks.csv',low_memory=False)
+    if years:
+        year_list = [int(year) for year in years]
+    df = df.loc[df['season'].isin(year_list)]
     return df
 
 def convert_to_gsis_id(new_id):
@@ -59,7 +63,7 @@ def get_year_and_week(df):
 
 def save_team_images(column='team_wordmark'):
     """Function will loop through a dataframe column and save URL images locally"""
-    df = pd.read_csv(r'https://github.com/guga31bb/nflfastR-data/raw/master/teams_colors_logos.csv')
+    df = pd.read_csv(r'https://raw.githubusercontent.com/nflverse/nflfastR-data/master/teams_colors_logos.csv')
     my_series = df[column]
     my_list = my_series.to_list()
     for im_url in my_list:
