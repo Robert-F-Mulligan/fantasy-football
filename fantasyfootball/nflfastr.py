@@ -35,7 +35,7 @@ def get_nfl_fast_r_roster(*years):
                            'data/nflfastR-roster.csv.gz?raw=True', compression='gzip', low_memory=False)
     if years:
         year_list = [int(year) for year in years]
-    roster = df.loc[df['season'].isin(year_list)]
+    df = df.loc[df['season'].isin(year_list)]
     return df
 
 def get_team_colors_and_logos_dataframe():
@@ -47,6 +47,21 @@ def get_nfl_draft_data(*years):
     if years:
         year_list = [int(year) for year in years]
     df = df.loc[df['season'].isin(year_list)]
+    return df
+
+def get_nfl_schedule_data(*years, current_week=False):
+    """Retrives NFL schedule information from the NFLfastr git repo for a given year(s) 
+    :current_week: will return the upcoming week schedule
+    """
+    df = pd.read_csv('https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv'
+                     ,low_memory=False, parse_dates=['gameday'])
+    if current_week:
+        today = datetime.today()
+        week_num = df.loc[df['gameday'] > today,'week'].min()
+        df = df.loc[df['week']==week_num]
+    elif years:
+        year_list = [int(year) for year in years]
+        df = df.loc[df['season'].isin(year_list)]
     return df
 
 def convert_to_gsis_id(new_id):
