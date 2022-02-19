@@ -18,8 +18,32 @@ from datetime import datetime
 from IPython.display import HTML
 import dataframe_image as dfi
 
+def get_nfl_schedule_data(*years, current_week=False):
+    """Retrives NFL schedule information from the NFLfastr git repo for a given year(s) 
+    :current_week: will return the upcoming week schedule
+    """
+    df = pd.read_csv('https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv'
+                     ,low_memory=False, parse_dates=['gameday'])
+    if current_week:
+        today = datetime.today()
+        week_num = df.loc[df['gameday'] > today,'week'].min()
+        df = df.loc[df['week']==week_num]
+    elif years:
+        year_list = [int(year) for year in years]
+        df = df.loc[df['season'].isin(year_list)]
+    return df
+
+def get_current_season_year():
+    """Returns the current/most recent NFL season year"""
+    return get_nfl_schedule_data()['season'].max()
+
 def get_nfl_fast_r_data(*years, regular_season=True, two_pt=False):
-    """Retrives play by play data from the NFLfastr git repo for a given year(s) """
+    """
+    Retrives play by play data from the NFLfastr git repo for a given year(s) 
+    :years: Specify an NFL season or seasons; default will be most recent season / current season
+    """
+    if not years or years[0] is None:
+        years = [get_current_season_year()]
     df_list = [pd.read_csv('https://github.com/nflverse/nflfastR-data/blob/master/data/' \
                             'play_by_play_' + str(year) + '.csv.gz?raw=True',
                             compression='gzip', low_memory=False)
@@ -47,21 +71,6 @@ def get_nfl_draft_data(*years):
     if years:
         year_list = [int(year) for year in years]
     df = df.loc[df['season'].isin(year_list)]
-    return df
-
-def get_nfl_schedule_data(*years, current_week=False):
-    """Retrives NFL schedule information from the NFLfastr git repo for a given year(s) 
-    :current_week: will return the upcoming week schedule
-    """
-    df = pd.read_csv('https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv'
-                     ,low_memory=False, parse_dates=['gameday'])
-    if current_week:
-        today = datetime.today()
-        week_num = df.loc[df['gameday'] > today,'week'].min()
-        df = df.loc[df['week']==week_num]
-    elif years:
-        year_list = [int(year) for year in years]
-        df = df.loc[df['season'].isin(year_list)]
     return df
 
 def convert_to_gsis_id(new_id):
