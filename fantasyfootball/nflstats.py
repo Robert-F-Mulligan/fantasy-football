@@ -174,13 +174,30 @@ def combine_pass_rec_rush_stats(df=None, year=None, offense=True, weekly=False, 
         df_dict['roster'] = get_player_name_and_pos(year=year)
         cols = ['name', 'team', 'pos', 'games']
     else:
-        df_dict['roster'] = pd.DataFrame(df['defteam'].unique(), columns=['team'])
-        cols = ['games']
+        df_dict['roster'] = pd.DataFrame(df['defteam'].unique(), columns=['team']).set_index('team')
+        if weekly:
+            cols = ['team', 'games']
+        else:
+            cols = ['games']
     df_dict['qb'] = get_passing_stats(df=df, year=year, offense=offense, weekly=weekly)
     df_dict['wr'] = get_receiving_stats(df=df, year=year, offense=offense, weekly=weekly)
     df_dict['rb'] = get_rushing_stats(df=df, year=year, offense=offense, weekly=weekly)
 
-    df =  pd.concat([df for k, df in df_dict.items()], axis='columns')
+    if weekly:
+        roster = df_dict['roster']
+        df_dict.pop('roster')
+        df = pd.concat([df for k, df in df_dict.items()], axis='columns')
+        game_id = df.index.get_level_values(1)
+        # convert game_id to column
+        df = df.droplevel(1).assign(game_id=game_id)
+        if offense:
+            left_on = 'gsis_id'
+        else: 
+            left_on = 'team'
+        df = roster.merge(df, left_on=left_on, right_on=df.index).set_index('game_id')
+        
+    else:
+        df = pd.concat([df for k, df in df_dict.items()], axis='columns')
 
     # fumbles
     fumbles = pd.DataFrame(df.filter(regex='fumble').sum(axis='columns'), columns=['fumbles'])
