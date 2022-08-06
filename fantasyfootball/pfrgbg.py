@@ -76,18 +76,24 @@ def player_table_variable_add(df, player_id, pos, year, player_name):
 def player_table_reindex(df):
     """Re-orders columns and replaces nans with 0's """
     df = df.copy()
-    full_column_List = [
-        'player_id', 'player_name', 'pos', 'year', #user-added columns
-        'date',  'week', 'age', 'tm', 'home/away', 'opp', 'result',  #standard columns
-        'passing_cmp', 'passing_att', 'passing_yds', 'passing_td', 'passing_int', 'passing_rate', 'passing_sk', 'passing_y/a', 'passing_ay/a', #passing columns
-        'rushing_att', 'rushing_yds', 'rushing_y/a', 'rushing_td', #rushing columns
-        'receiving_tgt', 'receiving_rec', 'receiving_yds', 'receiving_y/r', 'receiving_td', 'receiving_y/tgt', #receiving columns
-        'scoring_2pm', #scoring columns
-        'fumbles', 'fumbles_lost'    #fumble columns
-        ]
-    df = df.reindex(columns = full_column_List, fill_value = 0)
-    df.fillna(0, inplace=True)
-    return df
+    col_dict = {
+    'user_added': ['player_id', 'player_name', 'pos', 'year'], 
+    'standard_cols': ['date',  'week', 'age', 'tm', 'home/away', 'opp', 'result'],
+    'passing_cols': ['passing_cmp', 'passing_att', 'passing_yds', 'passing_td', 'passing_int', 'passing_rate', 'passing_sk', 'passing_y/a', 'passing_ay/a'],
+    'rush_cols': ['rushing_att', 'rushing_yds', 'rushing_y/a', 'rushing_td'],
+    'rec_cols': ['receiving_tgt', 'receiving_rec', 'receiving_yds', 'receiving_y/r', 'receiving_td', 'receiving_y/tgt'],
+    'fumb_cols': ['fumbles', 'fumbles_lost']
+    }
+    full_column_List = [val for col_list in col_dict.values() for val in col_list]
+    nonfloat = col_dict['user_added'] + col_dict['standard_cols']
+    float_cols = set([val for lst in col_dict.values() for val in lst]) - set(nonfloat)
+    dtype_map = {i: 'float' for i in float_cols}
+
+    return (df.loc[~df['age'].isna()] # new for 2021 - nan age means player didn't play that week
+              .reindex(columns = full_column_List, fill_value = 0)
+              .fillna(0)
+              .astype(dtype_map) # to compensate for orginal dtype being object due to the dnp / inactive text
+            )
   
 if __name__ == "__main__":
     min = int(input('Minimum year? >>> '))
@@ -126,8 +132,6 @@ if __name__ == "__main__":
     df = pd.concat(df_list)
 
     rows, cols = df.shape
-
-    df.head()
 
     gbgdir = path.join(DATA_DIR, 'game-by-game')
     df.to_csv(path.join(gbgdir, f'{max}_weekly.csv'), index=False)
