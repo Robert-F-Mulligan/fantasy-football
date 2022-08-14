@@ -276,7 +276,7 @@ nfl_color_map = {
  'SEA': '#69BE28',
  'TB': '#D50A0A',
  'TEN': '#4B92DB',
- 'WAS': '#773141'
+ 'WAS': '#5A1414'
 }
 
 nfl_color_map_secondary = {
@@ -385,7 +385,7 @@ nfl_logo_map_wiki = {
  'SEA': 'Seattle_Seahawks_logo.png',
  'TB': 'Tampa_Bay_Buccaneers_logo.png',
  'TEN': 'Tennessee_Titans_logo.png',
- 'WAS': 'Washington_Football_Team_logo.png'
+ 'WAS': 'Washington_Commanders_logo.png'
  }
 
 nfl_logo_map_espn = {
