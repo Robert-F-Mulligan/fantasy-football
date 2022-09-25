@@ -44,8 +44,8 @@ def get_nfl_fast_r_data(*years, regular_season=True, two_pt=False):
     """
     if not years or years[0] is None:
         years = [get_current_season_year()]
-    df_list = [pd.read_csv('https://github.com/nflverse/nflfastR-data/blob/master/data/' \
-                            'play_by_play_' + str(year) + '.csv.gz?raw=True',
+    df_list = [pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/' \
+                            f'pbp/play_by_play_{year}.csv.gz',
                             compression='gzip', low_memory=False)
               for year in years]
     df = pd.concat(df_list)
