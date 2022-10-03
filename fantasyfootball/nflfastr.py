@@ -443,7 +443,7 @@ def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
         player_type_lower = player_type.lower()
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{player_type_lower}_play_yardline_breakdown.png'), bbox_inches='tight')
 
-def epa_vs_cpoe_transform(df, minimum_att=200):
+def epa_vs_cpoe_transform(df,   ):
     """
     Caclulates the average epa per play and average cpoe per play
     epa = expected points added
@@ -515,7 +515,7 @@ def neutral_pass_rate_transform(df):
             .sort_values('pass', ascending=False))
     return df
 
-def make_neutral_pass_rate_viz(df):
+def make_neutral_pass_rate_viz(df, save=True):
     fig, ax = plt.subplots(figsize=(30,15))
     color = df.index.map(nfl_color_map)
     logo = df.index.map(nfl_logo_espn_path_map)
@@ -551,6 +551,9 @@ def make_neutral_pass_rate_viz(df):
     ax.annotate('Data: @NFLfastR',xy=(.90,-0.05), fontsize=12, xycoords='axes fraction')
     ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
 
+    if save:
+        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_neutral_pass_rate.png'), bbox_inches='tight')
+
 def second_and_long_pass_transform(df):
     """Calculates the percentage that each team passes on 2nd down and long (>8 yards)"""
     df = df.copy()
@@ -569,7 +572,7 @@ def second_and_long_pass_transform(df):
          )
     return df
 
-def make_second_and_long_pass_rate_viz(df, color='team'):
+def make_second_and_long_pass_rate_viz(df, color='team', save=True):
     fig, ax = plt.subplots(figsize=(30,20))
     if color == 'team':
         color = df.index.map(nfl_color_map)
@@ -610,7 +613,8 @@ def make_second_and_long_pass_rate_viz(df, color='team'):
     ax.annotate('Data: @NFLfastR\nFigure: @MulliganRob',xy=(.90,-0.05), fontsize=14, xycoords='axes fraction')
     
     fig.tight_layout()
-    fig.savefig(f'{year}_Second_and_Long_Pass_Rate_{week}.png', bbox_inches='tight')
+    if save:
+        fig.savefig(f'{year}_Second_and_Long_Pass_Rate_{week}.png', bbox_inches='tight')
 
 def epa_transform(df, *play_type, col='posteam', rank=True):
     """Returns a series of avg EPA per play for either the posteam or defteam"""
