@@ -55,12 +55,12 @@ def get_nfl_fast_r_data(*years, regular_season=True, two_pt=False):
 
 def get_nfl_fast_r_roster(*years):
     """Retrives roster data from the NFLfastr git repo for a given year(s) """
-    df = pd.read_csv('https://github.com/nflverse/nflfastR-roster/blob/master/' \
-                           'data/nflfastR-roster.csv.gz?raw=True', compression='gzip', low_memory=False)
-    if years:
-        year_list = [int(year) for year in years]
-    df = df.loc[df['season'].isin(year_list)]
-    return df
+    if not years or years[0] is None:
+        years = [get_current_season_year()]
+    df_list = [pd.read_csv('https://github.com/nflverse/nflverse-data/releases/' \
+                           f'download/weekly_rosters/roster_weekly_{year}.csv')
+               for year in years]
+    return pd.concat(df_list)
 
 def get_team_colors_and_logos_dataframe():
     return pd.read_csv(r'https://raw.githubusercontent.com/nflverse/nflfastR-data/master/teams_colors_logos.csv')
