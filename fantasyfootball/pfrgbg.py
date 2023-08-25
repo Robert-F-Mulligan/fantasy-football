@@ -4,12 +4,14 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from os import path
+import time
 from fantasyfootball.config import DATA_DIR
 
 def player_href_list_grab(year):
     """Grabs a list of hrefs for a given year based on descending fantasy performance"""
     url = f'https://www.pro-football-reference.com/years/{year}/fantasy.htm'
     r = requests.get(url)
+    time.sleep(5)
     soup = BeautifulSoup(r.content, 'html.parser')
     table = soup.find_all('table')[0]
     a = table.find_all('a')
@@ -26,6 +28,7 @@ def player_soup_grab(last_name_letter, player_id, year):
     """Grabs a soup object for week by week fantasy stats""" 
     season_url = f'https://www.pro-football-reference.com/players/{last_name_letter}/{player_id}/gamelog/{year}/'
     r_player = requests.get(season_url)
+    time.sleep(5)
     soup = BeautifulSoup(r_player.content, 'html.parser')
     return soup
 
