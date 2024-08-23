@@ -26,11 +26,11 @@ pos_tier_dict_viz = {
     }
 
 league = config.sean
-weekly_stats_year = 2020
+weekly_stats_year = 2023
 today = date.today()
 date = today.strftime('%Y.%m.%d')
 weekly_path = path.join(DATA_DIR, rf'game-by-game\{weekly_stats_year}_weekly.csv')
-replacement_method = 'top n'
+replacement_method = 'avg starter'
 
 def get_fantasy_pros_projections(week='draft', league=league, make_id=True):
     """Grabs fantasy pros stat projections for a given league type
