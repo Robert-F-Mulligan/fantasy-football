@@ -39,54 +39,59 @@ draftable_quantity_dict = {
     }
 
 sean_players = [
-    'J.D. McKissic',
-    'Zach Ertz',
-    'Hunter Renfrow',
-    'Robby Anderson',
-    'Adam Thielen',
-    'Kareem Hunt',
-    'Austin Ekeler',
-    "D'Andre Swift",
+   'Davante Adams',
+    'Aaron Jones',
+    'Allen Robinson II',
+    'Breece Hall',
     'Deebo Samuel',
-    'Amari Cooper',
-    'DeVante Parker',
     'George Kittle',
-    'Justin Herbert'
+    'Cordarrelle Patterson',
+    'Tyler Lockett',
+    'Dak Prescott',
+    'Zach Ertz',
+    'Tyler Boyd',
+    'Garrett Wilson',
+    'Denver Broncos',
+    'Jakobi Meyers',
+    'Matt Prater'
     ]
 
 justin_players = [
-    'Ty Johnson',
-    'Jarvis Landry',
-    'Calvin Ridley',
-    'Russell Wilson',
-    'D.J. Moore',
-    'T.J. Hockenson',
-    'Chase Edmonds',
-    'Hunter Henry',
-    'Marquise Brown',
-    'Michael Carter',
-    'Damien Harris',
-    'DeAndre Hopkins',
-    'Sam Darnold',
+    'Christian McCaffrey',
+    'Mike Evans',
+    'Tee Higgins',
+    'Tony Pollard',
+    'Justin Herbert',
+    'Dalton Schultz',
+    'Kareem Hunt',
+    'Robert Woods',
+    'Christian Kirk',
+    'Tyler Boyd',
+    'Darrell Henderson Jr.',
+    'J.D. McKissic',
     'Kirk Cousins',
-    'DeVante Parker'
+    'Los Angeles Rams',
+    'DeVante Parker',
+    'Ryan Succop'
     ]
 
 work_players = [
-    'Davante Adams',
-    'J.D. McKissic',
+    'Jonathan Taylor',
+    'Josh Allen',
+    'Mark Andrews',
+    'David Montgomery',
+    'Brandin Cooks',
     'Elijah Moore',
-    'Miles Sanders',
-    'Calvin Ridley',
-    'Melvin Gordon III',
-    'Aaron Rodgers',
-    'Leonard Fournette',
-    "D'Andre Swift",
-    'Logan Thomas',
-    'Chase Edmonds',
-    'Henry Ruggs III',
-    'Jonnu Smith',
-    'Curtis Samuel'
+    'J.K. Dobbins',
+    'Brandon Aiyuk',
+    'Hunter Renfrow',
+    'Treylon Burks',
+    'James Robinson',
+    'Derek Carr',
+    'Hunter Henry',
+    'Indianapolis Colts',
+    'Marvin Jones Jr.',
+    'Jason Sanders'
     ]
 
 def make_clustering_viz(tier_dict=8, clf='gmm', league=config.sean, pos_n=35, x_size=20, y_size=15, covariance_type='diag', draft=False, save=True, players=None):

@@ -6,7 +6,7 @@ from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from matplotlib import cm
 import fantasyfootball
 from os import path
-from fantasyfootball.config import DATA_DIR, FIGURE_DIR, pfr_to_fantpros, nfl_color_map, nfl_color_map_secondary, nfl_logo_espn_path_map, nfl_wordmark_path_map
+from fantasyfootball.config import DATA_DIR, FIGURE_DIR, pfr_to_fantpros, nfl_color_map, nfl_logo_espn_path_map
 import seaborn as sns
 import numpy as np
 from adjustText import adjust_text
@@ -18,34 +18,10 @@ from datetime import datetime
 from IPython.display import HTML
 import dataframe_image as dfi
 
-def get_nfl_schedule_data(*years, current_week=False):
-    """Retrives NFL schedule information from the NFLfastr git repo for a given year(s) 
-    :current_week: will return the upcoming week schedule
-    """
-    df = pd.read_csv('https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv'
-                     ,low_memory=False, parse_dates=['gameday'])
-    if current_week:
-        today = datetime.today()
-        week_num = df.loc[df['gameday'] > today,'week'].min()
-        df = df.loc[df['week']==week_num]
-    elif years:
-        year_list = [int(year) for year in years]
-        df = df.loc[df['season'].isin(year_list)]
-    return df
-
-def get_current_season_year():
-    """Returns the current/most recent NFL season year"""
-    return get_nfl_schedule_data()['season'].max()
-
 def get_nfl_fast_r_data(*years, regular_season=True, two_pt=False):
-    """
-    Retrives play by play data from the NFLfastr git repo for a given year(s) 
-    :years: Specify an NFL season or seasons; default will be most recent season / current season
-    """
-    if not years or years[0] is None:
-        years = [get_current_season_year()]
-    df_list = [pd.read_csv('https://github.com/nflverse/nflverse-data/releases/download/' \
-                            f'pbp/play_by_play_{year}.csv.gz',
+    """Retrives play by play data from the NFLfastr git repo for a given year(s) """
+    df_list = [pd.read_csv('https://github.com/guga31bb/nflfastR-data/blob/master/data/' \
+                            'play_by_play_' + str(year) + '.csv.gz?raw=True',
                             compression='gzip', low_memory=False)
               for year in years]
     df = pd.concat(df_list)
@@ -53,24 +29,20 @@ def get_nfl_fast_r_data(*years, regular_season=True, two_pt=False):
         df = df.loc[df['season_type'] == 'REG']
     return df if two_pt else df.loc[df['down']<=4]
 
-def get_nfl_fast_r_roster(*years):
-    """Retrives roster data from the NFLfastr git repo for a given year(s) """
-    if not years or years[0] is None:
-        years = [get_current_season_year()]
-    df_list = [pd.read_csv('https://github.com/nflverse/nflverse-data/releases/' \
-                           f'download/weekly_rosters/roster_weekly_{year}.csv')
-               for year in years]
-    return pd.concat(df_list)
+def get_nfl_fast_r_roster_data(*years):
+    """Retrives NFL roster data from the NFLfastr git repo for a given year(s) """
+    df = pd.read_csv('https://github.com/guga31bb/nflfastR-data/blob/master/roster-data/' \
+                            'roster.csv.gz?raw=true', compression='gzip', low_memory=False)
+    if years:
+        years = [str(year) for year in years]
+        df = df.loc[df['team.season'].isin(years)]
+    return df
 
 def get_team_colors_and_logos_dataframe():
-    return pd.read_csv(r'https://raw.githubusercontent.com/nflverse/nflfastR-data/master/teams_colors_logos.csv')
+    return pd.read_csv(r'https://github.com/guga31bb/nflfastR-data/raw/master/teams_colors_logos.csv')
 
-def get_nfl_draft_data(*years):
-    """Retrives team draft results from the NFLfastr git repo for a given year(s) """
-    df = pd.read_csv('https://raw.githubusercontent.com/nflverse/nfldata/master/data/draft_picks.csv',low_memory=False)
-    if years:
-        year_list = [int(year) for year in years]
-    df = df.loc[df['season'].isin(year_list)]
+def get_nfl_fast_r_roster_data_decoded(year=2020):
+    df = pd.read_csv(f'https://github.com/mrcaseb/nflfastR-roster/blob/master/data/seasons/roster_{year}.csv?raw=true', low_memory=False)
     return df
 
 def convert_to_gsis_id(new_id):
@@ -87,7 +59,7 @@ def get_year_and_week(df):
 
 def save_team_images(column='team_wordmark'):
     """Function will loop through a dataframe column and save URL images locally"""
-    df = pd.read_csv(r'https://raw.githubusercontent.com/nflverse/nflfastR-data/master/teams_colors_logos.csv')
+    df = pd.read_csv(r'https://github.com/guga31bb/nflfastR-data/raw/master/teams_colors_logos.csv')
     my_series = df[column]
     my_list = my_series.to_list()
     for im_url in my_list:
@@ -153,7 +125,7 @@ def target_share_vs_ay_share_viz(df, *team_filter, n=60, x_size=20, y_size=15, s
     ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
     if save:
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_Target_Share_vs_ay_share.png'))
-    # return plt.show()
+    return plt.show()
 
 def carries_inside_5_yardline_transform(df):
     """Calculates total carries a rusher has inside the 5 yardline """
@@ -443,7 +415,7 @@ def make_stacked_bar_viz(df, x_size=15, y_size=20, n=25, save=True):
         player_type_lower = player_type.lower()
         fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{player_type_lower}_play_yardline_breakdown.png'), bbox_inches='tight')
 
-def epa_vs_cpoe_transform(df,   ):
+def epa_vs_cpoe_transform(df, minimum_att=200):
     """
     Caclulates the average epa per play and average cpoe per play
     epa = expected points added
@@ -515,7 +487,7 @@ def neutral_pass_rate_transform(df):
             .sort_values('pass', ascending=False))
     return df
 
-def make_neutral_pass_rate_viz(df, save=True):
+def make_neutral_pass_rate_viz(df):
     fig, ax = plt.subplots(figsize=(30,15))
     color = df.index.map(nfl_color_map)
     logo = df.index.map(nfl_logo_espn_path_map)
@@ -551,9 +523,6 @@ def make_neutral_pass_rate_viz(df, save=True):
     ax.annotate('Data: @NFLfastR',xy=(.90,-0.05), fontsize=12, xycoords='axes fraction')
     ax.annotate('Figure: @MulliganRob',xy=(.90,-0.07), fontsize=12, xycoords='axes fraction');
 
-    if save:
-        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_neutral_pass_rate.png'), bbox_inches='tight')
-
 def second_and_long_pass_transform(df):
     """Calculates the percentage that each team passes on 2nd down and long (>8 yards)"""
     df = df.copy()
@@ -572,7 +541,7 @@ def second_and_long_pass_transform(df):
          )
     return df
 
-def make_second_and_long_pass_rate_viz(df, color='team', save=True):
+def make_second_and_long_pass_rate_viz(df, color='team'):
     fig, ax = plt.subplots(figsize=(30,20))
     if color == 'team':
         color = df.index.map(nfl_color_map)
@@ -613,8 +582,7 @@ def make_second_and_long_pass_rate_viz(df, color='team', save=True):
     ax.annotate('Data: @NFLfastR\nFigure: @MulliganRob',xy=(.90,-0.05), fontsize=14, xycoords='axes fraction')
     
     fig.tight_layout()
-    if save:
-        fig.savefig(f'{year}_Second_and_Long_Pass_Rate_{week}.png', bbox_inches='tight')
+    fig.savefig(f'{year}_Second_and_Long_Pass_Rate_{week}.png', bbox_inches='tight')
 
 def epa_transform(df, *play_type, col='posteam', rank=True):
     """Returns a series of avg EPA per play for either the posteam or defteam"""
@@ -882,166 +850,4 @@ def table_styler(df, pos, n=20, caption='Top Players', color='green', save=False
 
 columns = ['team', 'pass_yards', 'pass_tds', 'rush_yards', 'rush_tds', 'total_tds', 
                'int', 'epa_pg', 'ppr_pts_pg', 'ppr_pts']
-
-def team_rec_yards_transform(df):
-    year, week = get_year_and_week(df)
-    play_type = df['play_type'] == 'pass'
-    return (df.loc[play_type]
-             .groupby(['posteam', 'play_id'])
-             .agg(rec_yards=('yards_gained','sum'))
-             .droplevel(1)
-             .assign(year=year)
-             .assign(week=week)
-            )
-
-def team_yards_gained_transform(df):
-    year, week = get_year_and_week(df)
-    play_type = (df['play_type'].isin(['pass', 'run'])) & (df['aborted_play'] == 0)
-    return (df.loc[play_type]
-             .groupby(['posteam', 'play_id'])
-             .agg(yards_gained=('yards_gained','sum'),
-                  play_type=('play_type', 'first'))
-             .droplevel(1)
-             .assign(year=year)
-            .assign(week=week)
-            .sort_values('play_type')
-            )
-
-def make_team_swarm(df, save=True, y_lim_min=-10, ylim_max=100):
-    fig, axs = plt.subplots(4, 8, figsize=(20,25), sharex=True)
-    team_list = sorted(df.index.drop_duplicates())
-    axs_list = [item for sublist in axs for item in sublist] 
     
-    for team, ax in zip(team_list, axs_list):
-        sns.swarmplot(df.loc[df.index==team, df.columns[0]], 
-                    ax=ax, color=nfl_color_map[team])
-        
-        #formatting
-        ax.spines['left'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['bottom'].set_visible(False)
-        ax.tick_params(
-            which='both',
-            bottom=False,
-            left=False,
-            right=False,
-            top=False
-        )
-        ax.set_xlabel(None)
-        ax.set_xlim(y_lim_min, ylim_max)
-        #Add grid
-        ax.grid(zorder=0,alpha=.4)
-        ax.set_axisbelow(True)
-        
-        # word marks
-        logo_path = nfl_wordmark_path_map[team]
-        image = OffsetImage(plt.imread(logo_path), zoom=.5)
-        ax.add_artist(AnnotationBbox(image, xy=(0.5,1.0), frameon=False, xycoords='axes fraction'))
-    
-    fig.tight_layout()
-
-    #title
-    col_name = df.columns[0].title().replace('_', ' ')
-    year = df['year'].max()
-    week = df['week'].max()
-    fig.suptitle(f'{year} {col_name} Team By Team Distribution (Through Week {week})', fontsize=30, fontweight='bold', x=0.5, y=1.05, ha='center')
-    plt.figtext(0.92, -0.03, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
-
-    if save:
-        col_name_lower = col_name.lower().replace(' ', '_')
-        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_swarmplot.png'), bbox_inches='tight')
-
-def make_team_kde(df, save=True):
-    fig, axs = plt.subplots(4, 8, figsize=(20,15), sharey=True)
-    team_list = sorted(df.index.drop_duplicates())
-    axs_list = [item for sublist in axs for item in sublist] 
-    
-    for team, ax in zip(team_list, axs_list):
-        sns.kdeplot(df.loc[df.index==team, df.columns[0]], 
-                    ax=ax, linewidth=3.0, color=nfl_color_map[team], 
-                    shade=True, clip=[-5, 50])
-        ax.get_legend().remove()
-        
-        #formatting
-        ax.spines['left'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.tick_params(
-            which='both',
-            bottom=False,
-            left=False,
-            right=False,
-            top=False
-        )
-        #Add grid
-        ax.grid(zorder=0,alpha=.4)
-        ax.set_axisbelow(True)
-        
-        # word marks
-        logo_path = nfl_wordmark_path_map[team]
-        image = OffsetImage(plt.imread(logo_path), zoom=.5)
-        ax.add_artist(AnnotationBbox(image, xy=(0.5,1.0), frameon=False, xycoords='axes fraction'))
-    
-    fig.tight_layout()
-    #title
-    col_name = df.columns[0].title().replace('_', ' ')
-    year = df['year'].max()
-    week = df['week'].max()
-    fig.suptitle(f'{year} {col_name} Team By Team Distribution (Through Week {week})', fontsize=30, fontweight='bold', x=0.5, y=1.05, ha='center')
-    plt.figtext(0.92, -0.03, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
-
-    if save:
-        col_name_lower = col_name.lower().replace(' ', '_')
-        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_kdeplot.png'), bbox_inches='tight')
-
-def make_team_jitter(df, save=True, play_type=False, y_lim_min=-10, ylim_max=60):
-    fig, axs = plt.subplots(4, 8, figsize=(20,25), sharey=True)
-    team_list = sorted(df.index.drop_duplicates())
-    axs_list = [item for sublist in axs for item in sublist] 
-    
-    for team, ax in zip(team_list, axs_list):
-        if play_type:
-            sns.stripplot(x=df.loc[df.index==team, 'play_type'], y=df.loc[df.index==team, df.columns[0]], 
-                    ax=ax, jitter=True, alpha=0.5, size=7,  palette=[nfl_color_map[team], nfl_color_map_secondary[team]],
-                     dodge=True)
-        else:
-            sns.stripplot(y=df.loc[df.index==team, df.columns[0]], 
-                        ax=ax, color=nfl_color_map[team], jitter=1.05, alpha=0.5, size=7)
-            
-        #formatting
-        ax.spines['left'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['bottom'].set_visible(False)
-        ax.tick_params(
-            which='both',
-            bottom=False,
-            left=False,
-            right=False,
-            top=False
-        )
-        ax.set_ylabel(None)
-        ax.set_xlabel(None)
-        ax.set_ylim(y_lim_min, ylim_max)
-        #Add grid
-        ax.grid(zorder=0,alpha=.4)
-        ax.set_axisbelow(True)
-        
-        # word marks
-        logo_path = nfl_wordmark_path_map[team]
-        image = OffsetImage(plt.imread(logo_path), zoom=.5)
-        ax.add_artist(AnnotationBbox(image, xy=(0.6,1.0), frameon=False, xycoords='axes fraction'))
-    
-    fig.tight_layout()
-
-    #title
-    col_name = df.columns[0].title().replace('_', ' ')
-    year = df['year'].max()
-    week = df['week'].max()
-    fig.suptitle(f'{year} {col_name} Team By Team Distribution (Through Week {week})', fontsize=30, fontweight='bold', x=0.5, y=1.05, ha='center')
-    plt.figtext(0.92, -0.03, 'Data: @NFLfastR\nViz: @MulliganRob', fontsize=12)
-
-    if save:
-        col_name_lower = col_name.lower().replace(' ', '_')
-        fig.savefig(path.join(FIGURE_DIR, f'{year}_through_week_{week}_{col_name_lower}_jitterplot.png'), bbox_inches='tight')
