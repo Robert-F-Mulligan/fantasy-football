@@ -3,6 +3,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from fantasyfootball.connectors.base_connector import BaseConnector
+from fantasyfootball.utils.retry_decorator import retry_decorator
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class SeleniumConnector(BaseConnector):
             self.driver.quit()
             logger.info("Selenium driver shut down.")
 
+    @retry_decorator(retries=3, delay=2, backoff_factor=2)
     def fetch(self, endpoint: str) -> str:
         """Fetch the HTML content of the constructed URL using Selenium."""
         if not self.driver:
