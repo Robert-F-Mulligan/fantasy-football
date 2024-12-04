@@ -1,26 +1,17 @@
 from abc import ABC, abstractmethod
 import logging
-from bs4 import BeautifulSoup
-import requests
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-
 class BaseConnector(ABC):
-    def __init__(self, url: str):
-        self.url = url
+    def __init__(self, base_url: str):
+        self.base_url = base_url.rstrip("/")  # Ensure no trailing slash
+
+    def construct_url(self, endpoint: str) -> str:
+        """Combine base_url with endpoint."""
+        return f"{self.base_url}/{endpoint.lstrip('/')}"
 
     @abstractmethod
-    def fetch(self, url: str) -> str:
-        """Fetch the HTML content of a page."""
+    def fetch(self, endpoint: str) -> str:
+        """Fetch the raw HTML content of a page."""
         pass
-
-    def parse_html(self, html: str) -> BeautifulSoup:
-        """Parse HTML into a BeautifulSoup object."""
-        pass
-
-    # @abstractmethod
-    # def to_dataframe(self, raw_data: str) -> pd.DataFrame:
-    #     """Convert raw data into a DataFrame."""
-    #     pass

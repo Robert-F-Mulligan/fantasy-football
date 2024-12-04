@@ -1,16 +1,18 @@
 from abc import ABC, abstractmethod
-from bs4 import BeautifulSoup
+import logging
+
+logger = logging.getLogger(__name__)
 
 class BaseParser(ABC):
-    def __init__(self, soup: BeautifulSoup):
-        self.soup = soup
-        self.validate_soup()
-
-    @abstractmethod
-    def validate_soup(self):
-        """Check if the soup is valid for this parser"""
-        pass
+    def __init__(self, content: str):
+        self.content = content
 
     @abstractmethod
     def parse(self):
+        """Parse the raw content."""
+        pass
+
+    @abstractmethod
+    def extract(self, **kwargs):
+        """Extract specific data from the parsed content."""
         pass
