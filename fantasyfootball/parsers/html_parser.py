@@ -4,15 +4,16 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
-
 class HTMLParser(BaseParser):
-    def __init__(self, content: str, parser_type: str = "html.parser"):
-        super().__init__(content)
+    def __init__(self, parser_type: str = "html.parser"):
+        super().__init__()
         self.parser_type = parser_type
-        self.soup = None
 
     def parse(self):
         """Parse HTML content into a BeautifulSoup object."""
+        if not self.content:
+            raise RuntimeError("Content must be set before parsing.")
+        
         try:
             self.soup = BeautifulSoup(self.content, self.parser_type)
             logger.info("HTML parsed successfully.")
@@ -25,13 +26,17 @@ class HTMLParser(BaseParser):
         """Extract elements from the parsed content."""
         if not self.soup:
             raise RuntimeError("Content must be parsed before extracting data.")
+        
         try:
+            print(element)
+            print(dict(**kwargs))
             extracted = self.soup.find_all(element, **kwargs)
             logger.info(f"Extracted {len(extracted)} elements of type '{element}'.")
             return extracted
         except Exception as e:
             logger.error(f"Error extracting data: {e}")
             raise
+
 
 if __name__ == "__main__":
     from fantasyfootball.utils.logging_config import setup_logging

@@ -4,8 +4,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 class BaseParser(ABC):
-    def __init__(self, content: str):
+    def __init__(self):
+        self.content = None
+        self.soup = None
+
+    def set_content(self, content: str):
+        """Set the content that will be parsed."""
         self.content = content
+        logger.info("Content set successfully.")
 
     @abstractmethod
     def parse(self):
