@@ -3,7 +3,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class YearByYearTransformer:
+class  YearByYearTransformer:
     """Encapsulates transformation logic for year-by-year player data."""
 
     COLUMN_RENAME_MAP = {
@@ -27,27 +27,42 @@ class YearByYearTransformer:
         'fantasy_posrank', 'fantasy_ovrank'
     ]
 
-    def __init__(self, dataframe: pd.DataFrame, year: int):
+    def __init__(self, dataframe: pd.DataFrame = None, year: int = None):
+        """
+        Initializes the transformer with optional DataFrame and year.
+        :param dataframe: The DataFrame to transform (optional).
+        :param year: The year for the transformation (optional).
+        """
         logger.info("Initializing YearByYearTransformer.")
-        self.df = dataframe.copy()
+        self.df = dataframe
         self.year = year
 
-    def transform(self) -> pd.DataFrame:
+    def set_df(self, df: pd.DataFrame):
+        """Sets the DataFrame if not passed during initialization."""
+        self.df = df
+
+    def transform(self, year: int, df: pd.DataFrame = None) -> pd.DataFrame:
         """Performs the entire transformation process."""
+        if df is not None:
+            self.df = df
+
+        if self.df is None:
+            raise ValueError("No DataFrame set for transformation.")
+
         logger.info("Starting transformation process.")
-        self.df['year'] = self.year
+        self.df['year'] = year
         return (
             self._clean_columns()
-            ._rename_columns()
-            ._standardize_player_names()
-            ._reindex_and_fill()
-            ._finalize()
+                ._rename_columns()
+                ._standardize_player_names()
+                ._reindex_and_fill()
+                .df
         )
 
     def _clean_columns(self):
         logger.debug("Cleaning columns: dropping unwanted columns and flattening multi-level headers.")
         if hasattr(self.df.columns, 'levels'):  # Check for multi-level columns
-            self.df.drop(columns=['FantPt', 'PPR', 'DKPt', 'FDPt', 'VBD'], level=1, inplace=True)
+            self.df = self.df.drop(columns=['FantPt', 'PPR', 'DKPt', 'FDPt', 'VBD'], level=1)
             self.df.columns = ['_'.join(col) for col in self.df.columns]
         
         self.df.columns = [col.lower() for col in self.df.columns]
@@ -58,8 +73,7 @@ class YearByYearTransformer:
 
     def _rename_columns(self):
         logger.debug("Renaming columns using COLUMN_RENAME_MAP.")
-        self.df.rename(columns=self.COLUMN_RENAME_MAP, inplace=True)
-        logger.debug("Columns renamed.")
+        self.df =  self.df.rename(columns=self.COLUMN_RENAME_MAP)
         return self
 
     def _standardize_player_names(self):
@@ -74,14 +88,8 @@ class YearByYearTransformer:
 
     def _reindex_and_fill(self):
         logger.debug("Reindexing columns and filling missing values.")
-        self.df = self.df.reindex(columns=self.FINAL_COLUMN_ORDER, fill_value=0)
-        self.df.fillna(0, inplace=True)
-        logger.debug("Reindexing and filling completed.")
+        self.df = self.df.reindex(columns=self.FINAL_COLUMN_ORDER, fill_value=0).fillna(0)
         return self
-
-    def _finalize(self):
-        logger.debug("Finalizing DataFrame transformation.")
-        return self.df
 
 if __name__ == "__main__":
     from fantasyfootball.connectors.requests_connector import RequestsConnector
@@ -98,6 +106,6 @@ if __name__ == "__main__":
     with connector:
         df = datasource.get_data(endpoint='years/2024/fantasy.htm', table_id='fantasy')
         transformer = YearByYearTransformer(df)
-        df = transformer.transform()
+        df = transformer.transform(2024)
         print(df.head())
 
