@@ -1,4 +1,5 @@
 import logging
+from io import StringIO
 import pandas as pd
 from fantasyfootball.connectors.requests_connector import RequestsConnector
 from fantasyfootball.parsers.html_parser import HTMLParser
@@ -27,11 +28,13 @@ class ProFootballReferenceDataSource(BaseDataSource):
         try:
             logger.info(f"Fetching data from endpoint: {endpoint}")
             html_content = self.connector.fetch(endpoint)
-            self.parser.set_content(html_content)  # Ensure the parser has the content
-            self.parser.parse()  # Parse the content into BeautifulSoup
-            table = self.parser.extract(element='table', id=table_id)  # Extract table based on ID
-            if table:  # Check if a valid table is returned
-                df = pd.read_html(str(table))[0]  # Convert the table to a DataFrame
+            self.parser.set_content(html_content)
+            self.parser.parse() 
+            table = self.parser.extract(element='table', id=table_id)  
+            if table:
+                table_html = str(table)
+                html_buffer = StringIO(table_html)
+                df = pd.read_html(html_buffer)[0]
                 logger.info("DataFrame created successfully.")
                 return df
             else:
