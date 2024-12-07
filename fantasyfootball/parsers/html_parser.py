@@ -28,7 +28,6 @@ class HTMLParser(BaseParser):
             raise RuntimeError("Content must be parsed before extracting data.")
         
         try:
-            print(element)
             print(dict(**kwargs))
             extracted = self.soup.find_all(element, **kwargs)
             logger.info(f"Extracted {len(extracted)} elements of type '{element}'.")
