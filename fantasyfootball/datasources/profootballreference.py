@@ -43,3 +43,12 @@ class ProFootballReferenceDataSource(BaseDataSource):
         except Exception as e:
             logger.error(f"Error in fetching or parsing data: {e}")
             raise
+
+if __name__ == "__main__":
+    BASE_URL =  "https://www.pro-football-reference.com"
+    connector = RequestsConnector(BASE_URL)
+    parser = HTMLParser()
+    with connector:
+        data = ProFootballReferenceDataSource(connector, parser=parser)
+        df = data.get_data(endpoint='years/2023/fantasy.htm', table_id='fantasy')
+        print(df.head())
