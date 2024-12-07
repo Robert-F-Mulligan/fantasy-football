@@ -35,7 +35,9 @@ class RequestsConnector(BaseConnector):
 
     @retry_decorator(retries=3, delay=2, backoff_factor=2)
     def fetch(self, endpoint: str, params: dict = None) -> str:
-        """Fetch raw HTML from the endpoint."""
+        """Fetch raw HTML from the endpoint."""       
+        logger.debug(f"Session ID: {id(self.session)}") 
+        
         url = f"{self.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
         try:
             logger.info(f"Fetching URL: {url}")
@@ -47,3 +49,23 @@ class RequestsConnector(BaseConnector):
         except requests.exceptions.RequestException as e:
             logger.exception(f"HTTP Request failed: {e}")
             raise
+
+if __name__ == "__main__":
+    from fantasyfootball.utils.logging_config import setup_logging
+
+    setup_logging()
+    
+    connector = RequestsConnector(base_url="https://www.pro-football-reference.com")
+
+    # with connector:
+    #     connector.fetch(endpoint='years/2024/fantasy.htm')
+
+    # try:
+    #     connector.fetch(endpoint='years/2024/fantasy.htm')  # This should raise an error
+    # except RuntimeError as e:
+    #     print(f"Caught error: {e}")
+
+    with connector:
+        print(f"Session ID in with block: {id(connector.session)}")
+        connector.fetch(endpoint='years/2024/fantasy.htm')
+        connector.fetch(endpoint='players/')
