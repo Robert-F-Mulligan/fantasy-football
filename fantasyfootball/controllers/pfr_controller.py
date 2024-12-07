@@ -8,7 +8,6 @@ from fantasyfootball.transformers.profootballreference_transformer import YearBy
 from fantasyfootball.parsers.html_parser import HTMLParser
 from fantasyfootball.datasources.profootballreference import ProFootballReferenceDataSource
 from fantasyfootball.utils.logging_config import setup_logging
-from fantasyfootball.utils.session_check_decorator import requires_active_session
 
 setup_logging()
 
