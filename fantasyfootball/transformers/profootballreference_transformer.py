@@ -31,6 +31,12 @@ class DataFrameTransformMixin:
         if dtype_map:
             self.df = self.df.astype(dtype_map)
         return self
+    
+    def _drop_invalid_rows(self, col: str = 'rk', value: str = 'Rk'):
+        logger.debug("Droping invalid rows.")
+        condition = self.df[col]==value
+        self.df = self.df.loc[~condition]
+        return self
 
 class YearByYearTransformer(DataFrameTransformMixin):
     """Encapsulates transformation logic for year-by-year player data."""
@@ -64,8 +70,11 @@ class YearByYearTransformer(DataFrameTransformMixin):
         logger.info("Initializing YearByYearTransformer.")
         self.df = dataframe
 
-    def transform(self, year: int) -> pd.DataFrame:
+    def transform(self, year: int, dataframe: pd.DataFrame = None) -> pd.DataFrame:
         """Performs the entire transformation process."""
+        if dataframe is not None:
+            self.df = dataframe
+
         if self.df is None:
             raise ValueError("No DataFrame set for transformation.")
 
@@ -76,6 +85,7 @@ class YearByYearTransformer(DataFrameTransformMixin):
                 ._rename_columns(self.COLUMN_RENAME_MAP)
                 ._standardize_player_names()
                 ._reindex_and_fill(self.FINAL_COLUMN_ORDER)
+                ._drop_invalid_rows()
                 .df
         )
 
@@ -88,6 +98,7 @@ class YearByYearTransformer(DataFrameTransformMixin):
         )
         logger.debug("Player names standardized.")
         return self
+    
     
 class GameByGameTransformer(DataFrameTransformMixin):
     """Encapsulates transformation logic for game-by-game player data."""
@@ -115,8 +126,11 @@ class GameByGameTransformer(DataFrameTransformMixin):
         logger.info("Initializing GameByGameTransformer.")
         self.df = dataframe
 
-    def transform(self, player_id: int, year: int, player_name: str, pos: str) -> pd.DataFrame:
+    def transform(self, player_id: int, year: int, player_name: str, pos: str, dataframe: pd.DataFrame = None) -> pd.DataFrame:
         """Performs the entire transformation process."""
+        if dataframe is not None:
+            self.df = dataframe
+
         if self.df is None:
             raise ValueError("No DataFrame set for transformation.")
 
@@ -156,4 +170,7 @@ if __name__ == "__main__":
         transformer = YearByYearTransformer(df)
         df = transformer.transform(2024)
         print(df.head())
-
+        df = datasource.get_data(endpoint='years/2023/fantasy.htm', table_id='fantasy')
+        transformer = YearByYearTransformer(df)
+        df = transformer.transform(2024)
+        print(df.head())
