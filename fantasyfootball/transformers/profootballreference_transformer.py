@@ -132,7 +132,7 @@ class GameByGameTransformer(DataFrameTransformMixin):
 
     FINAL_COLUMN_ORDER = [
         'date', 'week', 'player_id', 'player_name', 'pos', 'year', 
-        'age', 'tm', 'home/away', 'opp', 'result', 'off. snaps_num', 'off. snaps_pct',
+        'age', 'tm', 'home/away', 'opp', 'result', 'off. snaps_num',
         'passing_cmp', 'passing_att', 'passing_yds', 'passing_td', 'passing_int',
         'rushing_att', 'rushing_yds', 'rushing_y/a', 'rushing_td',
         'receiving_tgt', 'receiving_rec', 'receiving_yds', 'receiving_y/r', 'receiving_td',  'receiving_ctch_pct', 'receiving_y/tgt',
@@ -165,7 +165,7 @@ class GameByGameTransformer(DataFrameTransformMixin):
                 ._reindex_and_fill(self.FINAL_COLUMN_ORDER)
                 ._drop_invalid_rows(col='date', value='Games', condition_type='contains')
                 ._drop_invalid_rows(col='age', condition_type='na')
-                ._convert_pct_to_float(cols=['off. snaps_pct', 'receiving_ctch_pct'])
+                ._convert_pct_to_float(cols=['receiving_ctch_pct'])
                 .df
         )
 
