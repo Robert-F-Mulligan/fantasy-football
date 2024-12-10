@@ -16,7 +16,7 @@ class DataFrameTransformMixin:
         """Drops columns"""
         logger.debug("Cleaning columns: dropping unwanted columns.")
         if columns:
-            self.df = self.df.drop(columns=columns, level=1)
+            self.df = self.df.drop(columns=columns)
         return self
 
     def _reindex_and_fill(self, column_order: list, fill_value=0, dtype_map: dict = None):
