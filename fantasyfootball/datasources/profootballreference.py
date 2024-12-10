@@ -37,7 +37,10 @@ class ProFootballReferenceDataSource(BaseDataSource):
             if table:
                 table_html = str(table)
                 html_buffer = StringIO(table_html)
-                df = pd.read_html(html_buffer)[0]
+                df = (
+                    pd.read_html(html_buffer)[0]
+                    .pipe(self._clean_columns)
+                )
                 logger.info("DataFrame created successfully.")
                 return df
             else:
@@ -87,6 +90,16 @@ class ProFootballReferenceDataSource(BaseDataSource):
         player_id = player_href.split('/')[3].rsplit('.', 1)[0]
         return last_name_letter, player_id
     
+    def _clean_columns(self, dataframe: pd.DataFrame, flatten_headers: bool = True) -> pd.DataFrame:
+        """Cleans DataFrame columns."""
+        logger.debug("Cleaning columns: dropping unwanted columns and flattening headers if needed.")
+        if flatten_headers and hasattr(dataframe.columns, 'levels'):  # Check for multi-level columns
+            dataframe.columns = ['_'.join(col) for col in dataframe.columns]
+
+        dataframe.columns = [col.lower() for col in dataframe.columns]
+        dataframe.columns = [col.split('_')[-1] if 'level' in col else col for col in dataframe.columns]
+        return dataframe
+    
     def assign_columns(self, dataframe: pd.DataFrame, include_metadata: bool = False, **kwargs):
         """
         Assigns metadata to the given DataFrame by optionally including player name, position, 
@@ -127,14 +140,21 @@ class ProFootballReferenceDataSource(BaseDataSource):
         :return: The player's position as a string.
         """
         try:
-            return next(
-                (tag.get_text().split(":")[1].strip() for tag in self.parser.extract(element="p") if "Position" in tag.get_text()), 
-                "-"
+            pos_text = next(
+                (tag.get_text() for tag in self.parser.extract(element="p") if "Position" in str(tag)), 
+                None
             )
+            if pos_text:
+                pos = pos_text.split()[1]
+                return pos
+            else:
+                return "-"
+        except IndexError:
+            logger.warning("Position text found, but could not extract position.")
+            return "-"
         except Exception as e:
             logger.error(f"Error extracting player position: {e}")
             return "-"
-
 
 if __name__ == "__main__":
     BASE_URL =  "https://www.pro-football-reference.com"
