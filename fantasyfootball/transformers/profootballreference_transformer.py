@@ -12,16 +12,11 @@ class DataFrameTransformMixin:
         self.df = self.df.rename(columns=rename_map)
         return self
 
-    def _clean_columns(self, drop_columns: list = None, flatten_headers: bool = True):
-        """Cleans DataFrame columns."""
-        logger.debug("Cleaning columns: dropping unwanted columns and flattening headers if needed.")
-        if flatten_headers and hasattr(self.df.columns, 'levels'):  # Check for multi-level columns
-            if drop_columns:
-                self.df = self.df.drop(columns=drop_columns, level=1)
-            self.df.columns = ['_'.join(col) for col in self.df.columns]
-
-        self.df.columns = [col.lower() for col in self.df.columns]
-        self.df.columns = [col.split('_')[-1] if 'level' in col else col for col in self.df.columns]
+    def _drop_columns(self, columns: list = None):
+        """Drops columns"""
+        logger.debug("Cleaning columns: dropping unwanted columns.")
+        if columns:
+            self.df = self.df.drop(columns=columns, level=1)
         return self
 
     def _reindex_and_fill(self, column_order: list, fill_value=0, dtype_map: dict = None):
@@ -32,9 +27,24 @@ class DataFrameTransformMixin:
             self.df = self.df.astype(dtype_map)
         return self
     
-    def _drop_invalid_rows(self, col: str = 'rk', value: str = 'Rk'):
-        logger.debug("Droping invalid rows.")
-        condition = self.df[col]==value
+    def _drop_invalid_rows(self, col: str = 'rk', value: str = 'Rk', condition_type: str = 'exact'):
+        """
+        Drops rows based on a condition in the specified column.
+        
+        :param col: The column to apply the condition on.
+        :param value: The value to match or check for in the column.
+        :param condition_type: The type of condition ('exact' or 'contains').
+        :return: The updated transformer object.
+        """
+        logger.debug(f"Dropping invalid rows based on column '{col}' with condition '{condition_type}'.")
+        
+        if condition_type == 'exact':
+            condition = self.df[col] == value
+        elif condition_type == 'contains':
+            condition = self.df[col].str.contains(value, na=False)
+        else:
+            raise ValueError(f"Unsupported condition_type: {condition_type}")
+        
         self.df = self.df.loc[~condition]
         return self
 
@@ -70,7 +80,7 @@ class YearByYearTransformer(DataFrameTransformMixin):
         logger.info("Initializing YearByYearTransformer.")
         self.df = dataframe
 
-    def transform(self, year: int, dataframe: pd.DataFrame = None) -> pd.DataFrame:
+    def transform(self, dataframe: pd.DataFrame = None) -> pd.DataFrame:
         """Performs the entire transformation process."""
         if dataframe is not None:
             self.df = dataframe
@@ -79,9 +89,8 @@ class YearByYearTransformer(DataFrameTransformMixin):
             raise ValueError("No DataFrame set for transformation.")
 
         logger.info("Starting year-by-year transformation process.")
-        self.df['year'] = year
         return (
-            self._clean_columns(drop_columns=['FantPt', 'PPR', 'DKPt', 'FDPt', 'VBD'])
+            self._drop_columns(columns=['FantPt', 'PPR', 'DKPt', 'FDPt', 'VBD'])
                 ._rename_columns(self.COLUMN_RENAME_MAP)
                 ._standardize_player_names()
                 ._reindex_and_fill(self.FINAL_COLUMN_ORDER)
@@ -106,15 +115,16 @@ class GameByGameTransformer(DataFrameTransformMixin):
     COLUMN_RENAME_MAP = {
         '1': 'home/away',
         'Fumbles_Fmb': 'fumbles',
-        'Fumbles_FL': 'fumbles_lost'
+        'Fumbles_FL': 'fumbles_lost',
+        'receiving_ctch%': 'receiving_ctch_pct'
     }
 
     FINAL_COLUMN_ORDER = [
         'date', 'week', 'player_id', 'player_name', 'pos', 'year', 
-        'age', 'tm', 'home/away', 'opp', 'result',
+        'age', 'tm', 'home/away', 'opp', 'result', 'off. snaps_num', 'off. snaps_pct',
         'passing_cmp', 'passing_att', 'passing_yds', 'passing_td', 'passing_int',
         'rushing_att', 'rushing_yds', 'rushing_y/a', 'rushing_td',
-        'receiving_tgt', 'receiving_rec', 'receiving_yds', 'receiving_y/r', 'receiving_td',
+        'receiving_tgt', 'receiving_rec', 'receiving_yds', 'receiving_y/r', 'receiving_td',  'receiving_ctch_pct', 'receiving_y/tgt',
         'fumbles', 'fumbles_lost'
     ]
 
@@ -139,16 +149,34 @@ class GameByGameTransformer(DataFrameTransformMixin):
 
         logger.info("Starting game-by-game transformation process.")
         return (
-            self._clean_columns()
-                ._rename_columns(self.COLUMN_RENAME_MAP)
+            self._rename_columns(self.COLUMN_RENAME_MAP)
                 ._handle_home_away()
                 ._reindex_and_fill(self.FINAL_COLUMN_ORDER)
+                ._drop_invalid_rows(col='date', value='Games', condition_type='contains')
+                ._convert_pct_to_float(cols=['off. snaps_pct', 'receiving_ctch_pct'])
                 .df
         )
 
     def _handle_home_away(self):
         logger.debug("Handling home/away column.")
         self.df['home/away'] = self.df['home/away'].replace({'@': 'Away'}).fillna('Home')
+        return self
+    
+    def _convert_pct_to_float(self, cols: list[str] | str):
+        logger.debug("Converting pct to float.")
+        if isinstance(cols, str):
+            cols = [cols]
+        
+        col_map = {
+            col: lambda x: x[col].str.rstrip('%').astype(float) 
+            for col in cols if col in self.df.columns
+        }
+
+        if len(col_map) < len(cols):
+            missing_cols = set(cols) - set(col_map.keys())
+            logger.warning(f"The following columns were not found: {missing_cols}")
+
+        self.df = self.df.assign(**col_map)
         return self
 
 
