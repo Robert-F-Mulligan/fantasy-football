@@ -27,7 +27,7 @@ class DataFrameTransformMixin:
             self.df = self.df.astype(dtype_map)
         return self
     
-    def _drop_invalid_rows(self, col: str = 'rk', value: str = 'Rk', condition_type: str = 'exact'):
+    def _drop_invalid_rows(self, col: str = 'rk', value: str = None, condition_type: str = 'exact'):
         """
         Drops rows based on a condition in the specified column.
         
@@ -38,14 +38,23 @@ class DataFrameTransformMixin:
         """
         logger.debug(f"Dropping invalid rows based on column '{col}' with condition '{condition_type}'.")
         
-        if condition_type == 'exact':
-            condition = self.df[col] == value
-        elif condition_type == 'contains':
-            condition = self.df[col].str.contains(value, na=False)
-        else:
-            raise ValueError(f"Unsupported condition_type: {condition_type}")
+        if col not in self.df.columns:
+            logger.warning(f"Column '{col}' not found in DataFrame. No rows were dropped.")
+            return self
         
+        condition_functions = {
+        'exact': lambda col: self.df[col] == value,
+        'contains': lambda col: self.df[col].astype(str).str.contains(value, na=False),
+        'na': lambda col: self.df[col].isna()
+        }
+
+        condition_func = condition_functions.get(condition_type)
+        if not condition_func:
+            raise ValueError(f"Unsupported condition_type: {condition_type}. Supported types are: {list(condition_functions.keys())}")
+        
+        condition = condition_func(col)
         self.df = self.df.loc[~condition]
+        logger.debug(f"Rows dropped where '{col}' {condition_type} '{value}'. Remaining rows: {len(self.df)}")
         return self
 
 class YearByYearTransformer(DataFrameTransformMixin):
@@ -72,6 +81,8 @@ class YearByYearTransformer(DataFrameTransformMixin):
         'fantasy_posrank', 'fantasy_ovrank'
     ]
 
+    DROP_COLS = ['fantasy_fantpt', 'fantasy_ppr', 'fantasy_dkpt', 'fantasy_fdpt', 'fantasy_vbd']
+
     def __init__(self, dataframe: pd.DataFrame = None):
         """
         Initializes the transformer with optional DataFrame.
@@ -90,11 +101,11 @@ class YearByYearTransformer(DataFrameTransformMixin):
 
         logger.info("Starting year-by-year transformation process.")
         return (
-            self._drop_columns(columns=['FantPt', 'PPR', 'DKPt', 'FDPt', 'VBD'])
+            self._drop_columns(columns=self.DROP_COLS)
                 ._rename_columns(self.COLUMN_RENAME_MAP)
                 ._standardize_player_names()
                 ._reindex_and_fill(self.FINAL_COLUMN_ORDER)
-                ._drop_invalid_rows()
+                ._drop_invalid_rows(col='rk', value='Rk', condition_type='exact')
                 .df
         )
 
@@ -153,6 +164,7 @@ class GameByGameTransformer(DataFrameTransformMixin):
                 ._handle_home_away()
                 ._reindex_and_fill(self.FINAL_COLUMN_ORDER)
                 ._drop_invalid_rows(col='date', value='Games', condition_type='contains')
+                ._drop_invalid_rows(col='age', condition_type='na')
                 ._convert_pct_to_float(cols=['off. snaps_pct', 'receiving_ctch_pct'])
                 .df
         )
@@ -169,14 +181,15 @@ class GameByGameTransformer(DataFrameTransformMixin):
         
         col_map = {
             col: lambda x: x[col].str.rstrip('%').astype(float) 
-            for col in cols if col in self.df.columns
+            for col in cols 
+            if col in self.df.columns and self.df[col].dtype == 'object'
         }
+        missing_cols = set(cols) - set(col_map.keys())
+        if missing_cols:
+            logger.warning(f"The following columns were not converted (missing or non-string): {missing_cols}")
 
-        if len(col_map) < len(cols):
-            missing_cols = set(cols) - set(col_map.keys())
-            logger.warning(f"The following columns were not found: {missing_cols}")
-
-        self.df = self.df.assign(**col_map)
+        if col_map:
+            self.df = self.df.assign(**col_map)
         return self
 
 
