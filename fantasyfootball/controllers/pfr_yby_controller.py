@@ -41,9 +41,14 @@ class ProFootballReferenceYbYController(BaseController):
     def run_one(self, year: int):
         try:
             endpoint = self.get_endpoint_for_year(year)
+            additional_cols = {
+                    'year': year
+                    }
             
-            df = self.datasource.get_data(endpoint=endpoint, table_id='fantasy')
-            return self.transformer.transform(dataframe=df, year=year)
+            df = (self.datasource.get_data(endpoint=endpoint, table_id='fantasy')
+                      .pipe(self.datasource.assign_columns, include_metadata=False, **additional_cols)
+            )
+            return self.transformer.transform(dataframe=df)
 
         except Exception as e:
             logger.error(f"Failed to process data for year {year}: {e}")
