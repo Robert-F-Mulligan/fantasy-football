@@ -104,7 +104,7 @@ class GameByGameTransformer(DataFrameTransformMixin):
     """Encapsulates transformation logic for game-by-game player data."""
 
     COLUMN_RENAME_MAP = {
-        'Unnamed: 6_level_0_Unnamed: 6_level_1': 'home/away',
+        '1': 'home/away',
         'Fumbles_Fmb': 'fumbles',
         'Fumbles_FL': 'fumbles_lost'
     }
@@ -126,8 +126,11 @@ class GameByGameTransformer(DataFrameTransformMixin):
         logger.info("Initializing GameByGameTransformer.")
         self.df = dataframe
 
-    def transform(self, player_id: int, year: int, player_name: str, pos: str, dataframe: pd.DataFrame = None) -> pd.DataFrame:
-        """Performs the entire transformation process."""
+    def transform(self, dataframe: pd.DataFrame = None) -> pd.DataFrame:
+        """
+        Performs the entire transformation process.
+        player_id, player_name and pos are scraped through HTML and are added at the datasource level
+        """
         if dataframe is not None:
             self.df = dataframe
 
@@ -135,10 +138,6 @@ class GameByGameTransformer(DataFrameTransformMixin):
             raise ValueError("No DataFrame set for transformation.")
 
         logger.info("Starting game-by-game transformation process.")
-        self.df['player_id'] = player_id
-        self.df['year'] = year
-        self.df['player_name'] = player_name
-        self.df['pos'] = pos
         return (
             self._clean_columns()
                 ._rename_columns(self.COLUMN_RENAME_MAP)
@@ -166,11 +165,11 @@ if __name__ == "__main__":
     datasource = ProFootballReferenceDataSource(connector, parser)
 
     with connector:
-        df = datasource.get_data(endpoint='years/2024/fantasy.htm', table_id='fantasy')
-        transformer = YearByYearTransformer(df)
-        df = transformer.transform(2024)
-        print(df.head())
-        df = datasource.get_data(endpoint='years/2023/fantasy.htm', table_id='fantasy')
-        transformer = YearByYearTransformer(df)
-        df = transformer.transform(2024)
+        # df = datasource.get_data(endpoint='years/2024/fantasy.htm', table_id='fantasy')
+        # transformer = YearByYearTransformer(df)
+        # df = transformer.transform(2024)
+        # print(df.head())
+        df = datasource.get_data(endpoint='players/J/JacoJo01/gamelog/2022/', table_id='stats')
+        # transformer = YearByYearTransformer(df)
+        # df = transformer.transform(2024)
         print(df.head())
