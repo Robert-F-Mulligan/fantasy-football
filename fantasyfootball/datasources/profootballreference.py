@@ -1,8 +1,6 @@
 import logging
-from io import StringIO
 import re
 import pandas as pd
-from bs4 import BeautifulSoup
 from fantasyfootball.connectors.requests_connector import RequestsConnector
 from fantasyfootball.parsers.html_parser import HTMLParser
 from fantasyfootball.datasources.base_datasource import BaseDataSource
@@ -18,37 +16,13 @@ class ProFootballReferenceDataSource(BaseDataSource):
         :param parser: An instance of HTMLParser for parsing HTML content.
         """
         super().__init__(connector=connector, parser=parser)
-    
+
     def get_data(self, endpoint: str, table_id: str) -> pd.DataFrame:
-        """
-        Fetches a specific table and returns it as a pandas DataFrame.
-        
-        :param endpoint: The endpoint to fetch the data from.
-        :param table_id: The ID of the HTML table to extract.
-        :return: A pandas DataFrame containing the table data.
-        """
-        try:
-            logger.info(f"Fetching data from endpoint: {endpoint}")
-            html_content = self.connector.fetch(endpoint)
-            self.parser.set_content(html_content)
-            self.parser.parse()
-            table = self.parser.extract(element='table', id=table_id)
-            
-            if table:
-                table_html = str(table)
-                html_buffer = StringIO(table_html)
-                df = (
-                    pd.read_html(html_buffer)[0]
-                    .pipe(self._clean_columns)
-                )
-                logger.info("DataFrame created successfully.")
-                return df
-            else:
-                logger.error(f"Table with ID '{table_id}' not found.")
-                raise ValueError(f"Table with ID '{table_id}' not found.")
-        except Exception as e:
-            logger.error(f"Error in fetching or parsing data: {e}")
-            raise
+        return (
+            self._get_data_from_html(endpoint=endpoint,
+                                       table_id=table_id)
+                .pipe(self._clean_columns)
+        ) 
 
     def get_player_hrefs(self, endpoint: str) -> list[str]:
         """
@@ -89,34 +63,6 @@ class ProFootballReferenceDataSource(BaseDataSource):
         last_name_letter = player_href.split('/')[2]
         player_id = player_href.split('/')[3].rsplit('.', 1)[0]
         return last_name_letter, player_id
-    
-    def _clean_columns(self, dataframe: pd.DataFrame, flatten_headers: bool = True) -> pd.DataFrame:
-        """Cleans DataFrame columns."""
-        logger.debug("Cleaning columns: dropping unwanted columns and flattening headers if needed.")
-        if flatten_headers and hasattr(dataframe.columns, 'levels'):  # Check for multi-level columns
-            dataframe.columns = ['_'.join(col) for col in dataframe.columns]
-
-        dataframe.columns = [col.lower() for col in dataframe.columns]
-        dataframe.columns = [col.split('_')[-1] if 'level' in col else col for col in dataframe.columns]
-        return dataframe
-    
-    def assign_columns(self, dataframe: pd.DataFrame, include_metadata: bool = False, **kwargs):
-        """
-        Assigns metadata to the given DataFrame by optionally including player name, position, 
-        and any additional metadata passed as kwargs.
-        
-        :param dataframe: The DataFrame to augment with metadata.
-        :param include_metadata: Whether to include default metadata (player_name, pos).
-        :param kwargs: Additional metadata to add as columns.
-        :return: The augmented DataFrame with the new columns.
-        """
-        cols = {
-            'player_name': self._extract_player_name(),
-            'pos': self._extract_player_position()
-        } if include_metadata else {}
-
-        cols = {**cols, **kwargs}
-        return dataframe.assign(**cols)
     
     def _extract_player_name(self) -> str:
         """

@@ -46,7 +46,7 @@ class ProFootballReferenceYbYController(BaseController):
                     }
             
             df = (self.datasource.get_data(endpoint=endpoint, table_id='fantasy')
-                      .pipe(self.datasource.assign_columns, include_metadata=False, **additional_cols)
+                      .pipe(self.datasource.assign_columns, **additional_cols)
             )
             return self.transformer.transform(dataframe=df)
 
@@ -91,4 +91,4 @@ def main(start_year: int, end_year: int, sleep: int = 5, output_file: str = "out
             logger.error(f"An error occurred during processing: {e}")
 
 if __name__ == "__main__":
-    main(start_year=2021, end_year=2023, sleep=2)
+    main(start_year=2021, end_year=2023, sleep=5)

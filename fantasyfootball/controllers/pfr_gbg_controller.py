@@ -70,11 +70,13 @@ class ProFootballReferenceGbGCController(BaseController):
 
                 additional_cols = {
                     'player_id': player_id,
-                    'year': year
+                    'year': year,
+                    'player_name': self.datasource._extract_player_name(),
+                    'pos': self.datasource._extract_player_position()
                     }
                 player_table = (self.datasource
                                 .get_data(endpoint=player_endpoint, table_id="stats")
-                                .pipe(self.datasource.assign_columns, include_metadata=True, **additional_cols)
+                                .pipe(self.datasource.assign_columns, **additional_cols)
                 )
 
                 transformed_data = self.transformer.transform(dataframe=player_table)
