@@ -24,7 +24,7 @@ class ProFootballReferenceDataSource(BaseDataSource):
                 .pipe(self._clean_columns)
         ) 
 
-    def get_player_hrefs(self, endpoint: str) -> list[str]:
+    def get_player_hrefs(self, endpoint: str, table_id: str) -> list[str]:
         """
         Extracts player hrefs from the parsed HTML content after setting the content.
         
@@ -37,21 +37,38 @@ class ProFootballReferenceDataSource(BaseDataSource):
             self.parser.set_content(html_content)
             self.parser.parse()
 
-            return self._extract_player_hrefs()
+            return self._extract_player_hrefs(table_id)
         
         except Exception as e:
             logger.error(f"Error in fetching or extracting player hrefs: {e}")
             raise
     
-    def _extract_player_hrefs(self) -> list[str]:
+    def _extract_player_hrefs(self, table_id: str) -> list[str]:
         """
-        Helper method to extract player hrefs from the parsed HTML content.
+        Helper method to extract player hrefs from a specific table in the parsed HTML content.
         
+        :param table_id: The ID of the table containing player hrefs.
         :return: A list of player hrefs extracted from the content.
         """
-        pattern = re.compile(r"^/players/[A-Z]/[A-Za-z]+[0-9]{2}\.htm$")
-        extracted = self.parser.extract(element='a')
-        return [e.get('href') for e in extracted if e.get('href') and pattern.match(e.get('href'))]
+        try:
+            table = self.parser.extract(element='table', id=table_id)
+            if not table:
+                raise ValueError(f"Table with ID '{table_id}' not found.")
+
+            if isinstance(table, list):
+                table = table[0]
+
+            links = table.find_all('a', href=True)
+            
+            pattern = re.compile(r"^/players/[A-Z]/[A-Za-z]+[0-9]{2}\.htm$")
+            player_hrefs = [link.get('href') for link in links if pattern.match(link.get('href'))]
+
+            logger.info(f"Extracted {len(player_hrefs)} player href(s) from table with ID '{table_id}'.")
+            return player_hrefs
+
+        except Exception as e:
+            logger.error(f"Error in extracting player hrefs from table: {e}")
+            raise
 
     def _player_id_transform(self, player_href: str) -> tuple[str, str]:
         """
