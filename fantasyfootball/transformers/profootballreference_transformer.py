@@ -165,6 +165,7 @@ class GameByGameTransformer(DataFrameTransformMixin):
                 ._reindex_and_fill(self.FINAL_COLUMN_ORDER)
                 ._drop_invalid_rows(col='date', value='Games', condition_type='contains')
                 ._drop_invalid_rows(col='age', condition_type='na')
+                ._drop_invalid_rows(col='off. snaps_num', value='Inactive', condition_type='exact')
                 ._convert_pct_to_float(cols=['receiving_ctch_pct'])
                 .df
         )
