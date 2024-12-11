@@ -58,7 +58,7 @@ class ProFootballReferenceGbGCController(BaseController):
         :return: A DataFrame containing the processed data for the year.
         """
         endpoint = self.get_endpoint_for_year(year)
-        player_hrefs = self.datasource.get_player_hrefs(endpoint)
+        player_hrefs = self.datasource.get_player_hrefs(endpoint, table_id='fantasy')
 
         if max_players:
             player_hrefs = player_hrefs[:max_players]
