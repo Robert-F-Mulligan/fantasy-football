@@ -71,9 +71,10 @@ class ProFootballReferenceGbGCController(BaseController):
                 additional_cols = {
                     'player_id': player_id,
                     'year': year,
-                    'player_name': self.datasource._extract_player_name(),
-                    'pos': self.datasource._extract_player_position()
-                    }
+                    'player_name': self.datasource._extract_player_name,
+                    'pos': self.datasource._extract_player_position
+                }
+
                 player_table = (self.datasource
                                 .get_data(endpoint=player_endpoint, table_id="stats")
                                 .pipe(self.datasource.assign_columns, **additional_cols)
@@ -128,4 +129,4 @@ def main(start_year: int, end_year: int, max_players: int = None, sleep: int = 5
             logger.error(f"An error occurred during processing: {e}")
 
 if __name__ == "__main__":
-    main(start_year=2022, end_year=2023, max_players=10, sleep=10)
+    main(start_year=2022, end_year=2022, max_players=4, sleep=10)
