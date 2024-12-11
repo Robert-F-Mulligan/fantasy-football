@@ -49,7 +49,7 @@ if __name__ == "__main__":
             endpoint = 'nfl/projections/qb.php?week=draft&scoring=PPR&week=12'
             raw_html = connector.fetch(endpoint)
             parser = HTMLParser(raw_html)
-            soup = parser.parse()
+            parser.parse()
             tables = parser.extract("table", id="data")
             print(tables)
 
