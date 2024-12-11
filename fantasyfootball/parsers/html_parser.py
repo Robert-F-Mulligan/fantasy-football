@@ -17,7 +17,6 @@ class HTMLParser(BaseParser):
         try:
             self.soup = BeautifulSoup(self.content, self.parser_type)
             logger.info("HTML parsed successfully.")
-            return self.soup
         except Exception as e:
             logger.error(f"Error parsing HTML: {e}")
             raise
@@ -28,7 +27,6 @@ class HTMLParser(BaseParser):
             raise RuntimeError("Content must be parsed before extracting data.")
         
         try:
-            print(dict(**kwargs))
             extracted = self.soup.find_all(element, **kwargs)
             logger.info(f"Extracted {len(extracted)} elements of type '{element}'.")
             return extracted
