@@ -61,7 +61,7 @@ class BaseDataSource(ABC):
         dataframe.columns = [col.split('_')[-1] if 'level' in col else col for col in dataframe.columns]
         return dataframe
     
-    def assign_columns(self, dataframe: pd.DataFrame, **cols):
+    def assign_columns(self, dataframe: pd.DataFrame, **columns):
         """
         Assigns metadata to the given DataFrame by optionally including player name, position, 
         and any additional metadata passed as kwargs.
@@ -70,4 +70,10 @@ class BaseDataSource(ABC):
         :param cols: Additional metadata to add as columns.
         :return: The augmented DataFrame with the new columns.
         """
-        return dataframe.assign(**cols)
+        evaluated_columns = {}
+        for key, value in columns.items():
+            if callable(value): 
+                evaluated_columns[key] = value()  # Call the method and store the result
+            else:
+                evaluated_columns[key] = value  # If not callable, keep the value as is
+        return dataframe.assign(**evaluated_columns)
