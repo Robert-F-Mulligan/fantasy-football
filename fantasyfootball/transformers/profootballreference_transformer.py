@@ -7,27 +7,6 @@ logger = logging.getLogger(__name__)
 class DataFrameTransformMixin:
     """Mixin for shared DataFrame transformation logic."""
 
-    def _rename_columns(self, rename_map: dict):
-        """Renames columns based on a provided mapping."""
-        logger.debug("Renaming columns using provided map.")
-        self.df = self.df.rename(columns=rename_map)
-        return self
-
-    def _drop_columns(self, columns: list = None):
-        """Drops columns"""
-        logger.debug("Cleaning columns: dropping unwanted columns.")
-        if columns:
-            self.df = self.df.drop(columns=columns)
-        return self
-
-    def _reindex_and_fill(self, column_order: list, fill_value=0, dtype_map: dict = None):
-        """Reorders columns, fills missing values, and casts data types."""
-        logger.debug("Reindexing columns and filling missing values.")
-        self.df = self.df.reindex(columns=column_order, fill_value=fill_value).fillna(fill_value)
-        if dtype_map:
-            self.df = self.df.astype(dtype_map)
-        return self
-    
     def _drop_invalid_rows(self, col: str = 'rk', value: str = None, condition_type: str = 'exact'):
         """
         Drops rows based on a condition in the specified column.
