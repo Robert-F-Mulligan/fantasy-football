@@ -1,5 +1,6 @@
 import pandas as pd
 import logging
+from fantasyfootball.transformers.base_transformer import BaseTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ class DataFrameTransformMixin:
         logger.debug(f"Rows dropped where '{col}' {condition_type} '{value}'. Remaining rows: {len(self.df)}")
         return self
 
-class YearByYearTransformer(DataFrameTransformMixin):
+class YearByYearTransformer(BaseTransformer, DataFrameTransformMixin):
     """Encapsulates transformation logic for year-by-year player data."""
 
     COLUMN_RENAME_MAP = {
@@ -120,7 +121,7 @@ class YearByYearTransformer(DataFrameTransformMixin):
         return self
     
     
-class GameByGameTransformer(DataFrameTransformMixin):
+class GameByGameTransformer(BaseTransformer, DataFrameTransformMixin):
     """Encapsulates transformation logic for game-by-game player data."""
 
     COLUMN_RENAME_MAP = {
