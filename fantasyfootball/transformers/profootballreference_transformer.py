@@ -18,14 +18,14 @@ class DataFrameTransformMixin:
         """
         logger.debug(f"Dropping invalid rows based on column '{col}' with condition '{condition_type}'.")
         
-        if col not in self.df.columns:
+        if col not in self.dataframe.columns:
             logger.warning(f"Column '{col}' not found in DataFrame. No rows were dropped.")
             return self
         
         condition_functions = {
-        'exact': lambda col: self.df[col] == value,
-        'contains': lambda col: self.df[col].astype(str).str.contains(value, na=False),
-        'na': lambda col: self.df[col].isna()
+        'exact': lambda col: self.dataframe[col] == value,
+        'contains': lambda col: self.dataframe[col].astype(str).str.contains(value, na=False),
+        'na': lambda col: self.dataframe[col].isna()
         }
 
         condition_func = condition_functions.get(condition_type)
@@ -33,8 +33,8 @@ class DataFrameTransformMixin:
             raise ValueError(f"Unsupported condition_type: {condition_type}. Supported types are: {list(condition_functions.keys())}")
         
         condition = condition_func(col)
-        self.df = self.df.loc[~condition]
-        logger.debug(f"Rows dropped where '{col}' {condition_type} '{value}'. Remaining rows: {len(self.df)}")
+        self.dataframe = self.dataframe.loc[~condition]
+        logger.debug(f"Rows dropped where '{col}' {condition_type} '{value}'. Remaining rows: {len(self.dataframe)}")
         return self
 
 class YearByYearTransformer(BaseTransformer, DataFrameTransformMixin):
@@ -69,14 +69,14 @@ class YearByYearTransformer(BaseTransformer, DataFrameTransformMixin):
         :param dataframe: The DataFrame to transform (optional).
         """
         logger.info("Initializing YearByYearTransformer.")
-        self.df = dataframe
+        super().__init__(dataframe)
 
     def transform(self, dataframe: pd.DataFrame = None) -> pd.DataFrame:
         """Performs the entire transformation process."""
         if dataframe is not None:
-            self.df = dataframe
+            self.dataframe = dataframe
 
-        if self.df is None:
+        if self.dataframe is None:
             raise ValueError("No DataFrame set for transformation.")
 
         logger.info("Starting year-by-year transformation process.")
@@ -86,13 +86,13 @@ class YearByYearTransformer(BaseTransformer, DataFrameTransformMixin):
                 ._standardize_player_names()
                 ._reindex_and_fill(self.FINAL_COLUMN_ORDER)
                 ._drop_invalid_rows(col='rk', value='Rk', condition_type='exact')
-                .df
+                .dataframe
         )
 
     def _standardize_player_names(self):
         logger.debug("Standardizing player names.")
-        self.df['player_name'] = (
-            self.df['player_name']
+        self.dataframe['player_name'] = (
+            self.dataframe['player_name']
             .str.split('*').str[0]
             .str.split('+').str[0]
         )
@@ -125,7 +125,7 @@ class GameByGameTransformer(BaseTransformer, DataFrameTransformMixin):
         :param dataframe: The DataFrame to transform (optional).
         """
         logger.info("Initializing GameByGameTransformer.")
-        self.df = dataframe
+        super().__init__(dataframe)
 
     def transform(self, dataframe: pd.DataFrame = None) -> pd.DataFrame:
         """
@@ -133,9 +133,9 @@ class GameByGameTransformer(BaseTransformer, DataFrameTransformMixin):
         player_id, player_name and pos are scraped through HTML and are added at the datasource level
         """
         if dataframe is not None:
-            self.df = dataframe
+            self.dataframe = dataframe
 
-        if self.df is None:
+        if self.dataframe is None:
             raise ValueError("No DataFrame set for transformation.")
 
         logger.info("Starting game-by-game transformation process.")
@@ -147,12 +147,12 @@ class GameByGameTransformer(BaseTransformer, DataFrameTransformMixin):
                 ._drop_invalid_rows(col='age', condition_type='na')
                 ._drop_invalid_rows(col='off. snaps_num', value='Inactive', condition_type='exact')
                 ._convert_pct_to_float(cols=['receiving_ctch_pct'])
-                .df
+                .dataframe
         )
 
     def _handle_home_away(self):
         logger.debug("Handling home/away column.")
-        self.df['home/away'] = self.df['home/away'].replace({'@': 'Away'}).fillna('Home')
+        self.dataframe['home/away'] = self.dataframe['home/away'].replace({'@': 'Away'}).fillna('Home')
         return self
     
     def _convert_pct_to_float(self, cols: list[str] | str):
@@ -163,14 +163,14 @@ class GameByGameTransformer(BaseTransformer, DataFrameTransformMixin):
         col_map = {
             col: lambda x: x[col].str.rstrip('%').astype(float) 
             for col in cols 
-            if col in self.df.columns and self.df[col].dtype == 'object'
+            if col in self.dataframe.columns and self.dataframe[col].dtype == 'object'
         }
         missing_cols = set(cols) - set(col_map.keys())
         if missing_cols:
             logger.warning(f"The following columns were not converted (missing or non-string): {missing_cols}")
 
         if col_map:
-            self.df = self.df.assign(**col_map)
+            self.dataframe = self.dataframe.assign(**col_map)
         return self
 
 
