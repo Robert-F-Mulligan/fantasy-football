@@ -35,13 +35,29 @@ class BaseTransformer(ABC):
         logger.debug("Cleaning columns: dropping unwanted columns.")
         if columns:
             self.dataframe = self.dataframe.drop(columns=columns)
+
         return self
 
     def _reindex_and_fill(self, column_order: list, fill_value=0, dtype_map: dict = None):
         """Reorders columns, fills missing values, and casts data types."""
         logger.debug("Reindexing columns and filling missing values.")
-        self.dataframe = self.dataframe.reindex(columns=column_order, fill_value=fill_value).fillna(fill_value)
+        self.dataframe = (self.dataframe
+                          .reindex(columns=column_order, fill_value=fill_value)
+                          .infer_objects(copy=False)
+                          .fillna(fill_value)
+        )
         if dtype_map:
             self.dataframe = self.dataframe.astype(dtype_map)
+        return self
+    
+    def _drop_rows(self, condition: pd.Series):
+        """
+        Drops rows that meet the passed condition.
+        :param condition: A pandas Series with boolean values indicating rows to drop.
+        """
+        if not isinstance(condition, pd.Series):
+            raise ValueError("Condition must be a pandas Series.")
+        logger.debug(f"Dropping rows that meet {condition}")
+        self.dataframe = self.dataframe.loc[~condition]
         return self
     
