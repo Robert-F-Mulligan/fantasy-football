@@ -8,9 +8,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from fantasyfootball.connectors.base_connector import BaseConnector
 from fantasyfootball.utils.retry_decorator import retry_decorator
+from fantasyfootball.factories.connector_factory import ConnectorFactory
 
 logger = logging.getLogger(__name__)
 
+@ConnectorFactory.register("selenium")
 class SeleniumConnector(BaseConnector):
     def __init__(self, base_url: str, driver_path: str, headless: bool = True):
         super().__init__(base_url)

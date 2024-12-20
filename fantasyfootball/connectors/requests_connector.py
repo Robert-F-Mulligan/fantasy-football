@@ -2,9 +2,11 @@ import logging
 import requests
 from fantasyfootball.connectors.base_connector import BaseConnector
 from fantasyfootball.utils.retry_decorator import retry_decorator
+from fantasyfootball.factories.connector_factory import ConnectorFactory
 
 logger = logging.getLogger(__name__)
 
+@ConnectorFactory.register("requests")
 class RequestsConnector(BaseConnector):
     def __init__(self, base_url: str = None, headers: dict = None, timeout: int = 10):
         """
