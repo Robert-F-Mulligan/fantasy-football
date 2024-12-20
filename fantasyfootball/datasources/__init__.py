@@ -1,11 +1,18 @@
 from pathlib import Path
 import pkgutil
 import importlib
+import logging
 
-# Determine the directory containing this __init__.py file
+# Setup logging
+logger = logging.getLogger(__name__)
+
+# Directory containing this __init__.py file
 directory = Path(__file__).parent
 
-# Iterate over all modules in the directory and import them
+# Dynamically import all modules
 for _, module_name, _ in pkgutil.iter_modules([str(directory)]):
-    # Import the module, which will execute its top-level code including class registrations
-    importlib.import_module(f'.{module_name}', __name__)
+    try:
+        logger.debug(f"Importing module: {module_name}")
+        importlib.import_module(f'.{module_name}', __name__)
+    except Exception as e:
+        logger.error(f"Failed to import {module_name}: {e}")
