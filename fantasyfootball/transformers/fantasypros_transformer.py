@@ -135,7 +135,7 @@ class DraftTransfomer(BaseTransformer):
 
     COLUMN_RENAME_MAP = {
         'player name': 'player_name',
-        'sos': 'strength_of_schedule',
+        'sos season': 'strength_of_schedule',
         'ecr vs adp': 'ecr_vs_adp',
     }
 
