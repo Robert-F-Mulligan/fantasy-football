@@ -1,9 +1,11 @@
 import logging
-from fantasyfootball.parsers.base_parser import BaseParser
 from bs4 import BeautifulSoup
+from fantasyfootball.parsers.base_parser import BaseParser
+from fantasyfootball.factories.parser_factory import ParserFactory
 
 logger = logging.getLogger(__name__)
 
+@ParserFactory.register("html")
 class HTMLParser(BaseParser):
     def __init__(self, parser_type: str = "html.parser"):
         super().__init__()
