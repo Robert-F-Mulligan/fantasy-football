@@ -1,0 +1,55 @@
+{
+    "datasources": {
+        "fantasypros": {
+            "base_url": "https://www.fantasypros.com",
+            "connector": "selenium",
+            "parser": "html",
+            "datasets": {
+                "projections": {
+                    "datasource": "fantasypros",
+                    "table_id": "data",
+                    "endpoint_template": "nfl/projections/{position}.php?week=draft&scoring=PPR&week={week}",
+                    "transformer": "fantasy_pros_projections",
+                    "strategy": "fantasypros",
+                    "positions": ["qb", "rb", "wr", "te"]
+                },
+                "weekly_rank": {
+                    "datasource": "fantasypros",
+                    "table_id": "ranking-table",
+                    "endpoint_template": "nfl/rankings/ppr-{position}.php",
+                    "transformer": "fantasy_pros_rankings",
+                    "strategy": "fantasypros",
+                    "positions": ["qb", "rb", "wr", "te"]
+                },
+                "draft": {
+                    "datasource": "fantasypros",
+                    "table_id": "ranking-table",
+                    "endpoint_template": "nfl/rankings/ppr-cheatsheets.php",
+                    "transformer": "fantasy_pros_draft",
+                    "strategy": "fantasypros"
+                }
+            }
+        },
+        "profootballreference": {
+            "base_url": "https://www.pro-football-reference.com",
+            "connector": "requests",
+            "parser": "html",
+            "datasets": {
+                "year_by_year": {
+                    "datasource": "profootballreference",
+                    "table_id": "fantasy",
+                    "endpoint_template": "years/{year}/fantasy.htm",
+                    "transformer": "prf_year_by_year",
+                    "strategy": "year_by_year"
+                },
+                "game_by_game": {
+                    "datasource": "profootballreference",
+                    "table_id": "stats",
+                    "endpoint_template": "years/{year}/{position}.htm",
+                    "transformer": "prf_game_by_game",
+                    "strategy": "game_by_game"
+                }
+            }
+        }
+    }
+}
