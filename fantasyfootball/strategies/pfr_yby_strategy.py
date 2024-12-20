@@ -2,11 +2,12 @@ import logging
 import time
 from typing import Iterable
 import pandas as pd
-from fantasyfootball.controllers.base_controller import BaseController
+from fantasyfootball.strategies.base_strategy import BaseStrategy
 from fantasyfootball.connectors.requests_connector import RequestsConnector
 from fantasyfootball.transformers.profootballreference_transformer import YearByYearTransformer
 from fantasyfootball.parsers.html_parser import HTMLParser
 from fantasyfootball.datasources.profootballreference import ProFootballReferenceDataSource
+from fantasyfootball.factories.strategy_factory import StrategyFactory
 from fantasyfootball.utils.logging_config import setup_logging
 
 setup_logging()
@@ -15,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 BASE_URL =  "https://www.pro-football-reference.com"
 
-class ProFootballReferenceYbYController(BaseController):
+@StrategyFactory.register('year_by_year')
+class ProFootballReferenceYbYStrategy(BaseStrategy):
     def __init__(self, datasource: ProFootballReferenceDataSource, transformer: YearByYearTransformer):
         """
         Initializes the controller with the base URL and endpoints.
@@ -76,7 +78,7 @@ def main(start_year: int, end_year: int, sleep: int = 5, output_file: str = "out
         parser = HTMLParser()
         datasource = ProFootballReferenceDataSource(connector=conn, parser=parser)
         transformer = YearByYearTransformer()
-        controller = ProFootballReferenceYbYController(datasource=datasource, transformer=transformer)
+        controller = ProFootballReferenceYbYStrategy(datasource=datasource, transformer=transformer)
 
         try:
             logger.info(f"Starting data processing for years {start_year} to {end_year}...")
