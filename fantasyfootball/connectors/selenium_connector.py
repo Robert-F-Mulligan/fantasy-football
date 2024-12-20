@@ -12,11 +12,13 @@ from fantasyfootball.factories.connector_factory import ConnectorFactory
 
 logger = logging.getLogger(__name__)
 
+DRIVER_PATH = r'C:\Users\rmull\python-projects\fantasy-football\chrome-driver\chromedriver.exe'
+
 @ConnectorFactory.register("selenium")
 class SeleniumConnector(BaseConnector):
-    def __init__(self, base_url: str, driver_path: str, headless: bool = True):
+    def __init__(self, base_url: str, headless: bool = True):
         super().__init__(base_url)
-        self.driver_path = driver_path
+        self.driver_path = DRIVER_PATH
         self.headless = headless
         self.driver = None
 
@@ -67,11 +69,10 @@ if __name__ == "__main__":
 
     setup_logging()
 
-    driver_path = r'C:\Users\rmull\python-projects\fantasy-football\chrome-driver\chromedriver.exe' 
     base_url = 'https://www.fantasypros.com'
     endpoint = 'nfl/projections/qb.php?week=draft&scoring=PPR&week=12'
     
-    with SeleniumConnector(base_url=base_url, driver_path=driver_path) as connector:
+    with SeleniumConnector(base_url=base_url) as connector:
         try:
             html_content = connector.fetch(endpoint, table_id='data')
             print(type(html_content))
