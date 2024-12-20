@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
 from fantasyfootball.transformers.base_transformer import BaseTransformer
+from fantasyfootball.factories.transformer_factory import TransformerFactory
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class DataFrameTransformMixin:
         logger.debug(f"Rows dropped where '{col}' {condition_type} '{value}'. Remaining rows: {len(self.dataframe)}")
         return self
 
+@TransformerFactory.register('prf_year_by_year')
 class YearByYearTransformer(BaseTransformer, DataFrameTransformMixin):
     """Encapsulates transformation logic for year-by-year player data."""
 
@@ -99,7 +101,8 @@ class YearByYearTransformer(BaseTransformer, DataFrameTransformMixin):
         logger.debug("Player names standardized.")
         return self
     
-    
+
+@TransformerFactory.register('prf_game_by_game')    
 class GameByGameTransformer(BaseTransformer, DataFrameTransformMixin):
     """Encapsulates transformation logic for game-by-game player data."""
 

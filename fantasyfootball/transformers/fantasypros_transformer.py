@@ -1,9 +1,11 @@
 import pandas as pd
 import logging
 from fantasyfootball.transformers.base_transformer import BaseTransformer
+from fantasyfootball.factories.transformer_factory import TransformerFactory
 
 logger = logging.getLogger(__name__)
 
+@TransformerFactory.register('fantasy_pros_rankings')
 class RankingsTransfomer(BaseTransformer):
     """Encapsulates transformation logic for ranking data."""
 
@@ -72,7 +74,7 @@ class RankingsTransfomer(BaseTransformer):
         )
         return self
     
-    
+@TransformerFactory.register('fantasy_pros_projections')
 class ProjectionsTransfomer(BaseTransformer):
     """Encapsulates transformation logic for ranking data."""
 
@@ -127,7 +129,7 @@ class ProjectionsTransfomer(BaseTransformer):
         logger.debug("Player names standardized and pos column has been created.")
         return self
 
-
+@TransformerFactory.register('fantasy_pros_draft')
 class DraftTransfomer(BaseTransformer):
     """Encapsulates transformation logic for draft rankings data."""
 

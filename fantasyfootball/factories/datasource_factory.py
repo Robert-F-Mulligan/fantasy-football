@@ -4,7 +4,7 @@ from fantasyfootball.factories.base_factory import BaseFactory
 
 logger = logging.getLogger(__name__)
 
-class ConnectorFactory(BaseFactory):
+class DatasourceFactory(BaseFactory):
     """
     Factory object used to separate connector creation from use.
 

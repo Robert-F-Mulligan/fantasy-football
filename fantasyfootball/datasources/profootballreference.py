@@ -4,9 +4,11 @@ import pandas as pd
 from fantasyfootball.connectors.requests_connector import RequestsConnector
 from fantasyfootball.parsers.html_parser import HTMLParser
 from fantasyfootball.datasources.base_datasource import BaseDataSource
+from fantasyfootball.factories.datasource_factory import DatasourceFactory
 
 logger = logging.getLogger(__name__)
 
+@DatasourceFactory.register("profootballreference")
 class ProFootballReferenceDataSource(BaseDataSource):
     def __init__(self, connector: RequestsConnector, parser: HTMLParser):
         """
