@@ -135,7 +135,7 @@ class DraftTransfomer(BaseTransformer):
 
     COLUMN_RENAME_MAP = {
         'player name': 'player_name',
-        'sos season': 'strength_of_schedule',
+        'sos': 'strength_of_schedule',
         'ecr vs adp': 'ecr_vs_adp',
     }
 
@@ -201,8 +201,7 @@ if __name__ == "__main__":
     setup_logging()
     
     BASE_URL =  'https://www.fantasypros.com'
-    DRIVER_PATH = r'C:\Users\rmull\python-projects\fantasy-football\chrome-driver\chromedriver.exe'
-    connector = SeleniumConnector(BASE_URL, driver_path=DRIVER_PATH)
+    connector = SeleniumConnector(BASE_URL)
     parser =  HTMLParser()
     pos = 'qb'
 
