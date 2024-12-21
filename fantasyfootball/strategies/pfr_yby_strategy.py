@@ -8,46 +8,62 @@ from fantasyfootball.transformers.profootballreference_transformer import YearBy
 from fantasyfootball.parsers.html_parser import HTMLParser
 from fantasyfootball.datasources.profootballreference import ProFootballReferenceDataSource
 from fantasyfootball.factories.strategy_factory import StrategyFactory
-from fantasyfootball.utils.logging_config import setup_logging
-
-setup_logging()
+import fantasyfootball.connectors # register connectors
+from fantasyfootball.factories.connector_factory import ConnectorFactory
+import fantasyfootball.datasources # register datasources
+from fantasyfootball.factories.datasource_factory import DatasourceFactory
+import fantasyfootball.transformers # register transformers
+from fantasyfootball.factories.transformer_factory import TransformerFactory
+import fantasyfootball.parsers # register parsers
+from fantasyfootball.factories.parser_factory import ParserFactory
 
 logger = logging.getLogger(__name__)
 
-BASE_URL =  "https://www.pro-football-reference.com"
-
 @StrategyFactory.register('year_by_year')
 class ProFootballReferenceYbYStrategy(BaseStrategy):
-    def __init__(self, datasource: ProFootballReferenceDataSource, transformer: YearByYearTransformer):
+    def __init__(self, datasource_config: dict, dataset_config: dict):
         """
         Initializes the controller with the base URL and endpoints.
         
         :param base_url: Base URL for Pro Football Reference.
         :param endpoints: Dictionary mapping endpoint paths to table IDs.
         """
-        self.datasource = datasource
-        self.transformer = transformer
+        self.datasource_config = datasource_config
+        self.dataset_config = dataset_config
         self.all_data = []
 
     def run(self, years: int | Iterable[int], sleep: int = 5):
         if isinstance(years, int):
             years = [years]
-        for year in years:
-            year_df = self.run_one(year)
-            if not year_df.empty:
-                self.all_data.append(year_df)
-            time.sleep(sleep)
-        
-        return pd.concat(self.all_data, ignore_index=True) if self.all_data else pd.DataFrame()
+
+        self.parse_config()
+
+        logger.info(f"Starting data processing for years {years}...")
+
+        with self.connector as connector:
+            self.datasource = DatasourceFactory.create(self.dataset_config['datasource'],
+                                                       connector=connector, 
+                                                       parser=self.parser)
+
+            for year in years:
+                year_df = self.run_one(year)
+                if not year_df.empty:
+                    self.all_data.append(year_df)
+                time.sleep(sleep)
+            
+            df = pd.concat(self.all_data, ignore_index=True) if self.all_data else pd.DataFrame()
+
+            logger.info(f"Returning a DataFrame with shape: {df.shape}")
+            return df
 
     def run_one(self, year: int):
         try:
-            endpoint = self.get_endpoint_for_year(year)
+            endpoint = self.endpoint_template.format(year=year)
             additional_cols = {
                     'year': year
                     }
             
-            df = (self.datasource.get_data(endpoint=endpoint, table_id='fantasy')
+            df = (self.datasource.get_data(endpoint=endpoint, table_id=self.table_id)
                       .pipe(self.datasource.assign_columns, **additional_cols)
             )
             return self.transformer.transform(dataframe=df)
@@ -58,39 +74,46 @@ class ProFootballReferenceYbYStrategy(BaseStrategy):
         
     def get_endpoint_for_year(self, year: int) -> str:
         """Generate the endpoint URL for a specific year."""
-        return f"years/{year}/fantasy.htm" 
+        return f"years/{year}/fantasy.htm"
+    
+    def parse_config(self) -> None:
+        """
+        Parses the configuration for a specific dataset.
 
-def main(start_year: int, end_year: int, sleep: int = 5, output_file: str = "output.csv"):
-    """
-    Main function to process data for a range of years and save the result to a CSV file.
-
-    :param start_year: Starting year of the range.
-    :param end_year: Ending year of the range.
-    :param sleep: Time to wait (in seconds) between requests to avoid rate-limiting.
-    :param output_file: Name of the file to save the output.
-    """
-
-    years = range(start_year, end_year + 1)
-
-    connector = RequestsConnector(base_url=BASE_URL)
-
-    with connector as conn:
-        parser = HTMLParser()
-        datasource = ProFootballReferenceDataSource(connector=conn, parser=parser)
-        transformer = YearByYearTransformer()
-        controller = ProFootballReferenceYbYStrategy(datasource=datasource, transformer=transformer)
-
-        try:
-            logger.info(f"Starting data processing for years {start_year} to {end_year}...")
-            final_df = controller.run(years=years, sleep=sleep)
-
-            if not final_df.empty:
-                final_df.to_csv(output_file, index=False)
-                logger.info(f"Data successfully saved to {output_file}.")
-            else:
-                logger.warning("No data to save. The resulting DataFrame is empty.")
-        except Exception as e:
-            logger.error(f"An error occurred during processing: {e}")
+        :raises ValueError: If the dataset name is not in the configuration.
+        """
+        # datasource configuration
+        self.base_url = self.datasource_config['base_url']
+        self.connector = ConnectorFactory.create(self.datasource_config['connector'],
+                                                 base_url=self.base_url)
+        self.parser = ParserFactory.create(self.datasource_config['parser'])
+        
+        # dataset configuration
+        self.transformer = TransformerFactory.create(self.dataset_config['transformer'])
+        self.table_id = self.dataset_config['table_id']
+        self.endpoint_template = self.dataset_config['endpoint_template']
+        logger.info(f"Parsed configuration for dataset")
 
 if __name__ == "__main__":
-    main(start_year=2021, end_year=2023, sleep=5)
+    # main(start_year=2021, end_year=2023, sleep=5)
+    from fantasyfootball.utils.logging_config import setup_logging
+
+    # setup_logging()
+
+    datasource_config = {
+            "base_url": "https://www.pro-football-reference.com",
+            "connector": "requests",
+            "parser": "html"
+        }
+    dataset_config = {
+            "datasource": "profootballreference",
+            "table_id": "fantasy",
+            "endpoint_template": "years/{year}/fantasy.htm",
+            "transformer": "prf_year_by_year",
+            "strategy": "year_by_year"
+        }
+    strat = ProFootballReferenceYbYStrategy(datasource_config=datasource_config,
+                                dataset_config=dataset_config)
+    
+    df = strat.run(2023)
+    df.to_csv("yby_test.csv", index=False)
