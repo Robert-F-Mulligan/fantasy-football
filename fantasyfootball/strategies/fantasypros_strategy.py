@@ -3,14 +3,6 @@ from typing import Optional
 import pandas as pd
 from fantasyfootball.strategies.base_strategy import BaseStrategy
 from fantasyfootball.factories.strategy_factory import StrategyFactory
-import fantasyfootball.connectors # register connectors
-from fantasyfootball.factories.connector_factory import ConnectorFactory
-import fantasyfootball.datasources # register datasources
-from fantasyfootball.factories.datasource_factory import DatasourceFactory
-import fantasyfootball.transformers # register transformers
-from fantasyfootball.factories.transformer_factory import TransformerFactory
-import fantasyfootball.parsers # register parsers
-from fantasyfootball.factories.parser_factory import ParserFactory
 
 logger = logging.getLogger(__name__)
 
@@ -35,14 +27,8 @@ class FantasyProsStrategy(BaseStrategy):
         :param week: Optional week number for weekly datasets.
         :return: A concatenated DataFrame containing all processed data.
         """
-        self.parse_config()
-
         with self.connector as connector:
-            self.datasource = DatasourceFactory.create(self.dataset_config['datasource'],
-                                                       connector=connector,
-                                                       parser=self.parser)
-
-            if self.positions:
+            if hasattr(self, "positions") and self.positions:
                 for pos in self.positions:
                     try:
                         logger.info(f"Processing position: {pos}")
@@ -72,7 +58,7 @@ class FantasyProsStrategy(BaseStrategy):
                 logger.warning(f"No data collected for dataset")
                 return pd.DataFrame()
             
-    def get_data(self, endpoint: str, table_id: str, **cols) -> pd.DataFrame:
+    def get_data(self, connector, endpoint: str, table_id: str, **cols) -> pd.DataFrame:
         """
         Fetches and transforms data from the datasource.
 
@@ -83,31 +69,15 @@ class FantasyProsStrategy(BaseStrategy):
         """
         logger.debug(f"Fetching data from endpoint: {endpoint}")
         
-        raw_data = self.datasource.get_data(endpoint=endpoint, table_id=table_id)
+        raw_data = self.datasource.get_data(connector=connector,
+                                            endpoint=endpoint, 
+                                            table_id=table_id,
+                                            parser=self.parser)
         raw_data = raw_data.assign(**cols) if cols else raw_data
         
         transformed_data = self.transformer.transform(raw_data)
         logger.info(f"Transformed data successfully")
         return transformed_data
-    
-    def parse_config(self) -> None:
-        """
-        Parses the configuration for a specific dataset.
-
-        :raises ValueError: If the dataset name is not in the configuration.
-        """
-        # datasource configuration
-        self.base_url = self.datasource_config['base_url']
-        self.connector = ConnectorFactory.create(self.datasource_config['connector'],
-                                                 base_url=self.base_url)
-        self.parser = ParserFactory.create(self.datasource_config['parser'])
-        
-        # dataset configuration
-        self.transformer = TransformerFactory.create(self.dataset_config['transformer'])
-        self.table_id = self.dataset_config['table_id']
-        self.endpoint_template = self.dataset_config['endpoint_template']
-        self.positions = self.dataset_config.get('positions')
-        logger.info(f"Parsed configuration for dataset")
 
     
 if __name__ == "__main__":
@@ -132,13 +102,4 @@ if __name__ == "__main__":
     
     df = strat.run()
     print(df.head())
-#     valid_keys = list(FANTASY_PROS_CONFIG.keys())
-
-#     user_input = input(f"Enter one of the following keys: {', '.join(valid_keys)}: ")
-
-#     while user_input not in valid_keys:
-#         logger.error("Invalid key entered. Please choose a valid option.")
-#         user_input = input(f"Enter one of the following keys: {', '.join(valid_keys)}: ")
-
-#     main(user_input)
 
