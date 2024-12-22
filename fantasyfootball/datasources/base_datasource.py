@@ -67,7 +67,7 @@ class BaseDataSource(ABC):
         dataframe.columns = [col.split('_')[-1] if 'level' in col else col for col in dataframe.columns]
         return dataframe
     
-    def assign_columns(self, dataframe: pd.DataFrame, **columns):
+    def assign_columns(self, dataframe: pd.DataFrame, **columns: dict) -> pd.DataFrame:
         """
         Assigns metadata to the given DataFrame by optionally including player name, position, 
         and any additional metadata passed as kwargs.
