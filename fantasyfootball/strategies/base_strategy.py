@@ -35,35 +35,34 @@ class BaseStrategy(ABC):
         'endpoint_template': lambda cfg: cfg.get('endpoint_template'),
     }
 
-    def __init__(self, datasource_config: dict, dataset_config: dict, **kwargs):
+    def __init__(self, combined_config: dict, **kwargs):
         """
-        Initialize the strategy with its configuration.
-        :param datasource_config: Configuration specific to the data source.
-        :param dataset_config: Configuration specific to the dataset.
+        Initialize the strategy with its combined configuration.
+        :param combined_config: The combined configuration for the datasource and dataset.
         :param kwargs: Additional parameters for the strategy (optional).
         """
-        self.datasource_config = datasource_config
-        self.dataset_config = dataset_config
+        self.combined_config = combined_config
         self.kwargs = kwargs
         self._load_config()
 
     @abstractmethod
-    def run(self) -> pd.DataFrame:
+    def run(self, **kwargs) -> pd.DataFrame:
         """Execute the strategy and return the data."""
         pass
 
     def _load_config(self):
         """
         Dynamically loads configuration using the factory mapping.
-        Loads both datasource and dataset configurations based on the factory mapping.
         """
         for attr_name, factory_func in self.factory_mapping.items():
-            value = factory_func(self.datasource_config) or factory_func(self.dataset_config)
+            value = factory_func(self.combined_config)
             setattr(self, attr_name, value)
 
-        additional_attrs = {key: value for key, value in self.dataset_config.items() if key not in self.factory_mapping}
+        # Load additional attributes from the combined config
+        additional_attrs = {key: value for key, value in self.combined_config.items() if key not in self.factory_mapping}
         for key, value in additional_attrs.items():
             setattr(self, key, value)
+
 
 if __name__ == "__main__":
     from fantasyfootball.utils.logging_config import setup_logging
