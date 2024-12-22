@@ -16,15 +16,15 @@ logger = logging.getLogger(__name__)
 
 @StrategyFactory.register("fantasypros")
 class FantasyProsStrategy(BaseStrategy):
-    def __init__(self, datasource_config: dict, dataset_config: dict):
+    def __init__(self, datasource_config, dataset_config):
+        super().__init__(datasource_config, dataset_config)
         """
         Initializes the controller with the base URL and endpoints.
         
         :param base_url: Base URL for Pro Football Reference.
         :param endpoints: Dictionary mapping endpoint paths to table IDs.
         """
-        self.datasource_config = datasource_config
-        self.dataset_config = dataset_config
+
         self.all_data = []
 
     def run(self, week: Optional[int] = 1) -> pd.DataFrame:

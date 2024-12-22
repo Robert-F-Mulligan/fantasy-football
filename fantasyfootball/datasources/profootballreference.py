@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 @DatasourceFactory.register("profootballreference")
 class ProFootballReferenceDataSource(BaseDataSource):
-    def __init__(self, connector: RequestsConnector, parser: HTMLParser):
+    def __init__(self, connector: RequestsConnector=None, parser: HTMLParser=None):
         """
         Initializes the data source with a connector and a parser.
         
@@ -19,10 +19,11 @@ class ProFootballReferenceDataSource(BaseDataSource):
         """
         super().__init__(connector=connector, parser=parser)
 
-    def get_data(self, endpoint: str, table_id: str) -> pd.DataFrame:
+    def get_data(self, endpoint: str, table_id: str, **kwargs) -> pd.DataFrame:
         return (
             self._get_data_from_html(endpoint=endpoint,
-                                       table_id=table_id)
+                                       table_id=table_id,
+                                       **kwargs)
                 .pipe(self._clean_columns)
         ) 
 
@@ -126,12 +127,15 @@ if __name__ == "__main__":
     connector = RequestsConnector(BASE_URL)
     parser = HTMLParser()
     with connector:
-        data = ProFootballReferenceDataSource(connector, parser=parser)
+        data = ProFootballReferenceDataSource()
         #df = data.get_data(endpoint='years/2023/fantasy.htm', table_id='fantasy')
         # print(df.head())
         # print(data._get_hrefs())
         href = 'players/H/HillTy00.htm'
-        df = data.get_data(endpoint=href, table_id='last5')
+        df = data.get_data(endpoint=href, 
+                           table_id='last5',
+                           connector=connector,
+                           parser=parser)
         print(df.head(15))
         # hrefs = data.get_player_hrefs('years/2023/fantasy.htm')
         # print(hrefs[:5])
