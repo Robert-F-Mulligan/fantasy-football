@@ -8,16 +8,16 @@ from fantasyfootball.parsers.base_parser import BaseParser
 logger = logging.getLogger(__name__)
 
 class BaseDataSource(ABC):
-    def __init__(self, connector: BaseConnector, parser: BaseParser):
+    def __init__(self, connector: BaseConnector=None, parser: BaseParser=None):
         self.connector = connector
         self.parser = parser
 
     @abstractmethod
-    def get_data(self) -> pd.DataFrame:
+    def get_data(self, **kwargs) -> pd.DataFrame:
         """Get the final DataFrame from the data source"""
         pass
 
-    def _get_data_from_html(self, endpoint: str, table_id: str) -> pd.DataFrame:
+    def _get_data_from_html(self, endpoint: str, table_id: str, connector=None, parser=None) -> pd.DataFrame:
         """
         Fetches a specific table and returns it as a pandas DataFrame.
         
@@ -25,6 +25,12 @@ class BaseDataSource(ABC):
         :param table_id: The ID of the HTML table to extract.
         :return: A pandas DataFrame containing the table data.
         """
+        self.connector = connector or self.connector
+        self.parser = parser or self.parser
+
+        if not self.connector or not self.parser:
+            raise ValueError("Connector and parser must be provided either at init or in get_data.")
+        
         try:
             logger.info(f"Fetching data from endpoint: {endpoint}")
             html_content = self.connector.fetch(endpoint)
