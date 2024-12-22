@@ -9,6 +9,9 @@
             "base_url": "https://www.pro-football-reference.com",
             "connector": "requests",
             "parser": "html"
+        },
+        "nflfastr": {
+            "base_url": "https://github.com/"
         }
     },
     "datasets": {
@@ -18,7 +21,8 @@
             "endpoint_template": "nfl/projections/{position}.php?week=draft&scoring=PPR&week={week}",
             "transformer": "fantasy_pros_projections",
             "strategy": "fantasypros",
-            "positions": ["qb", "rb", "wr", "te"]
+            "positions": ["qb", "rb", "wr", "te"],
+            "week": 1
         },
         "weekly_rank": {
             "datasource": "fantasypros",
@@ -40,14 +44,23 @@
             "table_id": "fantasy",
             "endpoint_template": "years/{year}/fantasy.htm",
             "transformer": "prf_year_by_year",
-            "strategy": "year_by_year"
+            "strategy": "year_by_year",
+            "min_year": 2000,
+            "max_year": 2024
         },
         "game_by_game": {
             "datasource": "profootballreference",
             "table_id": "stats",
-            "endpoint_template": "years/{year}/{position}.htm",
+            "endpoint_template": "/players/{last_name_letter}/{player_id}/gamelog/{year}/",
             "transformer": "prf_game_by_game",
             "strategy": "game_by_game"
+        },
+        "nflfastr": {
+            "datasource": "nflfastr",
+            "endpoint_template": "nflverse/nflverse-data/releases/download/pbp/play_by_play_{year}.csv",
+            "strategy": "nflfastr",
+            "min_year": 2005,
+            "max_year": 2024
         }
     }
 }
