@@ -10,19 +10,20 @@ logger = logging.getLogger(__name__)
 
 @DatasourceFactory.register("fantasypros")
 class FantasyProsDatasource(BaseDataSource):
-    def __init__(self, connector: SeleniumConnector, parser: HTMLParser):
+    def __init__(self, connector: SeleniumConnector=None, parser: HTMLParser=None):
         """
         Initializes the datasource with a connector and a parser.
         
         :param connector: An instance of SeleniumConnector to fetch data.
         :param parser: An already instantiated FantasyProsParser for parsing data.
         """
-        super().__init__(connector, parser)
+        super().__init__(connector=connector, parser=parser)
 
-    def get_data(self, endpoint: str, table_id: str) -> pd.DataFrame:
+    def get_data(self, endpoint: str, table_id: str, **kwargs) -> pd.DataFrame:
         return (
             self._get_data_from_html(endpoint=endpoint,
-                                       table_id=table_id)
+                                       table_id=table_id,
+                                       **kwargs)
                 .pipe(self._clean_columns)
                 .assign(as_of_date= self._extract_datetime())
         )
@@ -80,14 +81,16 @@ if __name__ == "__main__":
     config = fp_map.get(key)
    
     BASE_URL =  'https://www.fantasypros.com'
-    DRIVER_PATH = r'C:\Users\rmull\python-projects\fantasy-football\chrome-driver\chromedriver.exe'
-    connector = SeleniumConnector(BASE_URL, driver_path=DRIVER_PATH)
+    connector = SeleniumConnector(BASE_URL)
     parser = HTMLParser()
     #'table', id='data'
     with connector:
-        data = FantasyProsDatasource(connector, parser=parser)
+        data = FantasyProsDatasource()
         href = config.get('endpoint')
         table_id = config.get('table_id')
-        df = data.get_data(endpoint=href, table_id=table_id)
+        df = data.get_data(endpoint=href, 
+                           table_id=table_id,
+                           connector=connector, 
+                           parser=parser)
         df.to_csv(f'{key}_datasource.csv', index=False)
         print(df.head())
