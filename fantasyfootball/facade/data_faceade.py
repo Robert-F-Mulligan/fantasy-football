@@ -1,10 +1,13 @@
 import json
-import pandas as pd
+import logging
 import argparse
+import pandas as pd
 import fantasyfootball.strategies # register strategies
 from fantasyfootball.strategies.base_strategy import BaseStrategy
 from fantasyfootball.factories.strategy_factory import StrategyFactory
 from fantasyfootball.utils.logging_config import setup_logging
+
+logger = logging.getLogger(__name__)
 
 setup_logging()
 
@@ -16,17 +19,22 @@ class DataFacade:
             """
             Retrieves data based on the dataset_name.
             """
-            dataset_config = self.config['datasets'][dataset_name]
-            datasource_name = dataset_config['datasource']
-            datasource_config = self._get_datasource_config(datasource_name)
+            try:
+                dataset_config = self.config['datasets'][dataset_name]
+                datasource_name = dataset_config['datasource']
+                datasource_config = self._get_datasource_config(datasource_name)
 
-            # Combine configurations and add dataset_name
-            combined_config = {**datasource_config, **dataset_config, 'dataset_name': dataset_name}
+                # Combine configurations and add dataset_name
+                combined_config = {**datasource_config, **dataset_config, 'dataset_name': dataset_name}
 
-            strategy_name = combined_config['strategy']
-            strategy_instance = self._get_strategy_instance(strategy_name, combined_config, **kwargs)
+                strategy_name = combined_config['strategy']
+                strategy_instance = self._get_strategy_instance(strategy_name, combined_config, **kwargs)
 
-            return strategy_instance.run()
+                return strategy_instance.run()
+            
+            except Exception as e:
+                logger.error(f"Error while getting data for dataset '{dataset_name}': {e}", exc_info=True)
+                raise
 
     def _get_datasource_config(self, datasource_name: str) -> dict:
         """
@@ -103,5 +111,12 @@ def main():
 if __name__ == "__main__":
     # main()
     facade = DataFacade(load_config())
-    df = facade.get_data('draft')
-    df.to_csv('draft_data_facade.csv', index=False)
+    data_set = 'draft'
+    #data_set = 'year_by_year'
+    # df = facade.get_data(data_set,
+    #                      min_year=2021,
+    #                      max_year=2023)
+    # data_set = 'game_by_game'
+    df = facade.get_data(data_set)
+
+    df.to_csv(f'data_facade_{data_set}.csv', index=False)
