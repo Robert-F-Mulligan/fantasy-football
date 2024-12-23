@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 @DatasourceFactory.register("profootballreference")
 class ProFootballReferenceDataSource(BaseDataSource):
-    def __init__(self, connector: RequestsConnector=None, parser: HTMLParser=None):
+    def __init__(self, connector: RequestsConnector= None, parser: HTMLParser= None):
         """
         Initializes the data source with a connector and a parser.
         
@@ -27,13 +27,18 @@ class ProFootballReferenceDataSource(BaseDataSource):
                 .pipe(self._clean_columns)
         ) 
 
-    def get_player_hrefs(self, endpoint: str, table_id: str) -> list[str]:
+    def get_player_hrefs(self, endpoint: str, table_id: str, connector=None, parser=None) -> list[str]:
         """
         Extracts player hrefs from the parsed HTML content after setting the content.
         
         :param endpoint: The endpoint to fetch data from.
         :return: A list of hrefs that link to player pages.
         """
+        self.connector = connector or self.connector
+        self.parser = parser or self.parser
+
+        if not self.connector or not self.parser:
+            raise ValueError("Connector and parser must be provided either at init or in get_data.")
         try:
             logger.info(f"Fetching player hrefs from endpoint: {endpoint}")
             html_content = self.connector.fetch(endpoint)
