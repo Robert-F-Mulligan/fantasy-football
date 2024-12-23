@@ -19,11 +19,10 @@ class ProFootballReferenceYbYStrategy(BaseStrategy):
         """
         self.all_data = []
 
-    def run(self, years: int | Iterable[int], sleep: int = 5):
-        if isinstance(years, int):
-            years = [years]
+    def run(self, sleep: int = 5):
+        years = range(self.min_year, self.max_year + 1)
 
-        logger.info(f"Starting data processing for years {years}...")
+        logger.info(f"Starting data processing for years {years} for {self.dataset_name} dataset.")
 
         with self.connector as connector:
             for year in years:
@@ -40,6 +39,9 @@ class ProFootballReferenceYbYStrategy(BaseStrategy):
 
     def run_one(self, year: int, connector) -> pd.DataFrame:
         try:
+            if not self.endpoint_template:
+                raise ValueError("Endpoint template is missing.")
+            
             endpoint = self.endpoint_template.format(year=year)
             additional_cols = {
                     'year': year
@@ -56,11 +58,7 @@ class ProFootballReferenceYbYStrategy(BaseStrategy):
         except Exception as e:
             logger.error(f"Failed to process data for year {year}: {e}")
             return pd.DataFrame()
-        
-    def get_endpoint_for_year(self, year: int) -> str:
-        """Generate the endpoint URL for a specific year."""
-        return f"years/{year}/fantasy.htm"
-    
+           
 
 if __name__ == "__main__":
     # main(start_year=2021, end_year=2023, sleep=5)
