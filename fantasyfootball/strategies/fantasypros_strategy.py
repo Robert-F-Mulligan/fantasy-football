@@ -30,13 +30,13 @@ class FantasyProsStrategy(BaseStrategy):
         """
         with self.connector as connector:
             positions = self.positions if hasattr(self, "positions") else [None]
-            weeks = self.weeks if hasattr(self, "weeks") else [None]
+            week = self.week if hasattr(self, "week") else [None]
 
             logger.info(f"Starting data processing for {self.dataset_name} dataset.")
             logger.info(f"Positions: {positions}")
-            logger.info(f"Weeks: {weeks}")
+            logger.info(f"Week: {week}")
             
-            for pos, week in product(positions, weeks):
+            for pos, week in product(positions, week):
                     try:
                         if not self.endpoint_template:
                             raise ValueError("Endpoint template is missing.")
@@ -47,7 +47,7 @@ class FantasyProsStrategy(BaseStrategy):
                                 "week": week if week else None,
                             }
                         cols = {key: value for key, value in cols.items() if value is not None}
-                        
+
                         data = self.get_data(connector,
                                              endpoint, 
                                              self.table_id, 
