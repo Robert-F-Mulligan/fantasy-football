@@ -12,10 +12,9 @@ class ProFootballReferenceYbYStrategy(BaseStrategy):
     def __init__(self, combined_config: dict, **kwargs):
         super().__init__(combined_config, **kwargs)
         """
-        Initializes the controller with the base URL and endpoints.
-        
-        :param base_url: Base URL for Pro Football Reference.
-        :param endpoints: Dictionary mapping endpoint paths to table IDs.
+        Initialize the strategy with its combined configuration.
+        :param combined_config: The combined configuration for the datasource and dataset.
+        :param kwargs: Additional parameters for the strategy (optional).
         """
         self.all_data = []
 
