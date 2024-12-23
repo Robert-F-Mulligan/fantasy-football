@@ -35,7 +35,7 @@ class RankingsTransfomer(BaseTransformer):
         if self.dataframe is None:
             raise ValueError("No DataFrame set for transformation.")
 
-        logger.info("Starting year-by-year transformation process.")
+        logger.info("Starting Fantasy Pros rankings transformation process.")
         return (
             self._drop_columns(columns=self.DROP_COLS)
                 ._rename_columns(self.COLUMN_RENAME_MAP)
@@ -104,7 +104,7 @@ class ProjectionsTransfomer(BaseTransformer):
         if self.dataframe is None:
             raise ValueError("No DataFrame set for transformation.")
 
-        logger.info("Starting year-by-year transformation process.")
+        logger.info("Starting Fantasy Pros projections transformation process.")
         return (
             self._rename_columns(self.COLUMN_RENAME_MAP)
                 ._standardize_player_names()
@@ -155,7 +155,7 @@ class DraftTransfomer(BaseTransformer):
         if self.dataframe is None:
             raise ValueError("No DataFrame set for transformation.")
 
-        logger.info("Starting year-by-year transformation process.")
+        logger.info("Starting Fantasy Pros draft transformation process.")
         return (
             self._rename_columns(self.COLUMN_RENAME_MAP)
                 ._drop_rows(condition=self.dataframe['player_name'].isna())
