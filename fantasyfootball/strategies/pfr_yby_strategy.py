@@ -60,25 +60,4 @@ class ProFootballReferenceYbYStrategy(BaseStrategy):
            
 
 if __name__ == "__main__":
-    # main(start_year=2021, end_year=2023, sleep=5)
-    from fantasyfootball.utils.logging_config import setup_logging
-
-    # setup_logging()
-
-    datasource_config = {
-            "base_url": "https://www.pro-football-reference.com",
-            "connector": "requests",
-            "parser": "html"
-        }
-    dataset_config = {
-            "datasource": "profootballreference",
-            "table_id": "fantasy",
-            "endpoint_template": "years/{year}/fantasy.htm",
-            "transformer": "prf_year_by_year",
-            "strategy": "year_by_year"
-        }
-    strat = ProFootballReferenceYbYStrategy(datasource_config=datasource_config,
-                                dataset_config=dataset_config)
-    
-    df = strat.run(2023)
-    df.to_csv("yby_test.csv", index=False)
+    pass
