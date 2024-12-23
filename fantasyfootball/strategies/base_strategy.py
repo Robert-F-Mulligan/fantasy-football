@@ -69,21 +69,23 @@ if __name__ == "__main__":
 
     # Test the BaseStrategy class
     config = {
-        'base_url': 'https://www.example.com',
-        'connector': 'selenium',
-        'parser': 'html',
-        'datasource': 'fantasypros',
-        'transformer': 'fantasy_pros_projections',
-        'table_id': 'stats',
-        'endpoint_template': '/{position}/{week}',
-        'positions': ['qb', 'rb', 'wr', 'te']
-    }
+            "datasource": "profootballreference",
+            "table_id": "stats",
+            "href_table_id": "fantasy",
+            "endpoint_template": "/players/{last_name_letter}/{player_id}/gamelog/{year}/",
+            "year_endpoint_template": "years/{year}/fantasy.htm",
+            "transformer": "prf_game_by_game",
+            "strategy": "game_by_game",
+            "max_players_per_year": 5,
+            "min_year": 2023,
+            "max_year": 2024
+        }
 
     class SampleStrategy(BaseStrategy):
         def run(self):
             return f"Running strategy with config: {self.__dict__}"
 
-    strategy = SampleStrategy(config, config)
+    strategy = SampleStrategy(config)
     strategy._load_config()
     print(strategy.base_url)
     print(strategy.connector)
@@ -92,6 +94,5 @@ if __name__ == "__main__":
     print(strategy.transformer)
     print(strategy.table_id)
     print(strategy.endpoint_template)
-    print(strategy.kwargs)
     print(strategy.factory_mapping)
     print(strategy.__dict__)
