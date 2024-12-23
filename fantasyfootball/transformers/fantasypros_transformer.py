@@ -25,7 +25,6 @@ class RankingsTransfomer(BaseTransformer):
         Initializes the transformer with optional DataFrame.
         :param dataframe: The DataFrame to transform (optional).
         """
-        logger.info("Initializing RankingsTransfomer.")
         super().__init__(dataframe)
 
     def transform(self, dataframe: pd.DataFrame = None) -> pd.DataFrame:
@@ -95,7 +94,6 @@ class ProjectionsTransfomer(BaseTransformer):
         Initializes the transformer with optional DataFrame.
         :param dataframe: The DataFrame to transform (optional).
         """
-        logger.info("Initializing RankingsTransfomer.")
         super().__init__(dataframe)
 
     def transform(self, dataframe: pd.DataFrame = None) -> pd.DataFrame:
@@ -147,7 +145,6 @@ class DraftTransfomer(BaseTransformer):
         Initializes the transformer with optional DataFrame.
         :param dataframe: The DataFrame to transform (optional).
         """
-        logger.info("Initializing RankingsTransfomer.")
         super().__init__(dataframe)
 
     def transform(self, dataframe: pd.DataFrame = None) -> pd.DataFrame:

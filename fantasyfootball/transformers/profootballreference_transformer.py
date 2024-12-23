@@ -70,7 +70,6 @@ class YearByYearTransformer(BaseTransformer, DataFrameTransformMixin):
         Initializes the transformer with optional DataFrame.
         :param dataframe: The DataFrame to transform (optional).
         """
-        logger.info("Initializing YearByYearTransformer.")
         super().__init__(dataframe)
 
     def transform(self, dataframe: pd.DataFrame = None) -> pd.DataFrame:
@@ -127,7 +126,6 @@ class GameByGameTransformer(BaseTransformer, DataFrameTransformMixin):
         Initializes the transformer with optional DataFrame.
         :param dataframe: The DataFrame to transform (optional).
         """
-        logger.info("Initializing GameByGameTransformer.")
         super().__init__(dataframe)
 
     def transform(self, dataframe: pd.DataFrame = None) -> pd.DataFrame:
