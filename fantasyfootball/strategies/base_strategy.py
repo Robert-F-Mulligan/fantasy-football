@@ -41,12 +41,11 @@ class BaseStrategy(ABC):
         :param combined_config: The combined configuration for the datasource and dataset.
         :param kwargs: Additional parameters for the strategy (optional).
         """
-        self.combined_config = combined_config
-        self.kwargs = kwargs
+        self.combined_config = {**combined_config, **kwargs}
         self._load_config()
 
     @abstractmethod
-    def run(self, **kwargs) -> pd.DataFrame:
+    def run(self) -> pd.DataFrame:
         """Execute the strategy and return the data."""
         pass
 
