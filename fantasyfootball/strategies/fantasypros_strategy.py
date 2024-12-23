@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from itertools import product
 import pandas as pd
 from fantasyfootball.strategies.base_strategy import BaseStrategy
 from fantasyfootball.factories.strategy_factory import StrategyFactory
@@ -19,7 +20,7 @@ class FantasyProsStrategy(BaseStrategy):
 
         self.all_data = []
 
-    def run(self, week: Optional[int] = 1) -> pd.DataFrame:
+    def run(self) -> pd.DataFrame:
         """
         Executes the data retrieval and transformation process for a dataset.
 
@@ -28,28 +29,34 @@ class FantasyProsStrategy(BaseStrategy):
         :return: A concatenated DataFrame containing all processed data.
         """
         with self.connector as connector:
-            if hasattr(self, "positions") and self.positions:
-                for pos in self.positions:
+            positions = self.positions if hasattr(self, "positions") else [None]
+            weeks = self.weeks if hasattr(self, "weeks") else [None]
+
+            logger.info(f"Starting data processing for {self.dataset_name} dataset.")
+            logger.info(f"Positions: {positions}")
+            logger.info(f"Weeks: {weeks}")
+            
+            for pos, week in product(positions, weeks):
                     try:
-                        logger.info(f"Processing position: {pos}")
-                        endpoint = self.endpoint_template.format(position=pos, week=week)
+                        if not self.endpoint_template:
+                            raise ValueError("Endpoint template is missing.")
+                        endpoint = self.endpoint_template.format(position=pos or "", week=week or "")
+
+                        cols = {
+                                "pos": pos.upper() if pos else None,
+                                "week": week if week else None,
+                            }
+                        cols = {key: value for key, value in cols.items() if value is not None}
+                        
                         data = self.get_data(connector,
                                              endpoint, 
                                              self.table_id, 
-                                             position=pos)
+                                             **cols)
                         if not data.empty:
                             self.all_data.append(data)
                     except Exception as e:
                         logger.error(f"Failed to process position {pos} at endpoint {endpoint}: {e}")
-            else:
-                endpoint = self.endpoint_template
-                data = self.get_data(connector,
-                                     endpoint, 
-                                     self.table_id)
-                logger.info(f'Returned a df with a shape of {data.shape}')
-                if not data.empty:
-                    self.all_data.append(data)
-
+    
             if self.all_data:
                 concatenated_data = pd.concat(self.all_data, ignore_index=True)
                 logger.info(f"Successfully processed dataset")
