@@ -135,9 +135,10 @@ class DraftTransfomer(BaseTransformer):
         'player name': 'player_name',
         'sos': 'strength_of_schedule',
         'ecr vs adp': 'ecr_vs_adp',
+        'pos': 'pos_rk'
     }
 
-    FINAL_COLUMN_ORDER = ['rk', 'player_name', 'pos', 'team', 
+    FINAL_COLUMN_ORDER = ['rk', 'player_name', 'pos', 'pos_rk', 'team', 
                             'bye', 'strength_of_schedule', 'ecr_vs_adp', 'as_of_date']
 
     def __init__(self, dataframe: pd.DataFrame = None):
@@ -161,6 +162,7 @@ class DraftTransfomer(BaseTransformer):
                 ._drop_rows(condition=self.dataframe['player_name'].isna())
                 ._standardize_player_names()
                 ._parse_sos()
+                ._parse_pos()
                 ._reindex_and_fill(self.FINAL_COLUMN_ORDER)
                 .dataframe
         )
@@ -186,6 +188,14 @@ class DraftTransfomer(BaseTransformer):
             .replace({'-': 0})
             .astype(int)
         )
+        return self
+    
+    def _parse_pos(self):
+        logger.debug("Exracting position from position rank.")
+        col = 'pos_rk'
+        if col not in self.dataframe.columns:
+            raise ValueError("Column not found in DF. Make sure rename logic has been applied already.")
+        self.dataframe['pos'] = self.dataframe['pos_rk'].str.extract(r'([A-Za-z]+)')
         return self
 
 
