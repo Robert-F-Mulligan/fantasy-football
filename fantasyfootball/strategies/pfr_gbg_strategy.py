@@ -18,15 +18,15 @@ BASE_URL = "https://www.pro-football-reference.com"
 
 @StrategyFactory.register('game_by_game')
 class ProFootballReferenceGbGStrategy(BaseStrategy):
-    def __init__(self, datasource: ProFootballReferenceDataSource, transformer: GameByGameTransformer):
+    def __init__(self, combined_config: dict, **kwargs):
+        super().__init__(combined_config, **kwargs)
         """
         Initializes the controller with the data source and transformer.
         
         :param datasource: Data source instance for Pro Football Reference.
         :param transformer: Transformer instance for data processing.
         """
-        self.datasource = datasource
-        self.transformer = transformer
+
 
     def run(self, years: Iterable[int], max_players_per_year: int = None, sleep: int = 5) -> pd.DataFrame:
         """

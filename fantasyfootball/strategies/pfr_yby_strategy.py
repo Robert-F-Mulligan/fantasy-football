@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 @StrategyFactory.register('year_by_year')
 class ProFootballReferenceYbYStrategy(BaseStrategy):
-    def __init__(self, datasource_config, dataset_config):
-        super().__init__(datasource_config, dataset_config)
+    def __init__(self, combined_config: dict, **kwargs):
+        super().__init__(combined_config, **kwargs)
         """
         Initializes the controller with the base URL and endpoints.
         
