@@ -20,7 +20,7 @@ class GitHubConnector(BaseConnector):
         self.timeout = timeout
 
     @retry_decorator(retries=3, delay=2, backoff_factor=2)
-    def fetch(self, endpoint: str, connector=None) -> pd.DataFrame:
+    def fetch(self, endpoint: str, connector=None, chunksize: int = None) -> pd.DataFrame:
         """
         Fetch CSV data from the specified GitHub URL endpoint.
 
@@ -35,10 +35,13 @@ class GitHubConnector(BaseConnector):
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
         try:
             logger.info(f"Fetching CSV data from URL: {url}")
-            data = pd.read_csv(url, timeout=self.timeout,
-                                    compression='gzip', 
-                                    low_memory=False)
-            logger.info(f"CSV data fetched successfully from {url} with shape {data.shape}")
+            data = pd.read_csv(
+                url,
+                timeout=self.timeout,
+                compression='gzip',
+                low_memory=False,
+                chunksize=chunksize
+            )
             return data
         except Exception as e:
             logger.exception(f"Failed to fetch CSV data from {url}: {e}")
