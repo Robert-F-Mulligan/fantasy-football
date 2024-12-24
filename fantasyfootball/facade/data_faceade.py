@@ -17,7 +17,15 @@ class DataFacade:
 
     def get_data(self, dataset_name: str, save_to_csv: bool = False, **kwargs) -> pd.DataFrame:
         """
-        Retrieves data based on the dataset_name.
+        Retrieves data for a specific dataset by delegating the task to the appropriate strategy.
+
+        It passes the dataset's configuration along with any additional arguments (`kwargs`)
+        to the selected strategy for data processing. Optionally, it can save the data to CSV.
+
+        :param dataset_name: The name of the dataset to retrieve (e.g., 'nflfastr').
+        :param save_to_csv: A flag to decide whether to save the retrieved data to a CSV file.
+        :param kwargs: Additional keyword arguments to be passed to the strategy.
+        :return: A pandas DataFrame containing the processed data.
         """
         try:
             dataset_config = self.config['datasets'][dataset_name]
