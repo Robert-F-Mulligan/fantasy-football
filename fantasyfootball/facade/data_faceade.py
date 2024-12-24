@@ -1,8 +1,8 @@
+import sys
 import json
 import logging
 import argparse
 import pandas as pd
-import fantasyfootball.strategies # register strategies
 from fantasyfootball.strategies.base_strategy import BaseStrategy
 from fantasyfootball.factories.strategy_factory import StrategyFactory
 from fantasyfootball.utils.logging_config import setup_logging
@@ -15,26 +15,29 @@ class DataFacade:
     def __init__(self, config: dict):
         self.config = config
 
-    def get_data(self, dataset_name: str, **kwargs) -> pd.DataFrame:
-            """
-            Retrieves data based on the dataset_name.
-            """
-            try:
-                dataset_config = self.config['datasets'][dataset_name]
-                datasource_name = dataset_config['datasource']
-                datasource_config = self._get_datasource_config(datasource_name)
+    def get_data(self, dataset_name: str, save_to_csv: bool = False, **kwargs) -> pd.DataFrame:
+        """
+        Retrieves data based on the dataset_name.
+        """
+        try:
+            dataset_config = self.config['datasets'][dataset_name]
+            datasource_name = dataset_config['datasource']
+            datasource_config = self._get_datasource_config(datasource_name)
 
-                # Combine configurations and add dataset_name
-                combined_config = {**datasource_config, **dataset_config, 'dataset_name': dataset_name}
+            # Combine configurations and add dataset_name
+            combined_config = {**datasource_config, **dataset_config, 'dataset_name': dataset_name}
 
-                strategy_name = combined_config['strategy']
-                strategy_instance = self._get_strategy_instance(strategy_name, combined_config, **kwargs)
+            strategy_name = combined_config['strategy']
+            strategy_instance = self._get_strategy_instance(strategy_name, combined_config, **kwargs)
 
-                return strategy_instance.run()
-            
-            except Exception as e:
-                logger.error(f"Error while getting data for dataset '{dataset_name}': {e}", exc_info=True)
-                raise
+            return strategy_instance.run(save_to_csv=save_to_csv)
+        
+        except KeyError as e:
+            logger.error(f"Dataset '{dataset_name}' configuration is missing: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error while getting data for dataset '{dataset_name}': {e}", exc_info=True)
+            raise
 
     def _get_datasource_config(self, datasource_name: str) -> dict:
         """
@@ -94,29 +97,31 @@ def main():
         while not dataset_name:
             print("Error: You must provide a dataset name.")
             dataset_name = input("Please enter a dataset name from the available options: ").strip()
-            
+        
         while dataset_name not in facade.config['datasets']:
             print(f"Error: '{dataset_name}' is not a valid dataset.")
             dataset_name = input("Please enter a valid dataset name from the available options: ").strip()
 
         try:
-            data = facade.get_data(dataset_name=dataset_name)
+            data = facade.get_data(dataset_name=dataset_name, save_to_csv=True)
             print(type(data))
             data.to_csv(f"{dataset_name}_data.csv", index=False)
         except KeyError:
             print(f"Error: The dataset '{dataset_name}' is not valid. Please try again.")
         except KeyboardInterrupt:
             print("\nProcess interrupted. Exiting.")
-            exit(0)
+            sys.exit(0)
+
+
 if __name__ == "__main__":
     # main()
     facade = DataFacade(load_config())
-    data_set = 'draft'
+    data_set = 'nflfastr_pbp'
     #data_set = 'year_by_year'
     # df = facade.get_data(data_set,
     #                      min_year=2021,
     #                      max_year=2023)
     # data_set = 'game_by_game'
-    df = facade.get_data(data_set)
+    df = facade.get_data(data_set, save_to_csv=True)
 
-    df.to_csv(f'data_facade_{data_set}.csv', index=False)
+    # df.to_csv(f'data_facade_{data_set}.csv', index=False)
