@@ -45,7 +45,7 @@ class BaseStrategy(ABC):
         self._load_config()
 
     @abstractmethod
-    def run(self) -> pd.DataFrame:
+    def run(self, save_to_csv: bool = False) -> pd.DataFrame:
         """Execute the strategy and return the data."""
         pass
 
@@ -61,6 +61,46 @@ class BaseStrategy(ABC):
         additional_attrs = {key: value for key, value in self.combined_config.items() if key not in self.factory_mapping}
         for key, value in additional_attrs.items():
             setattr(self, key, value)
+
+    def save_to_csv(self, data: pd.DataFrame, filename: str, append: bool = False):
+        """
+        Saves a DataFrame to a CSV file.
+
+        :param data: The DataFrame to save.
+        :param output_file: Path to the CSV file.
+        :param mode: Write mode, 'w' for write (default) or 'a' for append.
+        :param include_header: Whether to include the header in the file (default is True).
+        """
+        if data.empty:
+            logger.warning("Attempted to save an empty DataFrame. Skipping write.")
+            return
+        
+        mode = 'a' if append else 'w'
+        header = not append
+
+        try:
+            logger.info(f"{'Appending' if append else 'Writing'} data to CSV: {filename}")
+            data.to_csv(filename, mode=mode, header=header, index=False)
+
+        except Exception as e:
+            logger.exception(f"Failed to save data to CSV: {e}")
+            raise
+        
+    def get_filename(self, *args) -> str:
+        """
+        Generates a filename based on the dataset name and optional positional arguments.
+
+        :param args: Positional arguments to modify the filename.
+        :return: The dynamically generated filename.
+        """
+        filename = f"{self.dataset_name}_strategy"
+
+        if args:
+            filename += "_" + "_".join(str(arg) for arg in args)
+
+        filename += ".csv"
+
+        return filename
 
 
 if __name__ == "__main__":
