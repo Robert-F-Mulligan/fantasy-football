@@ -37,7 +37,7 @@ class ProFootballReferenceGbGStrategy(BaseStrategy):
 
         with self.connector as connector:
 
-            for year in years:
+            for ix, year in enumerate(years):
                 try:
                     logger.info(f"Processing year: {year}")
                     year_df = self._run_one_year(year,  
@@ -45,7 +45,7 @@ class ProFootballReferenceGbGStrategy(BaseStrategy):
                                                  connector=connector,
                                                  parser=self.parser)
                     if not year_df.empty:
-                        output_method(year_df)
+                        output_method(year_df, append=(ix > 0))
                     time.sleep(sleep)  # Sleep between each year's processing
                 except Exception as e:
                     logger.error(f"Failed to process year {year}: {e}")

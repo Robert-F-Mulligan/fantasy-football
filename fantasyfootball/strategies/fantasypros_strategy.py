@@ -22,8 +22,6 @@ class FantasyProsStrategy(BaseStrategy):
         """
         Executes the data retrieval and transformation process for a dataset.
 
-        :param dataset_name: The name of the dataset to process.
-        :param week: Optional week number for weekly datasets.
         :return: A concatenated DataFrame containing all processed data.
         """
         output_method = self.output_modes.get(output_mode)
@@ -36,7 +34,7 @@ class FantasyProsStrategy(BaseStrategy):
             logger.info(f"Positions: {positions}")
             logger.info(f"Week: {week}")
             
-            for pos, week in product(positions, week):
+            for ix, pos, week in enumerate(product(positions, week)):
                     try:
                         if not self.endpoint_template:
                             raise ValueError("Endpoint template is missing.")
@@ -53,7 +51,7 @@ class FantasyProsStrategy(BaseStrategy):
                                              self.table_id, 
                                              **cols)
                         if not data.empty:
-                            output_method(data)
+                            output_method(data, append=(ix > 0))
                     except Exception as e:
                         logger.error(f"Failed to process position {pos} at endpoint {endpoint}: {e}")
     

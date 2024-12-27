@@ -30,11 +30,11 @@ class ProFootballReferenceYbYStrategy(BaseStrategy):
         logger.info(f"Starting data processing for years {years} for {self.dataset_name} dataset.")
 
         with self.connector as connector:
-            for year in years:
+            for ix, year in enumerate(years):
                 year_df = self.run_one(year=year,
                                        connector=connector)
                 if not year_df.empty:
-                    output_method(year_df)
+                    output_method(year_df, append=(ix > 0))
                 time.sleep(sleep)
             
             if self.all_data:

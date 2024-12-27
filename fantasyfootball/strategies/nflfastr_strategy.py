@@ -36,9 +36,9 @@ class NflfastrStrategy(BaseStrategy):
                 raw_data = self.get_data(self.connector, endpoint)
 
                 if hasattr(raw_data, '__iter__'):
-                    for i, chunk in enumerate(raw_data):
-                        logger.debug(f"Processing chunk {i + 1} for year {year}")
-                        self._process_data_chunk(chunk, output_mode, append=(i > 0), year=year)
+                    for ix, chunk in enumerate(raw_data):
+                        logger.debug(f"Processing chunk {ix + 1} for year {year}")
+                        self._process_data_chunk(chunk, output_mode, append=(ix > 0), year=year)
 
                 else:
                     self._process_data_chunk(raw_data, output_mode, append=False, year=year)
