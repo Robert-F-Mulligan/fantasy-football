@@ -61,8 +61,6 @@ class NflfastrStrategy(BaseStrategy):
             logger.debug(f"Transformer object: {self.transformer}")
             if self.transformer is None:
                 logger.error("Transformer is None. Check initialization.")
-            else:
-                logger.info("Transformer is valid.")
             data = self.transformer.transform(data)
             output_method(data, **kwargs)
             logger.debug(f"Data processed in {output_mode} mode.")
