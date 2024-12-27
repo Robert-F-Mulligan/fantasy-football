@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Iterable
+from typing import Optional
 import pandas as pd
 from fantasyfootball.strategies.base_strategy import BaseStrategy
 from fantasyfootball.factories.strategy_factory import StrategyFactory
@@ -16,9 +16,15 @@ class ProFootballReferenceYbYStrategy(BaseStrategy):
         :param combined_config: The combined configuration for the datasource and dataset.
         :param kwargs: Additional parameters for the strategy (optional).
         """
-        self.all_data = []
 
-    def run(self, sleep: int = 5):
+    def run(self, sleep: int = 5, output_mode: str = "db") -> Optional[pd.DataFrame]:
+        """
+        Executes the data retrieval and transformation process for a dataset.
+
+        :return: A concatenated DataFrame containing all processed data.    
+        """
+        output_method = self.output_modes.get(output_mode)
+        
         years = range(self.min_year, self.max_year + 1)
 
         logger.info(f"Starting data processing for years {years} for {self.dataset_name} dataset.")
@@ -28,13 +34,14 @@ class ProFootballReferenceYbYStrategy(BaseStrategy):
                 year_df = self.run_one(year=year,
                                        connector=connector)
                 if not year_df.empty:
-                    self.all_data.append(year_df)
+                    output_method(year_df)
                 time.sleep(sleep)
             
-            df = pd.concat(self.all_data, ignore_index=True) if self.all_data else pd.DataFrame()
+            if self.all_data:
+                df = pd.concat(self.all_data, ignore_index=True) if self.all_data else pd.DataFrame()
 
-            logger.info(f"Returning a DataFrame with shape: {df.shape}")
-            return df
+                logger.info(f"Returning a DataFrame with shape: {df.shape}")
+                return df
 
     def run_one(self, year: int, connector) -> pd.DataFrame:
         try:

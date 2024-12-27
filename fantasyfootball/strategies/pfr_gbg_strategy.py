@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Optional
 import pandas as pd
 from fantasyfootball.strategies.base_strategy import BaseStrategy
 from fantasyfootball.factories.strategy_factory import StrategyFactory
@@ -20,7 +21,7 @@ class ProFootballReferenceGbGStrategy(BaseStrategy):
         """
         self.all_data = []
 
-    def run(self, sleep: int = 5) -> pd.DataFrame:
+    def run(self, sleep: int = 5, output_mode: str = "db") -> Optional[pd.DataFrame]:
         """
         Processes data for multiple years.
         
@@ -29,6 +30,7 @@ class ProFootballReferenceGbGStrategy(BaseStrategy):
         :param sleep: Time to wait (in seconds) between years to avoid rate-limiting.
         :return: A concatenated DataFrame containing all the processed data.
         """
+        output_method = self.output_modes.get(output_mode)
         years = range(self.min_year, self.max_year + 1)
 
         logger.info(f"Starting data processing for years {years} for {self.dataset_name} dataset.")
@@ -43,12 +45,16 @@ class ProFootballReferenceGbGStrategy(BaseStrategy):
                                                  connector=connector,
                                                  parser=self.parser)
                     if not year_df.empty:
-                        self.all_data.append(year_df)
+                        output_method(year_df)
                     time.sleep(sleep)  # Sleep between each year's processing
                 except Exception as e:
                     logger.error(f"Failed to process year {year}: {e}")
 
-            return pd.concat(self.all_data, ignore_index=True) if self.all_data else pd.DataFrame()
+            if self.all_data:
+                df = pd.concat(self.all_data, ignore_index=True) if self.all_data else pd.DataFrame()
+
+                logger.info(f"Returning a DataFrame with shape: {df.shape}")
+                return df
 
     def _run_one_year(self, year: int, sleep: int = 5, **kwargs) -> pd.DataFrame:
         """
