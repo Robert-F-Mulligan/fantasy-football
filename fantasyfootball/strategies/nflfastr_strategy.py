@@ -1,6 +1,5 @@
 import logging
 from typing import Optional
-from itertools import product
 import pandas as pd
 from fantasyfootball.strategies.base_strategy import BaseStrategy
 from fantasyfootball.factories.strategy_factory import StrategyFactory
@@ -18,9 +17,7 @@ class NflfastrStrategy(BaseStrategy):
         :param endpoints: Dictionary mapping endpoint paths to table IDs.
         """
 
-        self.all_data = []
-
-    def run(self, save_to_csv: bool = False) -> Optional[pd.DataFrame]:
+    def run(self, output_mode: str = "db") -> Optional[pd.DataFrame]:
         """
         Executes the data retrieval process for a dataset.
 
@@ -28,7 +25,6 @@ class NflfastrStrategy(BaseStrategy):
         :return: None if saving to CSV, or a concatenated DataFrame if not.
         """
         years = range(self.min_year, self.max_year + 1)
-
         for year in years:
             try:
                 if not self.endpoint_template:
@@ -42,34 +38,40 @@ class NflfastrStrategy(BaseStrategy):
                 if hasattr(raw_data, '__iter__'):
                     for i, chunk in enumerate(raw_data):
                         logger.debug(f"Processing chunk {i + 1} for year {year}")
-                        self._process_data_chunk(chunk, save_to_csv, append=(i > 0), year=year)
+                        self._process_data_chunk(chunk, output_mode, append=(i > 0), year=year)
 
                 else:
-                    self._process_data_chunk(raw_data, save_to_csv, append=False, year=year)
+                    self._process_data_chunk(raw_data, output_mode, append=False, year=year)
 
             except Exception as e:
                 logger.error(f"Failed to process year {year} at endpoint {endpoint}: {str(e)}")
-
-        if save_to_csv:
-            return None
 
         if self.all_data:
             concatenated_data = pd.concat(self.all_data, ignore_index=True)
             logger.info(f"Successfully processed dataset")
             return concatenated_data
 
-    def _process_data_chunk(self, data, save_to_csv: bool, append: bool, **kwargs) -> None:
+    def _process_data_chunk(self, data, output_mode: str, **kwargs) -> None:
         """Helper method to process a single data chunk and either save to CSV or append to internal list."""
-        if save_to_csv:
-            args = [value for value in kwargs.values()]    
-            filename = self.get_filename(*args)
-            self.save_to_csv(data, filename, append)
+        
+        output_method = self.output_modes.get(output_mode)
+
+        if output_method:
+            logger.debug(f"Processing data in {output_mode} mode.")
+            logger.debug(f"Transformer object: {self.transformer}")
+            if self.transformer is None:
+                logger.error("Transformer is None. Check initialization.")
+            else:
+                logger.info("Transformer is valid.")
+            data = self.transformer.transform(data)
+            output_method(data, **kwargs)
+            logger.debug(f"Data processed in {output_mode} mode.")
         else:
-            self.all_data.append(data)
+            logger.error(f"Unknown output mode: {output_mode}")
             
     def get_data(self, connector, endpoint: str, **cols) -> pd.DataFrame:
         """
-        Fetches and transforms data from the datasource.
+        Fetches data from the datasource.
 
         :param endpoint: The endpoint to fetch data from.
         :param table_id: The table ID to parse.
@@ -91,4 +93,5 @@ if __name__ == "__main__":
 
     setup_logging()
 
-    pass
+    strat = NflfastrStrategy()
+    print(strat.__dict__)
