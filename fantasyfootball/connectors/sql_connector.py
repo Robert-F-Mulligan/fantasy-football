@@ -1,6 +1,6 @@
 import logging
 import os
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine import Engine
 import pandas as pd
 from fantasyfootball.connectors.base_connector import BaseConnector
@@ -59,6 +59,36 @@ class SqlConnector(BaseConnector):
             logger.error(f"Error fetching data: {e}", exc_info=True)
             raise
 
+    def table_exists(self, table_name: str, schema: str = None) -> bool:
+        """
+        Check if the table exists in the database.
+        
+        :param table_name: The name of the table to check.
+        :param schema: Optional schema to check within.
+        :return: True if the table exists, False otherwise.
+        """
+        with self.get_engine().connect() as connection:
+            inspector = inspect(connection)
+            return inspector.has_table(table_name, schema=schema)
+        
+    def create_table(self, df: pd.DataFrame, table_name: str, schema: str = None):
+        """
+        Create the table in the database based on the DataFrame schema if it does not exist.
+        
+        :param df: The DataFrame used to define the table schema.
+        :param table_name: The name of the table to create.
+        :param schema: Optional schema for the table.
+        """
+        logger.info(f"Creating table {table_name} based on DataFrame schema.")
+        with self.get_engine().connect() as connection:
+            df.head(0).to_sql(
+                name=table_name,
+                con=connection,
+                if_exists='replace',  # 'replace' will create the table if it doesn't exist
+                index=False,
+                schema=schema
+            )
+
     @retry_decorator(retries=3, delay=2, backoff_factor=2)
     def publish(self, df: pd.DataFrame, table_name: str, if_exists: str = 'append', chunksize: int = None, schema: str = None):
         """
@@ -71,6 +101,11 @@ class SqlConnector(BaseConnector):
         :param schema: Optional schema name for the table.
         """
         logger.info(f"Publishing DataFrame to table {table_name}.")
+        
+        # Check if the table exists, create it if it doesn't
+        if not self.table_exists(table_name, schema=schema):
+            self.create_table(df, table_name, schema=schema)
+
         try:
             with self.get_engine().connect() as connection:
                 df.to_sql(
