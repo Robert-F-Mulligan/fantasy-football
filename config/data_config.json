@@ -64,6 +64,7 @@
         "nflfastr_pbp": {
             "datasource": "nflfastr",
             "endpoint_template": "nflverse/nflverse-data/releases/download/pbp/play_by_play_{year}.csv.gz",
+            "transfomer": "nflfastr",
             "strategy": "nflfastr",
             "min_year": 2024,
             "max_year": 2024,
