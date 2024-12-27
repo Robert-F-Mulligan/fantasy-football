@@ -15,7 +15,7 @@ class DataFacade:
     def __init__(self, config: dict):
         self.config = config
 
-    def get_data(self, dataset_name: str, save_to_csv: bool = False, **kwargs) -> pd.DataFrame:
+    def get_data(self, dataset_name: str, output_mode: str = 'db', **kwargs) -> pd.DataFrame:
         """
         Retrieves data for a specific dataset by delegating the task to the appropriate strategy.
 
@@ -38,7 +38,7 @@ class DataFacade:
             strategy_name = combined_config['strategy']
             strategy_instance = self._get_strategy_instance(strategy_name, combined_config, **kwargs)
 
-            return strategy_instance.run(save_to_csv=save_to_csv)
+            return strategy_instance.run(output_mode=output_mode)
         
         except KeyError as e:
             logger.error(f"Dataset '{dataset_name}' configuration is missing: {e}")
@@ -130,6 +130,7 @@ if __name__ == "__main__":
     #                      min_year=2021,
     #                      max_year=2023)
     # data_set = 'game_by_game'
-    df = facade.get_data(data_set, save_to_csv=True)
+    df = facade.get_data(data_set, output_mode='db')
+    # print(df.shape)
 
     # df.to_csv(f'data_facade_{data_set}.csv', index=False)
