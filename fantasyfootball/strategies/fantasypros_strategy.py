@@ -18,9 +18,7 @@ class FantasyProsStrategy(BaseStrategy):
         :param endpoints: Dictionary mapping endpoint paths to table IDs.
         """
 
-        self.all_data = []
-
-    def run(self) -> pd.DataFrame:
+    def run(self, output_mode: str = "db") -> Optional[pd.DataFrame]:
         """
         Executes the data retrieval and transformation process for a dataset.
 
@@ -28,6 +26,8 @@ class FantasyProsStrategy(BaseStrategy):
         :param week: Optional week number for weekly datasets.
         :return: A concatenated DataFrame containing all processed data.
         """
+        output_method = self.output_modes.get(output_mode)
+
         with self.connector as connector:
             positions = self.positions if hasattr(self, "positions") else [None]
             week = self.week if hasattr(self, "week") else [None]
@@ -53,17 +53,14 @@ class FantasyProsStrategy(BaseStrategy):
                                              self.table_id, 
                                              **cols)
                         if not data.empty:
-                            self.all_data.append(data)
+                            output_method(data)
                     except Exception as e:
                         logger.error(f"Failed to process position {pos} at endpoint {endpoint}: {e}")
     
             if self.all_data:
                 concatenated_data = pd.concat(self.all_data, ignore_index=True)
-                logger.info(f"Successfully processed dataset")
+                logger.debug(f"Data processed in {output_mode} mode.")
                 return concatenated_data
-            else:
-                logger.warning(f"No data collected for dataset")
-                return pd.DataFrame()
             
     def get_data(self, connector, endpoint: str, table_id: str, **cols) -> pd.DataFrame:
         """
@@ -95,18 +92,18 @@ if __name__ == "__main__":
     datasource_config = {
             "base_url": "https://www.fantasypros.com",
             "connector": "selenium",
-            "parser": "html"
-        }
-    dataset_config = {
+            "parser": "html",
             "datasource": "fantasypros",
             "table_id": "ranking-table",
             "endpoint_template": "nfl/rankings/ppr-cheatsheets.php",
             "transformer": "fantasy_pros_draft",
-            "strategy": "fantasypros"
+            "strategy": "fantasypros",
+            "dataset_name": "fantasy_pros_draft"
         }
-    strat = FantasyProsStrategy(datasource_config=datasource_config,
-                                dataset_config=dataset_config)
+    dataset_config = {
+            
+        }
+    strat = FantasyProsStrategy(datasource_config)
     
-    df = strat.run()
-    print(df.head())
+    df = strat.run(output_mode='db')
 
