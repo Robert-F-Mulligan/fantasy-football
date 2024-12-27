@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
+import datetime
 import pandas as pd
 import fantasyfootball.connectors  # Register connectors
 from fantasyfootball.factories.connector_factory import ConnectorFactory
@@ -42,10 +43,18 @@ class BaseStrategy(ABC):
         :param kwargs: Additional parameters for the strategy (optional).
         """
         self.combined_config = {**combined_config, **kwargs}
+        self.sql_connector = ConnectorFactory.create('sql')
+        self.output_modes = {
+            "csv": self.save_to_csv,
+            "db": self.publish_to_database,
+            "df": self.append_to_df
+        }
+        self.all_data = []
+        self.time_now = datetime.datetime.now()
         self._load_config()
 
     @abstractmethod
-    def run(self, save_to_csv: bool = False) -> pd.DataFrame:
+    def run(self, output_mode: str = "db") -> pd.DataFrame:
         """Execute the strategy and return the data."""
         pass
 
@@ -62,30 +71,83 @@ class BaseStrategy(ABC):
         for key, value in additional_attrs.items():
             setattr(self, key, value)
 
-    def save_to_csv(self, data: pd.DataFrame, filename: str, append: bool = False):
+    def publish_to_database(self, data: pd.DataFrame, append: bool = False, **kwargs):
+        """
+        Publish a DataFrame to the database using the SQL connector.
+
+        :param data: The DataFrame to publish.
+        :param if_exists: What to do if the table exists ('fail', 'replace', 'append'). Default is 'append'.
+        :param schema: The schema to use for the database table. Default is 'source'.
+        """
+        if data.empty:
+            logger.warning("Attempted to publish an empty DataFrame. Skipping database write.")
+            return
+
+        if_exists = kwargs.get('if_exists', 'append')  # Default to 'append' if not specified
+        schema = kwargs.get('schema', 'source')  # Default to 'source' schema if not specified
+        table_name = getattr(self, "dataset_name", "default_table_name")
+        chunksize = getattr(self, "chunksize", None)
+
+        logger.info(
+            f"Publishing data to database table '{table_name}' in schema '{schema}'. "
+            f"DataFrame shape: {data.shape}, if_exists='{if_exists}', chunksize={chunksize}."
+        )
+
+        try:
+            data = data.assign(created_at=self.time_now)
+            self.sql_connector.publish(
+                data,
+                table_name=table_name,
+                if_exists=if_exists,
+                chunksize=chunksize,
+                schema=schema
+            )
+            logger.info(f"Successfully published data to table '{schema}.{table_name}'.")
+        except Exception as e:
+            logger.error(f"Failed to publish data to table '{schema}.{table_name}': {e}", exc_info=True)
+            raise
+
+    def save_to_csv(self, data: pd.DataFrame, append: bool = False, **kwargs):
         """
         Saves a DataFrame to a CSV file.
 
         :param data: The DataFrame to save.
-        :param output_file: Path to the CSV file.
-        :param mode: Write mode, 'w' for write (default) or 'a' for append.
-        :param include_header: Whether to include the header in the file (default is True).
+        :param append: Whether to append to the file or overwrite.
+        :param kwargs: Additional arguments to pass, such as `filename`.
         """
         if data.empty:
             logger.warning("Attempted to save an empty DataFrame. Skipping write.")
             return
         
+        filename = f'{self.get_filename(*kwargs.values())}.csv' if kwargs else self.get_filename()
+        formatted_time = self.time_now.strftime("%Y-%m-%d")
+        final_filename = f"{filename}_{formatted_time}.csv"
+        
         mode = 'a' if append else 'w'
         header = not append
 
         try:
-            logger.info(f"{'Appending' if append else 'Writing'} data to CSV: {filename}")
-            data.to_csv(filename, mode=mode, header=header, index=False)
+            logger.info(f"{'Appending' if append else 'Writing'} data to CSV: {final_filename}")
+            data.to_csv(final_filename, mode=mode, header=header, index=False)
 
         except Exception as e:
             logger.exception(f"Failed to save data to CSV: {e}")
             raise
-        
+
+    def append_to_df(self, data: pd.DataFrame, append: bool = False, **kwargs):
+        """
+        Append the data to the in-memory list (self.all_data).
+
+        :param data: The DataFrame to append.
+        :param append: Whether to append or overwrite the data (for flexibility in the output_modes dictionary).
+        """
+        if append:
+            self.all_data.append(data)
+            logger.info(f"Appended data to in-memory list. DataFrame shape: {data.shape}")
+        else:
+            self.all_data = [data]
+            logger.info(f"Overwritten in-memory list with new data. DataFrame shape: {data.shape}")
+
     def get_filename(self, *args) -> str:
         """
         Generates a filename based on the dataset name and optional positional arguments.
@@ -97,8 +159,6 @@ class BaseStrategy(ABC):
 
         if args:
             filename += "_" + "_".join(str(arg) for arg in args)
-
-        filename += ".csv"
 
         return filename
 
@@ -114,7 +174,7 @@ if __name__ == "__main__":
             "href_table_id": "fantasy",
             "endpoint_template": "/players/{last_name_letter}/{player_id}/gamelog/{year}/",
             "year_endpoint_template": "years/{year}/fantasy.htm",
-            "transformer": "prf_game_by_game",
+            "transformer": "nflfastr",
             "strategy": "game_by_game",
             "max_players_per_year": 5,
             "min_year": 2023,
