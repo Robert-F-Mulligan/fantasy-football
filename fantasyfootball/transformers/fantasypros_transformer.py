@@ -16,7 +16,7 @@ class RankingsTransfomer(BaseTransformer):
         'proj. fpts': 'projected_fantasy_points'
     }
 
-    FINAL_COLUMN_ORDER = ['rk', 'as_of_date', 'player_name', 'pos', 'team', 'opp', 'matchup_rating', 'start_sit_rating', 'projected_fantasy_points']
+    FINAL_COLUMN_ORDER = ['rk', 'as_of_date', 'year', 'week', 'player_name', 'pos', 'team', 'opp', 'matchup_rating', 'start_sit_rating', 'projected_fantasy_points']
 
     DROP_COLS = ['wsis']
 
@@ -83,7 +83,7 @@ class ProjectionsTransfomer(BaseTransformer):
         'misc_fl': 'fumbles_lost',
     }
 
-    FINAL_COLUMN_ORDER = ['as_of_date', 'player_name', 'pos', 'team', 
+    FINAL_COLUMN_ORDER = ['as_of_date', 'player_name', 'pos', 'team', 'year', 'week',
                           'receiving_rec', 'receiving_yds', 'receiving_tds',
                           'rushing_att', 'rushing_yds', 'rushing_tds',
                           'passing_att', 'passing_cmp', 'passing_yds', 'passing_tds', 'passing_ints',
@@ -138,7 +138,7 @@ class DraftTransfomer(BaseTransformer):
         'pos': 'pos_rk'
     }
 
-    FINAL_COLUMN_ORDER = ['rk', 'player_name', 'pos', 'pos_rk', 'team', 
+    FINAL_COLUMN_ORDER = ['rk', 'year', 'week', 'player_name', 'pos', 'pos_rk', 'team', 
                             'bye', 'strength_of_schedule', 'ecr_vs_adp', 'as_of_date']
 
     def __init__(self, dataframe: pd.DataFrame = None):
