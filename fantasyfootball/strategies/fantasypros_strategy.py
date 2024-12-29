@@ -27,34 +27,31 @@ class FantasyProsStrategy(BaseStrategy):
         output_method = self.output_modes.get(output_mode)
 
         with self.connector as connector:
-            positions = self.positions if hasattr(self, "positions") else [None]
-            week = self.week if hasattr(self, "week") else [None]
+            positions = self.positions if hasattr(self, "positions") and self.positions else [None]
+            weeks = self.week if hasattr(self, "week") and self.week else [None]
 
             logger.info(f"Starting data processing for {self.dataset_name} dataset.")
             logger.info(f"Positions: {positions}")
-            logger.info(f"Week: {week}")
-            
-            for ix, (pos, week) in enumerate(product(positions, week)):
-                    try:
-                        if not self.endpoint_template:
-                            raise ValueError("Endpoint template is missing.")
-                        endpoint = self.endpoint_template.format(position=pos or "", week=week or "")
+            logger.info(f"Weeks: {weeks}")
 
-                        cols = {
-                                "pos": pos.upper() if pos else None,
-                                "week": week if week else None,
-                            }
-                        cols = {key: value for key, value in cols.items() if value is not None}
+            for ix, (pos, week) in enumerate(product(positions, weeks)):
+                try:
+                    if not self.endpoint_template:
+                        raise ValueError("Endpoint template is missing.")
+                    endpoint = self.endpoint_template.format(position=pos or "", week=week or "")
 
-                        data = self.get_data(connector,
-                                             endpoint, 
-                                             self.table_id, 
-                                             **cols)
-                        if not data.empty:
-                            output_method(data, append=(ix > 0))
-                    except Exception as e:
-                        logger.error(f"Failed to process position {pos} at endpoint {endpoint}: {e}")
-    
+                    cols = {
+                        "pos": pos.upper() if pos else None,
+                        "week": week if week else None,
+                    }
+                    cols = {key: value for key, value in cols.items() if value is not None}
+
+                    data = self.get_data(connector, endpoint, self.table_id, **cols)
+                    if not data.empty:
+                        output_method(data, append=(ix > 0))
+                except Exception as e:
+                    logger.error(f"Failed to process position {pos} at endpoint {endpoint}: {e}")
+
             if self.all_data:
                 concatenated_data = pd.concat(self.all_data, ignore_index=True)
                 logger.debug(f"Data processed in {output_mode} mode.")
