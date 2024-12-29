@@ -34,7 +34,7 @@ class FantasyProsStrategy(BaseStrategy):
             logger.info(f"Positions: {positions}")
             logger.info(f"Week: {week}")
             
-            for ix, pos, week in enumerate(product(positions, week)):
+            for ix, (pos, week) in enumerate(product(positions, week)):
                     try:
                         if not self.endpoint_template:
                             raise ValueError("Endpoint template is missing.")
