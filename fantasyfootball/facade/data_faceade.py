@@ -124,13 +124,15 @@ def main():
 if __name__ == "__main__":
     # main()
     facade = DataFacade(load_config())
-    data_set = 'nflfastr_pbp'
+    datasets = ['fantasy_pros_projections', 'fantasy_pros_weekly_rank', 'fantasy_pros_draft']
+    data_set = 'fantasy_pros_projections'
     #data_set = 'year_by_year'
     # df = facade.get_data(data_set,
     #                      min_year=2021,
     #                      max_year=2023)
     # data_set = 'game_by_game'
-    df = facade.get_data(data_set, output_mode='db')
+    for set in datasets:
+        df = facade.get_data(set, output_mode='db')
     # print(df.shape)
 
     # df.to_csv(f'data_facade_{data_set}.csv', index=False)

@@ -16,7 +16,7 @@
         }
     },
     "datasets": {
-        "projections": {
+        "fantasy_pros_projections": {
             "datasource": "fantasypros",
             "table_id": "data",
             "endpoint_template": "nfl/projections/{position}.php?week=draft&scoring=PPR&week={week}",
@@ -25,7 +25,7 @@
             "positions": ["qb", "rb", "wr", "te"],
             "week": null
         },
-        "weekly_rank": {
+        "fantasy_pros_weekly_rank": {
             "datasource": "fantasypros",
             "table_id": "ranking-table",
             "endpoint_template": "nfl/rankings/ppr-{position}.php",
@@ -33,14 +33,14 @@
             "strategy": "fantasypros",
             "positions": ["rb", "wr", "te"]
         },
-        "draft": {
+        "fantasy_pros_draft": {
             "datasource": "fantasypros",
             "table_id": "ranking-table",
             "endpoint_template": "nfl/rankings/ppr-cheatsheets.php",
             "transformer": "fantasy_pros_draft",
             "strategy": "fantasypros"
         },
-        "year_by_year": {
+        "pro_football_reference_year_by_year": {
             "datasource": "profootballreference",
             "table_id": "fantasy",
             "endpoint_template": "years/{year}/fantasy.htm",
@@ -49,7 +49,7 @@
             "min_year": 2023,
             "max_year": 2024
         },
-        "game_by_game": {
+        "pro_football_reference_game_by_game": {
             "datasource": "profootballreference",
             "table_id": "stats",
             "href_table_id": "fantasy",
@@ -57,14 +57,14 @@
             "year_endpoint_template": "years/{year}/fantasy.htm",
             "transformer": "prf_game_by_game",
             "strategy": "game_by_game",
-            "max_players_per_year": 5,
+            "max_players_per_year": 2,
             "min_year": 2023,
             "max_year": 2024
         },
-        "nflfastr_pbp": {
+        "nflfastr_play_by_play": {
             "datasource": "nflfastr",
             "endpoint_template": "nflverse/nflverse-data/releases/download/pbp/play_by_play_{year}.csv.gz",
-            "transfomer": "nflfastr",
+            "transformer": "nflfastr",
             "strategy": "nflfastr",
             "min_year": 2024,
             "max_year": 2024,
