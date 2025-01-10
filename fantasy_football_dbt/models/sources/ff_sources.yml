@@ -1,0 +1,8 @@
+sources:
+  - name: fantasyfootball
+    database: fantasyfootball
+    description: Fantasy Football related data scraped from the web
+    schema: source
+    tables:
+      - name: nflfastr_pbp
+        description: Historical play by play data for NFL games

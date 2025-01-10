@@ -1,0 +1,12 @@
+fantasy_football_dbt:
+  outputs:
+    user:
+      type: postgres
+      host: "{{ env_var('DB_HOST') }}"
+      port: 5432
+      dbname: "{{ env_var('DB_NAME') }}"
+      user: "{{ env_var('DB_USER') }}"
+      pass: "{{ env_var('DB_PASSWORD') }}"
+      schema: "viz"
+
+  target: user
