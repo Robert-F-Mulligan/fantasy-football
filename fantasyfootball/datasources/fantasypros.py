@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime
 import pandas as pd
 from fantasyfootball.connectors.selenium_connector import SeleniumConnector
@@ -25,7 +26,8 @@ class FantasyProsDatasource(BaseDataSource):
                                        table_id=table_id,
                                        **kwargs)
                 .pipe(self._clean_columns)
-                .assign(as_of_date= self._extract_datetime())
+                .assign(as_of_date=self._extract_datetime(),
+                        **self._extract_week_and_year())
         )
 
     def _extract_datetime(self) -> str:
@@ -57,6 +59,35 @@ class FantasyProsDatasource(BaseDataSource):
         except Exception as e:
             logger.error(f"Unexpected error during datetime extraction: {e}")
             return None
+        
+    def _extract_week_and_year(self) -> dict:
+        """
+        Extracts the week and year information from the page <h1> tag.
+
+        :return: A dictionary containing the week number (e.g., 17) and year (e.g., 2024) or an empty dict if not found.
+        """
+        try:
+            if not self.parser.soup:
+                raise RuntimeError("Parser content must be parsed before extracting week and year.")
+
+            title_tag = self.parser.soup.find("h1")
+            if title_tag:
+                title_text = title_tag.get_text(strip=True)
+                week_match = re.search(r"Week (\d+)", title_text)
+                year_match = re.search(r"\((\d{4})\)", title_text)
+
+                # Extract week number and year
+                week = int(week_match.group(1)) if week_match else None
+                year = int(year_match.group(1)) if year_match else None
+
+                logger.info(f"Extracted week: {week}, year: {year}")
+                return {'week': week, 'year': year}
+            else:
+                logger.warning("<h1> tag not found in the parsed HTML.")
+                return {}
+        except Exception as e:
+            logger.error(f"Unexpected error during week and year extraction: {e}")
+            return {}
 
 if __name__ == "__main__":
     from fantasyfootball.utils.logging_config import setup_logging
