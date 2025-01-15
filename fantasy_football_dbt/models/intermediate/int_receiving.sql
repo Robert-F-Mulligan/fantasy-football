@@ -30,7 +30,7 @@ wr as (
     pbp.play_type = 'pass'
     and pbp.season_type = 'REG'
     and pbp.receiver_id  is not null
-    and pbp.penalty = 0
+    and pbp.down is not null -- remove untimed downs
 )
 
 select * from wr
