@@ -1,5 +1,5 @@
 with source_data as (
-    select * from {{ source('fantasyfootball', 'nflfastr_pbp')}}
+    select * from {{ source('fantasyfootball', 'nflfastr_play_by_play')}}
 ),
 
 pbp as (
@@ -63,7 +63,8 @@ pbp as (
         rusher_id, 
         rushing_yards,
         cp,
-        cpoe
+        cpoe,
+        penalty
 
     from source_data
 )

@@ -1,5 +1,5 @@
 with source_data as (
-    select * from {{ source('fantasyfootball', 'nflfastr_pbp')}}
+    select * from {{ source('fantasyfootball', 'nflfastr_play_by_play')}}
 ),
 
 my_view as (
