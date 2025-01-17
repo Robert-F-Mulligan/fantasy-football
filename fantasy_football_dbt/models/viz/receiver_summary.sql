@@ -81,7 +81,7 @@ player_summary as (
                              and tc.season = wr.season
 
     where
-        wr.receiver_id is not null
+        wr.receiver_id is not null  
 
     group by
         wr.receiver_id,
@@ -100,11 +100,11 @@ combo as (
         ps.catches,
         ps.air_yards,
         case
-            when ps.team_count = 1 then ps.air_yards / ts.air_yards -- to not skew team stats for players who have moved teams
+            when ps.team_count = 1 then ps.air_yards::double precision / ts.air_yards::double precision -- to not skew team stats for players who have moved teams
             else null 
             end as air_yard_share,
         case
-            when ps.team_count = 1 then ps.targets / ts.targets
+            when ps.team_count = 1 then ps.targets::double precision / ts.targets::double precision
             else null 
             end as target_share,
         ps.yards_after_catch,
