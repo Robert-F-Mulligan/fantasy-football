@@ -12,6 +12,7 @@ wr as (
         pbp.receiver,
         pbp.posteam,
         pbp.air_yards,
+        pbp/yards_after_catch,
         pbp.complete_pass,
         pbp.yards_gained,
         pbp.pass_touchdown,
