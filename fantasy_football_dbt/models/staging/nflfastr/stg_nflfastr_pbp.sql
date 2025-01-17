@@ -64,7 +64,8 @@ pbp as (
         rushing_yards,
         cp,
         cpoe,
-        penalty
+        penalty,
+        penalty_team
 
     from source_data
 )
