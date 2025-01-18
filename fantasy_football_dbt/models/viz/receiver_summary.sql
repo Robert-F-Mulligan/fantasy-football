@@ -72,7 +72,8 @@ player_summary as (
         SUM(wr.yards_gained) as rec_yards,
         SUM(wr.pass_touchdown) as rec_tds,
         SUM(wr.rz_tgts) as rz_tgts,
-        SUM(wr.ez_tgts) as ez_tgts
+        SUM(wr.ez_tgts) as ez_tgts,
+        SUM(wr.first_down_pass) as first_down_pass
     
     from wr
     inner join last_team lt on lt.receiver_id = wr.receiver_id
@@ -112,7 +113,8 @@ combo as (
         ps.rec_yards,
         ps.rec_tds,
         ps.rz_tgts,
-        ps.ez_tgts
+        ps.ez_tgts,
+        ps.first_down_pass
 
     from player_summary ps
     inner join team_summary ts on ts.season = ps.season
