@@ -38,3 +38,8 @@ models:
       +schema: staging
     example:
       +materialized: view
+
+seeds:
+  fantasy_football_dbt:
+    schema: reference
+
