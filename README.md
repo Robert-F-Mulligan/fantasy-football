@@ -1,350 +1,88 @@
-![Banner](./figures/readme-files/banner.png)
+# Fantasy football research
 
-<p align="center">
-<a href="https://github.com/robert-f-mulligan/fantasy-football/commits/master" target="_blank">
-    <img src="https://img.shields.io/github/last-commit/robert-f-mulligan/fantasy-football?style=for-the-badge&color=darkblue" alt="GitHub last commit">
-  </a>
-</p>
-<p align="center">
-<a href="https://www.linkedin.com/in/robertfmulligan/" target="_blank">
-    <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="Likedin">
-    </a>
-<a href="https://www.twitter.com/mulliganrob" target="_blank">
-    <img src="https://img.shields.io/badge/Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white" alt="Twitter">
-    </a>
-</p>
+Python tools for data ingestion, league-specific draft valuation, historical projection baselines, and interactive reports. The new workflow runs from CSV files without a database or live scraping.
 
-## Table of Contents
+## Quick start
 
-- [Introduction](#introduction)
-- [Project Organization](#project-organization)
-- [Installation](#installation)
-    - [Config](#config)
-    - [Selenium](#selenium)
-    - [NLTK Add On](#nltk-add-on)
-- [Web Scraping](#web-scraping)
-- [In Season](#in-season)
-    - [Visualizations](#visualizations)
-        - [Head to Head](#head-to-head)
-        - [Kernel Density Estimation](#kernel-denisty-estimation)
-        - [Heat Map](#heat-map)
-        - [Scatterplots](#scatterplots)
-        - [Heat Maps](#heat-maps)
-        - [Bar Charts](#bar-charts)
-- [Draft Prep](#draft-prep)
-- [Twitter Sentiment Analysis](#twitter-sentiment-analysis)
-- [Tiers](#tiers)
-    - [Sample Tier Plot](#sample-tier-plot)
+Python 3.10+ is required. From the repository directory:
 
-## Introduction
-
-This package is designed to give season-long fantasy football players a way to ceate an edge by using `python` as a tool to:
-- Draft using a systematic, value-based model
-- Scrape data to ensure accurate and up-to-date information
-- Quantify weekly performance and uncover hidden productivity using advanced metrics
-- Use data visualization to easily spot both player and team trends and relationships 
-- Apply clustering algorithms to players to reveal natural tiers among players
-
-
-[(Back to top)](#table-of-contents)
-
-
-## Project Organization
-
-
-    │
-    ├── data/                <- The original, immutable data dump. 
-    │
-    ├── notebooks/           <- Jupyter notebooks. 
-    │
-    ├── tests/               <- Unit tests.
-    │
-    ├── fantasyfootball/     <- Python module with source code of this project.
-    │
-    ├── figures/             <- Charts and sample visualizations.
-    │
-    ├── LICENSE
-    │
-    ├── requirements.txt     <- pip package dependencies.   
-    │
-    ├── README.md            <- Project summary and instructions.
-    │
-    └── setup.py             <- run this to install source code.
-
-
-[(Back to top)](#table-of-contents)
-
-## Installation
-
-Clone this repo locally:
-
-```sh
-$ git init
-$ git clone https://github.com/Robert-F-Mulligan/fantasy-football.git
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -e ".[viz,dev,scraping,database,model]"
+.\.venv\Scripts\python -m fantasyfootball draft examples/projections.csv --league examples/league.json --pick 5 --output work/draft.csv --html work/draft.html
+.\.venv\Scripts\python -m fantasyfootball evaluate examples/history.csv --output work/evaluation.csv
+.\.venv\Scripts\python -m pytest -q
 ```
 
-Install the virtual environment:
+The existing `ff-venv` environment can also run these commands. Examples contain **synthetic demonstration data**, not current player projections. Open the HTML report in a browser; Plotly is embedded for offline use. Hover, zoom, or click positions in the legend. Chart methods return figures for notebooks.
 
-```sh
-$ python -m venv /path/to/new/virtual/environment
-```
-Activate virtual environment:
-```sh
-$ cd /path/to/new/virtual/environment/Scripts/activate 
-```
+## Draft inputs
 
-Navigate to the cloned directory and install fantasyfootball in the virtual environment by running setup.py:
+Projections require `player_id`, `player_name`, `pos`, and `projected_points`. IDs must be stable, nonempty and unique. Supply every starting position and enough depth to include a player beyond each position's league-wide starter and flex demand. Missing depth raises an error rather than inventing replacement values.
 
-```sh
-$ cd /path/to/cloned/repo
-$ pip install -e .
+If `projected_points` is absent, supply every stat configured in `ScoringRules`; the application computes league points. Missing stats are not assumed zero. FantasyPros transformer output is adapted automatically: plural touchdown/interception columns are normalized, and stats are rescored for your league. The provider's `projected_fantasy_points` total is retained for reference, not substituted for league-specific points. Optional `adp` and `adp_std` represent average draft pick and observed pick standard deviation. Alternatively use `--adp market.csv` to join by player ID. Missing market data remains unknown.
+
+```powershell
+python -m fantasyfootball draft projections.csv --league league.json --pick 17 --drafted player123 player456 --output work/board.csv --html work/board.html
 ```
 
-Install project dependencies through pip and requirements.txt:
+The next pick defaults to your next snake-draft turn; override `--next-pick` for another format. Drafted players are removed after full-pool replacement values are calculated. This does not track your roster or optimize a full lineup.
 
-```sh
-$ pip install -r requirements.txt
+Ranks sort by value over replacement, projected points, then ID. Replacement is the first player outside league-wide starting demand, allocating flex slots across eligible remaining players. Tiers split after an adjacent within-position projection drop exceeding 25 points (`GapTiers(gap=...)` in Python). Availability uses a normal ADP distribution conditional on the player still being available at the current pick. This is an **uncalibrated heuristic**, not a simulated draft.
+
+## League rules
+
+```json
+{"teams":12,"starters":{"QB":1,"RB":2,"WR":2,"TE":1},"flex":1,"flex_positions":["RB","WR","TE"]}
 ```
 
-Install a new ipython kernel:
-
-```sh
-$ ipython kernel install --user --name=fantasyfootball
-```
-
-To run Jupyter Notebook and open the notebooks in `.notebooks/`:
-
-```sh
-$ jupyter notebook
-```
-Select the new kernel fantasyfootball
-
-[(Back to top)](#table-of-contents)
-
-### Config
-
-In order for this package to be truly customizable, you should add a `dict` to config.py that includes league specific information and then use this dict for any function that requires a `league` argument:
+Add `scoring` mapping stat columns to point weights. Defaults are full PPR, 4-point passing TDs and -2 interceptions. `LeagueSettings.from_legacy(config.sean)` preserves your existing league rules, including 6-point passing TDs. Precomputed projections must already match your league's scoring system.
 
 ```python
-my_league = {
-    'name' : 'ppr', # name of league
-    'team_n' : 12, # teams in league
-    'scoring' : 'ppr', # scoring type - 'ppr', 'half-ppr' or 'standard'
-    'rounds' : 13, # draft rounds, not including kickers or DST
-    'passing_yds' : 0.04, # passing yards scoring
-    'passing_td' : 6, # passing TD scoring
-    'passing_int' : -1, # passing int scoring
-    'rushing_yds' : 0.1, # rushing yd scoring
-    'rushing_td' : 6, # rushing TD scoring
-    'receiving_rec' : 1, # reception scoring
-    'receiving_yds' : 0.1, # receiving yd scoring
-    'receiving_td' : 6, # receiving TD scoring
-    'fumbles' : -1, # fumble scoring
-    'fumbles_lost' : -2, # fumbles lost scoring
-    'qb' : 1, # number of QBs in a starting lineup
-    'rb' : 2, # number of RBs in a starting lineup
-    'wr' : 2, # number of WRs in a starting lineup
-    'te' : 1, # number of TEs in a starting lineup
-    'flex' : 1, # number of FLEXs in a starting lineup
-    'dst' : 1, # number of DSTs in a starting lineup
-    'k' : 1 # number of Ks in a starting lineup
-}
-```
-The `config.py` file also contains other reference information and general use functionality:
-- Color mapping for NFL teams for data visualization
-- Image mapping for NFL main logos and wordmarks
-- Fantasy point calculators for different `.py` files
-
-[(Back to top)](#table-of-contents)
-
-### Selenium
-
-Due to a change in the FantasyPros website, you can no longer scrape  simple tables with `BeautifulSoup` for ECR (expert consensus rankings) and stat projections. However it is still possible to pull the data by using using `selenium`, whichs allows the scraping and parsing of dynamic javascript webpages.
-
-Scraping with `selenium` requires the following downloads:
-- [Chrome](https://www.google.com/chrome/)
-- [Chromedriver](https://sites.google.com/a/chromium.org/chromedriver/downloads)
-    - Once downloaded, save the driver on your machine and update the `DRIVER_PATH` in the `config.py` file
-
-[(Back to top)](#table-of-contents)
-
-### NLTK Add On
-
-In order to run a Twitter sentiment analysis, you must install 'vader_lexicon'
-Using Windows Terminal (in addition to installing the main package via `requirements.txt`):
-```python
-$ python
->>> import nltk
->>> nltk.download('vader_lexicon')
+from fantasyfootball.domain import LeagueSettings
+from fantasyfootball.application import DraftApplication
+from fantasyfootball import config
+league = LeagueSettings.from_legacy(config.sean)
+board = DraftApplication(league).prepare(projections, pick=5, next_pick=20)
 ```
 
-[(Back to top)](#table-of-contents)
+## Historical projections
 
-## Web Scraping
+History requires one row per `player_id, season`, plus `player_name`, `pos`, `games`, `fantasy_points`. Score all seasons with the same rules. `WeeklyHistoryAdapter(league.scoring)` converts PFR-style weekly rows to this schema. It requires regular-season data and explicit stat zeros, rejects duplicate weeks, and counts supplied weekly rows as games. Exclude inactive/non-game rows first.
 
-We can access various fantasy football data for the purposes of further analysis by scraping information from the internet. This is accomplished primarily through `BeautifulSoup`, with the exception of `fantasypros.py`, which requires `selenium`. Data is transformed through the `pandas` module. Currently, the following scrapers are functional:
-- [Fantasy Pros - ECR and stat projections](./fantasyfootball/fantasypros.py)
-    - Used exclusively by other scripts and for analysis in a notebook
-    - Used for draft prep; allows the combination of consensus rankings and projections in order to build a value-based drafting methodology
-    - Also used for in-season tier modelling
-- [Pro Football Reference - Game by Game](./fantasyfootball/pfrgbg.py)
-    - Run on the command line `python pfrgbg.py` or import in a notebook for analysis
-    - Used for deriving previous season's fantasy performance metrics
-- [Pro Football Reference - Year by Year](./fantasyfootball/pfryby.py)
-    - Run on the command line `python pfryby.py` or import in a notebook for analysis
-    - Used for historical analysis
-- [Pro Football Reference - Advanced Stats](./fantasyfootball/pfradv.py)
-    - Run on the command line `python pfradv.py` or import in a notebook for analysis
-- [FF Calculator - ADP Data](./fantasyfootball/ffcalculator.py)
-    - Run on the command line `python ffcalculator.py` or import in a notebook for analysis
-    - Used for importing up-to-date average draft position (ADP) data for a given league size and format
-- [nflfastR Github Repo - Play by Play Data](./fantasyfootball/nflfastr.py)
-    - Used exclusively by other scripts and for analysis in a notebook
-    - Primarily used for in-season, week-by-week analysis
-    - Used extensively for visualizations
-    - Original repo is [found here](https://github.com/guga31bb/nflfastR-data)
+```powershell
+python -m fantasyfootball draft history.csv --season 2027 --adp market.csv --league league.json --output work/forecast.csv --html work/forecast.html
+python -m fantasyfootball evaluate history.csv --output work/backtest.csv
+```
 
-[(Back to top)](#table-of-contents)
+`WeightedHistoryModel` weights the previous three seasons by recency, shrinks points per game toward a positional prior, and projects 17 games by default. Configure decay, prior strength, season length and lookback in Python. An optional `expected_games` column changes playing time. It does not infer retirements, transfers, injuries or rookies: filter eligible players and supplement new entrants with external projections.
 
-## In Season
+`WalkForwardEvaluator` passes only earlier seasons to each forecast and reports MAE, RMSE and coverage on overlapping IDs. New entrants are excluded from errors, so coverage matters. Use held-out seasons and baseline comparisons before relying on a model; no accuracy advantage is claimed.
 
-In season data is scraped primarily through the `nflfastR` github repo. Further documentation can be found [here](https://www.rdocumentation.org/packages/nflscrapR/versions/1.8.1/topics/scrape_json_play_by_play).
-
-In season visualizations can be updated all at once by running all of the cells in the [NFL-Weekly-Vizzes.ipynb](./notebooks/NFL-Weekly-Vizzes.ipynb) file.
-
-### Visualizations
-Visualizations usually have a related `transform` function in order to shape the data correctly for either `matplotlib` or `seaborn`. 
-
-[(Back to top)](#table-of-contents)
-
-#### Head to Head
-
-THe purpose of `nflteamh2h.py` is to compare NFL teams against eachother to spot how they match up along several important metrics. Fantasy points per game by position is scraped from [FF Today](https://fftoday.com), the rest of the metrics are derived from `nflfastR`.
-
-![Image of Head to Head Off vs Def](./figures/sample-visualizations/2020_week_11_Off_vs_Def_NO_ATL.png)
-
-[(Back to top)](#table-of-contents)
-
-#### Kernel Density Estimation
-This chart is depicting air yard distribution (specifically the probability of being targeted for a specific air yard amount via a continuous curve). Data is sourced from `nflfastR`. This plot relies on `seaborn`'s `kdeplot()` function. 
-
-![Image of Air Yards Density](./figures/2020/05.2020/2020_Air_Yard_Density_Through5.png)
-
-[(Back to top)](#table-of-contents)
-
-#### Heat Map
-
-This table shows various fantasy football specific measures of productivity. There is also related chart geared towards WR's and QB's. This chart is relying on `pandas` and `styler` functionality. Data is sourced from `nflfastR`.
-
-![Image of RB Summary Table](./figures/sample-visualizations/2020_Top_RBs_through_Week_12.png)
-
-[(Back to top)](#table-of-contents)
-
-#### Scatterplots
-Scatter plots are created through `matplotlib`. The drawing function is meant to be flexibile - you can pass any two metrics to visualize the relationship between two variables. Data is sourced from `nflfastR`.
-![Image of First Downs vs Early Down Success Rate](./figures/sample-visualizations/2020_early_down_success_rate_and_first_downs_per_game_through_week_5.png)
-
-[(Back to top)](#table-of-contents)
-
-#### Bar Charts
-Bar charts are also created through `matplotlib`. Data is sourced from `nflfastR`.
-![Image of Target Yardlines](./figures/sample-visualizations/2020_through_week_5_receiver_play_yardline_breakdown.png)
-
-[(Back to top)](#table-of-contents)
-
-## Draft Prep
-
-The main file to run is `draft.py`. This script is designed to tailor draft strategy by league-specific rules. It will take into account point values, league size, and format (i.e. PPR).
-
-In order for the file to run correctly, set the following parameters in the file before running:
+## Ingestion
 
 ```python
-pos_tier_dict_viz = {
-    'RB' : 8,
-    'QB' : 7,
-    'WR' : 8,
-    'TE' : 5,
-    'DST' : 5,
-    'K' : 4
-    } # pass a dict of the number of tiers you wish to pass to the clustering algorithm; this is set by running AIC/BIC or Elbow chart in tiers.py
-
-league = # pass your league dict here
-weekly_stats_year = # set previous season year here
-weekly_path = # set the path to weekly data of the previous season 
-replacement_method = # pick the value-over-replacement methodology
+from fantasyfootball.facade.data_facade import DataFacade, load_config
+facade = DataFacade(load_config())
+print(facade.list_available_datasets())
+data = facade.get_data('nflfastr_play_by_play', min_year=2023, max_year=2024)
+facade.get_data('nflfastr_play_by_play', output_mode='csv', output_path='work/pbp.csv')
 ```
 
-- Four main sources of data:
-    - Fantasy Pros stat projections
-    - Fantasy Pros ECR rankings
-    - FF Calculator ADP
-    - Pro Football Reference Previous Season Weekly Data
-        - For average points and standard deviation
+`df` is the default and returns a DataFrame. CSV and DB modes stream chunks and return `None`. Each CSV run replaces the file on its first successful chunk and appends subsequent chunks. Errors propagate; previously written chunks can remain. Database append is the default and repeat loads can duplicate rows. Explicit `if_exists='replace'` applies to the first chunk. Each DB chunk commits separately.
 
-- VOR Calculation
-    - Position specific methodology
-        - 'avg starter' : replacement value for an avg starter
-        - 'top n' : position specific cut-off
-        - 'replacement player' : player who should be available on waivers
-        - 'last starter' : value for a low-end starter
+`load_config('config/data_config.json')` reads your edited local config; `load_config()` reads the packaged default. `fantasy-data --list` lists datasets. The ingestion CLI accepts `--config`, `--dataset_name`, and `--output-mode`. The facade's `request_delay` defaults to 5 seconds for PFR requests. Selenium uses Selenium Manager unless given a driver path. Live source HTML/blocking requires separate integration checks. PostgreSQL reads DB_HOST, DB_PORT, DB_NAME, DB_USER and DB_PASSWORD from the environment.
 
-[(Back to top)](#table-of-contents)
+## Architecture
 
-## Twitter Sentiment Analysis
+Frozen league/scoring objects hold configuration. `DraftApplication` orchestrates inputs and injected projection models. Separate strategies handle replacement, tiers and availability. Lazy factories load providers on demand. `BaseStrategy` owns ingestion lifecycle, cleanup and output. `PlotlyVisualizer` separates presentation from scraping and valuation.
 
-The purpose of `twitter.py` is to analyize the text contained in tweets on Twitter to rate each by how positively/negatively the discussion is for a given player. This may allow the capturing of news or expert information that hasn't been made widely available at the time of the analysis. 
+See [migration notes](docs/MIGRATION.md). Older notebook modules remain for migration and require the `legacy` extra; the supported new entry points are the CLI and application service. DBT models and existing datasets are preserved.
 
-You will need to sign up for the [Twitter API](https://developer.twitter.com/en/apply-for-access) and set the following variables in a ```.env``` file in the root directory:
-- TWITTER_ACCESS_TOKEN
-- TWITTER_ACCESS_TOKEN_SECRET
-- TWITTER_CONSUMER_KEY
-- TWITTER_CONSUMER_KEY_SECRET
+Implementation references: [Plotly HTML export](https://plotly.com/python/interactive-html-export/) and [SQLAlchemy transactions](https://docs.sqlalchemy.org/en/20/core/connections.html).
 
-For further customization, add the Twitter accounts you wish to include for analysis in the `twitterconfig.py` file.
+## Factor models and weekly optimization
 
-```python
-ANALYSTS = {
-        'Matthew Berry': 'MatthewBerryTMR', # account name : twitter account
-        'Field Yates': 'FieldYates',
-        'NFL Fantasy Football': 'NFLFantasy',
-        'PFF Fantasy Football': 'PFF_Fantasy',
-        'FantasyPros': 'FantasyPros'
-}
-```
+The new `forecast`, `evaluate-factors`, and `lineup` commands provide boosted-tree season/weekly forecasts and constrained lineup assignment. Install `pip install -e ".[model]"`. See [model features, usage and limitations](docs/MODELS.md), [live verification results](docs/VALIDATION.md), and [warehouse workflow](fantasy_football_dbt/README.md).
 
-The list of players is generated from `ffcalculator.py`. 
-
-[(Back to top)](#table-of-contents)
-
-## Tiers
-
-`tier.py ` and `tiersweekly.py` are files used to harness a clustering algorithm to determine natural breaks in rankings based on Fantasy Pros ECR data, with the goal of being able to make drafting and weekly line-ups easier by allowing groupings of similar players. 
-- Tiers are determined by default by the following variables:
-    - average ranking
-    - highest ranking among experts
-    - lowest ranking among experts
-- Kmeans
-    - Cluster hyperparameter can be determined by running:
-    ```python
-    def kmeans_sse_chart()
-    ```
-    - Optimal number of clusters will be where the "elbow" flattens out
-    - Does poorly with odd shape clusters
-    - Can run quickly with higher-dimensional data
-- Gaussian Mixture Model
-    - hyperparameter can be determined by running:
-    ```python
-    def def gmm_component_silhouette_estimator()
-    ```
-    - Optimal number of clusters will be where the Akaike's Information Criterion (AIC) and/or Bayesian Information Criterion (BIC) is minimzied
-    - Can recongnize different or oddly shaped clusters
-    - Probabilistic model
-    - Runs optimally with lower-dimensional data
-
-In short, choose the method that fits your data.
-
-### Sample Tier Plot
-
-![Image of Tiers Chart](./figures/sample-visualizations/08.12.2020_rangeofrankings_gmm_QB.png)
-
-[(Back to top)](#table-of-contents)
+Run `python examples/verify_live.py` for bounded live checks. FantasyPros public projections expose a limited preview, not a complete draft pool. The scraper supports its current published JSON report payload without executing JavaScript. PFR may deny access with HTTP 403; no bypass is implemented. nflverse provides a verified alternative for play-by-play data.

@@ -1,7 +1,7 @@
 import logging
 import os
 from sqlalchemy import create_engine, inspect
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Engine, URL
 import pandas as pd
 from fantasyfootball.connectors.base_connector import BaseConnector
 from fantasyfootball.factories.connector_factory import ConnectorFactory
@@ -30,7 +30,7 @@ class SqlConnector(BaseConnector):
         if not all(db_config.values()):
             raise ValueError("One or more environment variables are missing!")
 
-        return "postgresql+psycopg2://{user}:{password}@{host}:{port}/{name}".format(**db_config)
+        return URL.create('postgresql+psycopg2', username=db_config['user'], password=db_config['password'], host=db_config['host'], port=int(db_config['port']), database=db_config['name'])
     
     def get_engine(self) -> Engine:
         """Lazily initialize the SQLAlchemy engine."""
@@ -40,24 +40,17 @@ class SqlConnector(BaseConnector):
             self.engine = create_engine(db_url, pool_pre_ping=True)
         return self.engine
 
-    @retry_decorator(retries=3, delay=2, backoff_factor=2)
-    def fetch(self, query: str, params: dict = None, chunksize: int = None) -> pd.DataFrame:
-        """
-        Execute a SELECT query and fetch results into a Pandas DataFrame.
-        
-        :param query: SQL query to execute.
-        :param params: Parameters for the query.
-        :param chunksize: Number of rows to fetch per chunk.
-        :return: Query results as a Pandas DataFrame (or generator if chunksize is set).
-        """
-        logger.info("Executing fetch query.")
-        try:
-            with self.get_engine().connect() as connection:
-                logger.debug(f"Running query: {query} with params: {params}")
-                return pd.read_sql(query, con=connection, params=params, chunksize=chunksize)
-        except Exception as e:
-            logger.error(f"Error fetching data: {e}", exc_info=True)
-            raise
+    def fetch(self, query: str, params=None, chunksize=None):
+        """Keep the SQL connection alive until a chunk iterator is exhausted."""
+        if chunksize is not None:
+            if not isinstance(chunksize, int) or chunksize < 1:
+                raise ValueError('chunksize must be a positive integer')
+            def chunks():
+                with self.get_engine().connect() as connection:
+                    yield from pd.read_sql(query, con=connection, params=params, chunksize=chunksize)
+            return chunks()
+        with self.get_engine().connect() as connection:
+            return pd.read_sql(query, con=connection, params=params)
 
     def table_exists(self, table_name: str, schema: str = None) -> bool:
         """
@@ -67,7 +60,7 @@ class SqlConnector(BaseConnector):
         :param schema: Optional schema to check within.
         :return: True if the table exists, False otherwise.
         """
-        with self.get_engine().connect() as connection:
+        with self.get_engine().begin() as connection:
             inspector = inspect(connection)
             return inspector.has_table(table_name, schema=schema)
         
@@ -80,16 +73,15 @@ class SqlConnector(BaseConnector):
         :param schema: Optional schema for the table.
         """
         logger.info(f"Creating table {table_name} based on DataFrame schema.")
-        with self.get_engine().connect() as connection:
+        with self.get_engine().begin() as connection:
             df.head(0).to_sql(
                 name=table_name,
                 con=connection,
-                if_exists='replace',  # 'replace' will create the table if it doesn't exist
+                if_exists='fail',
                 index=False,
                 schema=schema
             )
 
-    @retry_decorator(retries=3, delay=2, backoff_factor=2)
     def publish(self, df: pd.DataFrame, table_name: str, if_exists: str = 'append', chunksize: int = None, schema: str = None):
         """
         Publish a DataFrame to a SQL table using pandas `to_sql`.
@@ -102,12 +94,9 @@ class SqlConnector(BaseConnector):
         """
         logger.info(f"Publishing DataFrame to table {table_name}.")
         
-        # Check if the table exists, create it if it doesn't
-        if not self.table_exists(table_name, schema=schema):
-            self.create_table(df, table_name, schema=schema)
 
         try:
-            with self.get_engine().connect() as connection:
+            with self.get_engine().begin() as connection:
                 df.to_sql(
                     name=table_name,
                     con=connection,

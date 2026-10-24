@@ -12,3 +12,14 @@ chrome-driver
 ff-venv
 notebooks_dev
 application.log
+
+work/
+.pytest_cache/
+build/
+dist/
+*.html
+
+fantasy_football_dbt/target/
+fantasy_football_dbt/logs/
+fantasy_football_dbt/dbt_packages/
+.ruff_cache/

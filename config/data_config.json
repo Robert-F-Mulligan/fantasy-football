@@ -2,7 +2,7 @@
     "datasources": {
         "fantasypros": {
             "base_url": "https://www.fantasypros.com",
-            "connector": "selenium",
+            "connector": "requests",
             "parser": "html"
         },
         "profootballreference": {
@@ -19,7 +19,7 @@
         "fantasy_pros_projections": {
             "datasource": "fantasypros",
             "table_id": "data",
-            "endpoint_template": "nfl/projections/{position}.php?week=draft&scoring=PPR&week={week}",
+            "endpoint_template": "nfl/projections/{position}.php?scoring=PPR&week={week}",
             "transformer": "fantasy_pros_projections",
             "strategy": "fantasypros",
             "positions": ["qb", "rb", "wr", "te"],

@@ -6,7 +6,6 @@ from fantasyfootball.strategies.base_strategy import BaseStrategy
 from fantasyfootball.factories.strategy_factory import StrategyFactory
 from fantasyfootball.utils.logging_config import setup_logging
 
-setup_logging()
 
 logger = logging.getLogger(__name__)
 
@@ -21,40 +20,10 @@ class ProFootballReferenceGbGStrategy(BaseStrategy):
         """
         self.all_data = []
 
-    def run(self, sleep: int = 5, output_mode: str = "db") -> Optional[pd.DataFrame]:
-        """
-        Processes data for multiple years.
-        
-        :param years: Iterable of years to process.
-        :param max_players_per_year: Maximum number of players to process per year.
-        :param sleep: Time to wait (in seconds) between years to avoid rate-limiting.
-        :return: A concatenated DataFrame containing all the processed data.
-        """
-        output_method = self.output_modes.get(output_mode)
-        years = range(self.min_year, self.max_year + 1)
-
-        logger.info(f"Starting data processing for years {years} for {self.dataset_name} dataset.")
-
-        with self.connector as connector:
-
-            for ix, year in enumerate(years):
-                try:
-                    logger.info(f"Processing year: {year}")
-                    year_df = self._run_one_year(year,  
-                                                 sleep=sleep, 
-                                                 connector=connector,
-                                                 parser=self.parser)
-                    if not year_df.empty:
-                        output_method(year_df, append=(ix > 0))
-                    time.sleep(sleep)  # Sleep between each year's processing
-                except Exception as e:
-                    logger.error(f"Failed to process year {year}: {e}")
-
-            if self.all_data:
-                df = pd.concat(self.all_data, ignore_index=True) if self.all_data else pd.DataFrame()
-
-                logger.info(f"Returning a DataFrame with shape: {df.shape}")
-                return df
+    def iter_frames(self, connector, sleep=5):
+        for year in self.years():
+            yield self._run_one_year(year, sleep=sleep, connector=connector, parser=self.parser)
+            time.sleep(sleep)
 
     def _run_one_year(self, year: int, sleep: int = 5, **kwargs) -> pd.DataFrame:
         """
@@ -69,7 +38,7 @@ class ProFootballReferenceGbGStrategy(BaseStrategy):
                                                         table_id=self.href_table_id,
                                                         **kwargs)
 
-        if self.max_players_per_year:
+        if getattr(self, 'max_players_per_year', None):
             player_hrefs = player_hrefs[:self.max_players_per_year]
 
         year_data = []
@@ -102,6 +71,7 @@ class ProFootballReferenceGbGStrategy(BaseStrategy):
                 time.sleep(sleep)  # Sleep between processing each player
             except Exception as e:
                 logger.error(f"Failed to process player {player_href} for year {year}: {e}")
+                raise
         
         return pd.concat(year_data, ignore_index=True) if year_data else pd.DataFrame()
 

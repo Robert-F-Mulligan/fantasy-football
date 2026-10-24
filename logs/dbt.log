@@ -1,0 +1,31 @@
+[0m15:48:12.268697 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000019E3E201430>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000019E4065EFF0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000019E4065EED0>]}
+
+
+============================== 15:48:12.273652 | b6cab47c-fb91-4e2f-acd0-0d2e22748ca7 ==============================
+[0m15:48:12.273652 [info ] [MainThread]: Running with dbt=1.9.1
+[0m15:48:12.274833 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'write_json': 'True', 'log_cache_events': 'False', 'partial_parse': 'True', 'cache_selected_only': 'False', 'warn_error': 'None', 'version_check': 'True', 'fail_fast': 'False', 'log_path': 'logs', 'debug': 'False', 'profiles_dir': 'C:\\Users\\rmull\\.dbt', 'use_colors': 'True', 'use_experimental_parser': 'False', 'no_print': 'None', 'quiet': 'False', 'empty': 'None', 'warn_error_options': 'WarnErrorOptions(include=[], exclude=[])', 'introspect': 'True', 'static_parser': 'True', 'invocation_command': 'dbt init fantasy_football_dbt', 'target_path': 'None', 'log_format': 'default', 'send_anonymous_usage_stats': 'True'}
+[0m15:48:12.339957 [warn ] [MainThread]: [ConfigFolderDirectory]: Unable to parse logging event dictionary. Failed to parse dir field: expected string or bytes-like object, got 'WindowsPath'.. Dictionary: {'dir': WindowsPath('C:/Users/rmull/.dbt')}
+[0m15:48:12.340954 [info ] [MainThread]: Creating dbt configuration folder at 
+[0m15:48:12.344904 [debug] [MainThread]: Starter project path: C:\Users\rmull\python-projects\fantasy-football\ff-venv\Lib\site-packages\dbt\include\starter_project
+[0m15:48:12.368143 [info ] [MainThread]: 
+Your new dbt project "fantasy_football_dbt" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m15:48:12.372132 [info ] [MainThread]: Setting up your profile.
+[0m16:10:04.254595 [info ] [MainThread]: Profile fantasy_football_dbt written to C:\Users\rmull\.dbt\profiles.yml using target's profile_template.yml and your supplied values. Run 'dbt debug' to validate the connection.
+[0m16:10:04.255592 [debug] [MainThread]: Command `dbt init` succeeded at 16:10:04.255592 after 1312.12 seconds
+[0m16:10:04.256589 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000019E40CD01D0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000019E40C2C710>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000019E40B6D010>]}
+[0m16:10:04.256589 [debug] [MainThread]: Flushing usage events
+[0m16:10:04.492536 [debug] [MainThread]: An error was encountered while trying to flush usage events

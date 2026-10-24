@@ -83,7 +83,7 @@ class ProjectionsTransfomer(BaseTransformer):
         'misc_fl': 'fumbles_lost',
     }
 
-    FINAL_COLUMN_ORDER = ['as_of_date', 'player_name', 'pos', 'team', 'year', 'week',
+    FINAL_COLUMN_ORDER = ['player_id', 'as_of_date', 'player_name', 'pos', 'team', 'year', 'week',
                           'receiving_rec', 'receiving_yds', 'receiving_tds',
                           'rushing_att', 'rushing_yds', 'rushing_tds',
                           'passing_att', 'passing_cmp', 'passing_yds', 'passing_tds', 'passing_ints',
@@ -96,21 +96,19 @@ class ProjectionsTransfomer(BaseTransformer):
         """
         super().__init__(dataframe)
 
-    def transform(self, dataframe: pd.DataFrame = None) -> pd.DataFrame:
-        """Performs the entire transformation process."""
+    def transform(self, dataframe=None):
         if dataframe is not None:
-            self.dataframe = dataframe
-
+            self.dataframe = dataframe.copy()
         if self.dataframe is None:
-            raise ValueError("No DataFrame set for transformation.")
-
-        logger.info("Starting Fantasy Pros projections transformation process.")
-        return (
-            self._rename_columns(self.COLUMN_RENAME_MAP)
-                ._standardize_player_names()
-                ._reindex_and_fill(self.FINAL_COLUMN_ORDER)
-                .dataframe
-        )
+            raise ValueError('No DataFrame set for transformation')
+        self._rename_columns(self.COLUMN_RENAME_MAP)._standardize_player_names()
+        # Structurally absent position stats are zeros; unknown provider values
+        # and metadata remain missing instead of becoming fabricated zero dates.
+        stats = [c for c in self.FINAL_COLUMN_ORDER if c.startswith(('passing_', 'rushing_', 'receiving_', 'fumbles_'))]
+        for column in stats:
+            if column not in self.dataframe:
+                self.dataframe[column] = 0.0
+        return self.dataframe.reindex(columns=self.FINAL_COLUMN_ORDER).infer_objects(copy=False)
 
     def _standardize_player_names(self):
         logger.debug("Standardizing player names and assigning pos column.")

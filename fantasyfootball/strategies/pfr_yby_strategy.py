@@ -17,31 +17,10 @@ class ProFootballReferenceYbYStrategy(BaseStrategy):
         :param kwargs: Additional parameters for the strategy (optional).
         """
 
-    def run(self, sleep: int = 5, output_mode: str = "db") -> Optional[pd.DataFrame]:
-        """
-        Executes the data retrieval and transformation process for a dataset.
-
-        :return: A concatenated DataFrame containing all processed data.    
-        """
-        output_method = self.output_modes.get(output_mode)
-        
-        years = range(self.min_year, self.max_year + 1)
-
-        logger.info(f"Starting data processing for years {years} for {self.dataset_name} dataset.")
-
-        with self.connector as connector:
-            for ix, year in enumerate(years):
-                year_df = self.run_one(year=year,
-                                       connector=connector)
-                if not year_df.empty:
-                    output_method(year_df, append=(ix > 0))
-                time.sleep(sleep)
-            
-            if self.all_data:
-                df = pd.concat(self.all_data, ignore_index=True) if self.all_data else pd.DataFrame()
-
-                logger.info(f"Returning a DataFrame with shape: {df.shape}")
-                return df
+    def iter_frames(self, connector, sleep=5):
+        for year in self.years():
+            yield self.run_one(year, connector)
+            time.sleep(sleep)
 
     def run_one(self, year: int, connector) -> pd.DataFrame:
         try:
@@ -63,7 +42,7 @@ class ProFootballReferenceYbYStrategy(BaseStrategy):
 
         except Exception as e:
             logger.error(f"Failed to process data for year {year}: {e}")
-            return pd.DataFrame()
+            raise
            
 
 if __name__ == "__main__":

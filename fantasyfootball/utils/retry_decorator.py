@@ -1,31 +1,20 @@
+﻿"""Bounded retry policy which preserves the final exception."""
 from functools import wraps
-import time 
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+import time
 
 
-def retry_decorator(retries: int = 3, delay: int = 1, backoff_factor: int = 2):
+def retry_decorator(retries=3, delay=1, backoff_factor=2, exceptions=(Exception,)):
+    if not isinstance(retries, int) or retries < 0 or delay < 0 or backoff_factor < 1:
+        raise ValueError('Invalid retry policy')
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            attempts = 0
-            while attempts <= retries:
-                try: 
-                    if attempts > 0:
-                        logger.debug(f"Trying to execute {func.__name__} on attempt {attempts + 1}")
-                    result =  func(*args, **kwargs)
-                    if attempts == 0:
-                        logger.debug(f"Successfully executed {func.__name__} on first attempt")
-                    else:
-                        logger.info(f"Successfully executed {func.__name__} on attempt {attempts + 1}")
-                    return result
-                except Exception as e:
-                    attempts += 1
-                    logger.exception(f"Failed to execute {func.__name__} on attempt {attempts} due to {e}")
-                    time.sleep(delay * (backoff_factor ** attempts))
-                
-            logger.info(f"Retrying {func.__name__} after {delay * (backoff_factor ** attempts)} seconds") 
+            for attempt in range(retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except exceptions:
+                    if attempt == retries:
+                        raise
+                    time.sleep(delay * backoff_factor ** attempt)
         return wrapper
     return decorator

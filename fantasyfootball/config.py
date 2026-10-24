@@ -2,10 +2,11 @@
 
 import pandas as pd
 from os import path
+from pathlib import Path
 import numpy as np
 
-DATA_DIR = r'..\data'
-FIGURE_DIR = r'..\figures'
+DATA_DIR = str(Path(__file__).resolve().parents[1] / 'data')
+FIGURE_DIR = str(Path(__file__).resolve().parents[1] / 'figures')
 DRIVER_PATH = r'..\chrome-driver\chromedriver.exe'
 
 #scoring systems
@@ -143,7 +144,7 @@ def pro_football_reference_pts(my_df, my_dict=ppr):
 def unique_id_create(my_df, team=False):
     """Derives a unique ID to allow for merges across different data sources"""
     my_df = my_df.copy()
-    char_list = ["'", ' III', ' II', ' IV', ' V', 'Jr',  '\.', '-'] #removed ' '
+    char_list = ["'", ' III', ' II', ' IV', ' V', 'Jr',  r'\.', '-'] #removed ' '
     symbol_dict = dict(zip(char_list, len(char_list)*['']))
     if team:
         my_df = (my_df.assign(id = (

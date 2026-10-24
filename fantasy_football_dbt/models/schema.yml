@@ -1,0 +1,79 @@
+version: 2
+models:
+  - name: stg_nflfastr_pbp
+    description: Typed play-grain staging, retaining duplicates for validation.
+    columns:
+      - name: play_key
+        data_tests: [unique, not_null]
+      - name: season
+        data_tests: [not_null]
+  - name: int_receiving
+    description: Regular-season receiving targets, without two-point attempts.
+    columns:
+      - name: play_key
+        data_tests: [unique, not_null]
+      - name: receiver_id
+        data_tests: [not_null]
+  - name: fct_receiving_weekly
+    description: Receiving production at player-team-season-week grain.
+    config:
+      contract: {enforced: true}
+    columns:
+      - name: player_week_key
+        data_type: text
+        description: player week key at the documented weekly grain.
+        data_tests: [unique, not_null]
+      - name: season
+        data_type: integer
+        description: season at the documented weekly grain.
+        data_tests: [not_null]
+      - name: week
+        data_type: integer
+        description: week at the documented weekly grain.
+        data_tests: [not_null]
+      - name: receiver_id
+        data_type: text
+        description: receiver id at the documented weekly grain.
+        data_tests: [not_null]
+      - name: receiver
+        data_type: text
+        description: receiver at the documented weekly grain.
+        data_tests: [not_null]
+      - name: team
+        data_type: text
+        description: team at the documented weekly grain.
+        data_tests: [not_null]
+      - name: targets
+        data_type: integer
+        description: targets at the documented weekly grain.
+        data_tests: [not_null]
+      - name: catches
+        data_type: integer
+        description: catches at the documented weekly grain.
+        data_tests: [not_null]
+      - name: air_yards
+        data_type: double precision
+        description: air yards at the documented weekly grain.
+        data_tests: [not_null]
+      - name: rec_yards
+        data_type: double precision
+        description: rec yards at the documented weekly grain.
+        data_tests: [not_null]
+      - name: rec_tds
+        data_type: integer
+        description: rec tds at the documented weekly grain.
+        data_tests: [not_null]
+      - name: rz_tgts
+        data_type: integer
+        description: rz tgts at the documented weekly grain.
+        data_tests: [not_null]
+      - name: ez_tgts
+        data_type: integer
+        description: ez tgts at the documented weekly grain.
+        data_tests: [not_null]
+      - name: target_share
+        data_type: double precision
+        description: target share at the documented weekly grain.
+      - name: air_yard_share
+        data_type: double precision
+        description: air yard share at the documented weekly grain.

@@ -1,33 +1,36 @@
-from abc import ABC, abstractmethod
-import logging
-from typing import Type, Dict, Any
+﻿"""Lazy registry factories: optional integrations load only when requested."""
+from importlib import import_module
 
-logger = logging.getLogger(__name__)
 
-class FactoryError(Exception):
-    """Exception raised for errors in the factory."""
+class FactoryError(ValueError):
     pass
 
-class BaseFactory(ABC):
-    """
-    Abstract base class for factories.
 
-    This class manages the registration and creation of components using a string key.
-    Subclasses can inherit and extend the functionality for specific component types.
-    """
-    registry: Dict[str, Type[Any]] = {}
+class BaseFactory:
+    registry = {}
+    modules = {}
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.registry = {}
 
     @classmethod
-    def register(cls, name: str):
-        """Decorator to register a class with the factory."""
-        def decorator(cls_type: Type):
-            cls.registry[name] = cls_type
-            return cls_type
+    def register(cls, name):
+        def decorator(component):
+            existing = cls.registry.get(name)
+            if existing is not None and existing is not component:
+                raise FactoryError(f'Duplicate registration: {name}')
+            cls.registry[name] = component
+            return component
         return decorator
 
     @classmethod
-    def create(cls, name: str, **kwargs: Any) -> Any:
-        """Creates an instance of a registered class."""
-        if name in cls.registry:
-            return cls.registry[name](**kwargs)
-        raise FactoryError(f"Unknown type: '{name}'. Available types: {list(cls.registry.keys())}")
+    def create(cls, name, **kwargs):
+        if name not in cls.registry and name in cls.modules:
+            try:
+                import_module(cls.modules[name])
+            except ImportError as exc:
+                raise FactoryError(f'Cannot load {name}; install its optional dependencies: {exc}') from exc
+        if name not in cls.registry:
+            raise FactoryError(f'Unknown type {name!r}. Available: {sorted(set(cls.registry) | set(cls.modules))}')
+        return cls.registry[name](**kwargs)

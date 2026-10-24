@@ -1,5 +1,5 @@
 import logging
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 from fantasyfootball.parsers.base_parser import BaseParser
 from fantasyfootball.factories.parser_factory import ParserFactory
 
@@ -18,6 +18,10 @@ class HTMLParser(BaseParser):
         
         try:
             self.soup = BeautifulSoup(self.content, self.parser_type)
+            # PFR embeds some statistical tables in HTML comments.
+            for comment in list(self.soup.find_all(string=lambda value: isinstance(value, Comment))):
+                if '<table' in comment.lower():
+                    comment.replace_with(BeautifulSoup(str(comment), self.parser_type))
             logger.info("HTML parsed successfully.")
         except Exception as e:
             logger.error(f"Error parsing HTML: {e}")

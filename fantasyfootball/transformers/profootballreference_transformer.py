@@ -107,8 +107,8 @@ class GameByGameTransformer(BaseTransformer, DataFrameTransformMixin):
 
     COLUMN_RENAME_MAP = {
         '1': 'home/away',
-        'Fumbles_Fmb': 'fumbles',
-        'Fumbles_FL': 'fumbles_lost',
+        'fumbles_fmb': 'fumbles',
+        'fumbles_fl': 'fumbles_lost',
         'receiving_ctch%': 'receiving_ctch_pct'
     }
 
