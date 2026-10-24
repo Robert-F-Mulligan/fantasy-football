@@ -33,7 +33,7 @@ class Client:
                 "owner_id": "u",
                 "roster_id": 1,
                 "players": ["003", "004", "PIT"],
-                "starters": ["003", "004", "0"],
+                "starters": ["003", "004", "0", "0", "PIT"],
             }
         ]
 
@@ -95,6 +95,7 @@ def test_save_does_not_overwrite_and_retains_audit(tmp_path):
 def test_superflex_uses_explicit_slots_without_wrong_draft_config(tmp_path):
     client, importer, registry = setup()
     client.league["roster_positions"].append("SUPER_FLEX")
+    client.rosters[0]["starters"].append("0")
     bundle = importer.fetch("123", 2026, "Test Team", registry)
     assert bundle["offensive_slots"]["SUPER_FLEX1"] == ["QB", "RB", "WR", "TE"]
     path = importer.save(bundle, tmp_path / "import")

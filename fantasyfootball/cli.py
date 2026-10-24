@@ -77,8 +77,38 @@ def main(argv=None):
     league_import.add_argument("--team", required=True)
     league_import.add_argument("--snapshot", type=Path, required=True)
     league_import.add_argument("--output", type=Path, required=True)
+    weekly = commands.add_parser(
+        "weekly-plan",
+        help="Plan offensive slots using saved schedule and Sleeper snapshots",
+    )
+    weekly.add_argument("input", type=Path, help="Canonical weekly history CSV")
+    weekly.add_argument("--league-dir", type=Path, required=True)
+    weekly.add_argument("--schedule", type=Path, required=True)
+    weekly.add_argument(
+        "--players", type=Path, required=True, help="Sleeper players/nfl JSON snapshot"
+    )
+    weekly.add_argument("--season", type=int, required=True)
+    weekly.add_argument("--week", type=int, required=True)
+    weekly.add_argument("--as-of", required=True, help="Timezone-aware timestamp")
+    weekly.add_argument("--allow-partial-scoring", action="store_true")
+    weekly.add_argument("--output", type=Path, required=True)
+    context = commands.add_parser(
+        "sync-weekly-context",
+        help="Snapshot live NFL schedule and Sleeper player statuses",
+    )
+    context.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
+        if args.command == "sync-weekly-context":
+            from .weekly import sync_weekly_context
+
+            print(sync_weekly_context(args.output))
+            return
+        if args.command == "weekly-plan":
+            from .weekly import write_weekly_plan
+
+            write_weekly_plan(args)
+            return
         if args.command == "import-sleeper":
             from .sleeper import SleeperLeagueImporter, load_registry
 

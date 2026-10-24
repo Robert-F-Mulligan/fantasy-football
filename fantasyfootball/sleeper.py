@@ -107,9 +107,29 @@ class SleeperLeagueImporter:
         if len(own) != 1:
             raise ValueError("League member must have exactly one roster")
         own = own[0]
+        slot_names = []
+        slot_counts = Counter()
+        for position in league["roster_positions"]:
+            if position in {"BN", "IR", "TAXI"}:
+                continue
+            slot_counts[position] += 1
+            slot_names.append(f"{position}{slot_counts[position]}")
         records = []
         for roster in rosters:
             starters = roster.get("starters") or []
+            if len(starters) != len(slot_names) or len(
+                [p for p in starters if str(p) != "0"]
+            ) != len({p for p in starters if str(p) != "0"}):
+                raise ValueError(
+                    "Starter list does not match league slots or contains duplicates"
+                )
+            assigned_slots = {
+                str(p): slot for p, slot in zip(starters, slot_names) if str(p) != "0"
+            }
+            if not set(assigned_slots).issubset(
+                {str(p) for p in roster.get("players") or []}
+            ):
+                raise ValueError("Starter is absent from its roster")
             for external in roster.get("players") or []:
                 if str(external) == "0":
                     continue
@@ -119,6 +139,7 @@ class SleeperLeagueImporter:
                         "roster_id": roster["roster_id"],
                         "is_my_team": roster["roster_id"] == own["roster_id"],
                         "is_starter": external in starters,
+                        "starter_slot": assigned_slots.get(str(external), ""),
                         "is_reserve": external in (roster.get("reserve") or []),
                         "is_taxi": external in (roster.get("taxi") or []),
                     }
@@ -130,6 +151,7 @@ class SleeperLeagueImporter:
                 "roster_id",
                 "is_my_team",
                 "is_starter",
+                "starter_slot",
                 "is_reserve",
                 "is_taxi",
             ],
@@ -204,7 +226,7 @@ class SleeperLeagueImporter:
             "notes": [
                 "Supported-offense configuration omits the scoring categories listed above.",
                 "K/DEF projections and full-lineup recommendations are not implemented.",
-                "Imported starters are not kickoff locks; check live schedules, injuries, and eligibility.",
+                "Starter slots are preserved; weekly-plan combines them with schedule-based kickoff locks.",
             ],
         }
         return {
