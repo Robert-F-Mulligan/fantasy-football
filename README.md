@@ -22,6 +22,8 @@ Use `sync-data` for versioned nflverse downloads and `import-sleeper` for read-o
 
 See [schedule-aware weekly planning](docs/WEEKLY_PLANNING.md) for live context snapshots, kickoff slot locks, injury flags, and offensive recommendations.
 
+For a Wednesday email that runs with your PC off, see [hosted report setup](docs/HOSTED_REPORT.md).
+
 ## Draft inputs
 
 Projections require `player_id`, `player_name`, `pos`, and `projected_points`. IDs must be stable, nonempty and unique. Supply every starting position and enough depth to include a player beyond each position's league-wide starter and flex demand. Missing depth raises an error rather than inventing replacement values.
