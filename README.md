@@ -16,6 +16,10 @@ python -m venv .venv
 
 The existing `ff-venv` environment can also run these commands. Examples contain **synthetic demonstration data**, not current player projections. Open the HTML report in a browser; Plotly is embedded for offline use. Hover, zoom, or click positions in the legend. Chart methods return figures for notebooks.
 
+## Current data and league connection
+
+Use `sync-data` for versioned nflverse downloads and `import-sleeper` for read-only league settings and rosters. See [data sources and import coverage](docs/DATA_SOURCES.md) for commands, identity reconciliation, and scoring limitations.
+
 ## Draft inputs
 
 Projections require `player_id`, `player_name`, `pos`, and `projected_points`. IDs must be stable, nonempty and unique. Supply every starting position and enough depth to include a player beyond each position's league-wide starter and flex demand. Missing depth raises an error rather than inventing replacement values.

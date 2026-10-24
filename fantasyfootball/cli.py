@@ -62,8 +62,45 @@ def main(argv=None):
     lineup.add_argument("--locked", nargs="*", default=[])
     lineup.add_argument("--excluded", nargs="*", default=[])
     lineup.add_argument("--output", type=Path, required=True)
+    sync = commands.add_parser(
+        "sync-data", help="Download versioned nflverse player data"
+    )
+    sync.add_argument("--seasons", nargs="+", type=int, required=True)
+    sync.add_argument("--roster-season", type=int, required=True)
+    sync.add_argument("--minimum-week", type=int)
+    sync.add_argument("--output", type=Path, required=True)
+    league_import = commands.add_parser(
+        "import-sleeper", help="Read-only league settings and roster import"
+    )
+    league_import.add_argument("league_id")
+    league_import.add_argument("--season", type=int, required=True)
+    league_import.add_argument("--team", required=True)
+    league_import.add_argument("--snapshot", type=Path, required=True)
+    league_import.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
+        if args.command == "import-sleeper":
+            from .sleeper import SleeperLeagueImporter, load_registry
+
+            importer = SleeperLeagueImporter()
+            bundle = importer.fetch(
+                args.league_id, args.season, args.team, load_registry(args.snapshot)
+            )
+            importer.save(bundle, args.output)
+            print(json.dumps(bundle["report"], indent=2))
+            return
+        if args.command == "sync-data":
+            from .data_sync import DataSyncService
+
+            target, report = DataSyncService().sync(
+                args.seasons, args.roster_season, args.output, args.minimum_week
+            )
+            print(
+                json.dumps(
+                    {"snapshot": str(target), "coverage": report["coverage"]}, indent=2
+                )
+            )
+            return
         if args.command in ("evaluate-factors", "forecast"):
             from .features import prepare_weekly
             from .models import FactorModel
