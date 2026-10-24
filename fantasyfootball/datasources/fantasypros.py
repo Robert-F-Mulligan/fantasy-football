@@ -1,4 +1,6 @@
 import logging
+import json
+from io import StringIO
 import re
 from datetime import datetime
 import pandas as pd
@@ -20,15 +22,49 @@ class FantasyProsDatasource(BaseDataSource):
         """
         super().__init__(connector=connector, parser=parser)
 
-    def get_data(self, endpoint: str, table_id: str, **kwargs) -> pd.DataFrame:
-        return (
-            self._get_data_from_html(endpoint=endpoint,
-                                       table_id=table_id,
-                                       **kwargs)
-                .pipe(self._clean_columns)
-                .assign(as_of_date=self._extract_datetime(),
-                        **self._extract_week_and_year())
-        )
+    def get_data(self, endpoint: str, table_id: str, connector=None, parser=None):
+        self.connector = connector or self.connector
+        self.parser = parser or self.parser
+        if self.connector is None or self.parser is None:
+            raise ValueError('Connector and parser are required')
+        self.parser.set_content(self.connector.fetch(endpoint))
+        self.parser.parse()
+        tables = self.parser.extract('table', id=table_id)
+        if tables:
+            frame = self._clean_columns(pd.read_html(StringIO(str(tables[0])))[0])
+        else:
+            frame = self._public_report_projections()
+        return frame.assign(as_of_date=self._extract_datetime(), **self._extract_week_and_year())
+
+    def _public_report_projections(self):
+        # Current public projections are serialized for the page's JS renderer.
+        # Parse only the published report payload; never execute JavaScript.
+        prefix = 'window.FP.reportConfig = '
+        for script in self.parser.extract('script'):
+            content = script.get_text()
+            if prefix not in content:
+                continue
+            report = json.JSONDecoder().raw_decode(content.split(prefix, 1)[1].lstrip())[0]
+            if report.get('type') != 'nfl_projections':
+                raise ValueError('Unsupported FantasyPros report type')
+            rows = report.get('table', {}).get('rows', [])
+            if not rows:
+                raise ValueError('Public FantasyPros report contains no projections')
+            mapping = {'pass_att':'passing_att', 'pass_cmp':'passing_cmp', 'pass_yds':'passing_yds',
+                'pass_tds':'passing_tds', 'pass_ints':'passing_ints', 'rush_att':'rushing_att',
+                'rush_yds':'rushing_yds', 'rush_tds':'rushing_tds', 'rec_att':'receiving_rec',
+                'rec_yds':'receiving_yds', 'rec_tds':'receiving_tds', 'fumbles':'misc_fl', 'fpts':'misc_fpts'}
+            logger.warning('Public FantasyPros report exposes %s rows; it may be a limited preview, not a complete draft pool.', len(rows))
+            records=[]
+            for row in rows:
+                player=row.get('player', {})
+                if not isinstance(player, dict) or not player.get('id') or not player.get('name'):
+                    raise ValueError('Unexpected FantasyPros player schema')
+                record={'player': player['name']+' '+player.get('team','FA'), 'player_id':'fp:'+str(player['id'])}
+                record.update({dest: row[key] for key,dest in mapping.items() if key in row})
+                records.append(record)
+            return pd.DataFrame(records)
+        raise ValueError('No supported public FantasyPros table or report found')
 
     def _extract_datetime(self) -> str:
         """
@@ -47,6 +83,10 @@ class FantasyProsDatasource(BaseDataSource):
             (tag.get_text(strip=True) for tag in time_tags if tag.has_attr("datetime")),
             None
             )
+            if not date_text:
+                content = self.parser.soup.get_text(' ', strip=True)
+                match = re.search(r'last updated ([A-Z][a-z]{2} \d{1,2}, \d{4})', content)
+                date_text = match.group(1) if match else None
             if date_text:
                 date_object = datetime.strptime(date_text, '%b %d, %Y')
                 return date_object.isoformat()

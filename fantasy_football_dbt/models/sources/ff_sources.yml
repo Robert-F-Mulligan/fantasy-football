@@ -1,8 +1,13 @@
+version: 2
 sources:
   - name: fantasyfootball
-    database: fantasyfootball
-    description: Fantasy Football related data scraped from the web
-    schema: source
+    description: Raw ingestion tables; historical snapshots may be intentionally stale.
+    schema: "{{ env_var('DBT_SOURCE_SCHEMA', 'source') }}"
     tables:
       - name: nflfastr_play_by_play
-        description: Historical play by play data for NFL games
+        description: One NFL play per game_id and play_id. Duplicate loads must fail tests.
+        columns:
+          - name: game_id
+            data_tests: [not_null]
+          - name: play_id
+            data_tests: [not_null]
