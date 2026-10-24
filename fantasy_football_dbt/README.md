@@ -1,4 +1,4 @@
-﻿# Warehouse project
+# Warehouse project
 
 The project separates source-aligned staging, reusable intermediate transformations, contracted weekly marts and presentation views. Receiver metrics retain player/team/season/week grain, so traded players are not divided by an unrelated team's totals. All source plays remain visible to uniqueness tests; duplicates are not silently discarded.
 
@@ -14,7 +14,7 @@ dbt docs generate --project-dir fantasy_football_dbt --profiles-dir fantasy_foot
 
 DBT_SOURCE_SCHEMA defaults to `source`. Target schemas are always prefixed, for example `ff_dev_yourname_staging` and `ff_dev_yourname_marts`. This deliberately replaces the old macro that could make development overwrite shared schemas. Existing shared schemas are not migrated or dropped automatically.
 
-`dbt build` checks source identifiers, play uniqueness, required columns, a weekly mart schema contract, player/week uniqueness, valid counts/shares, and reconciliation of total targets. Example starter models are disabled. Historical source tables do not have arbitrary wall-clock freshness failures: their intended season coverage should be checked by the ingestion job. In production, schedule ingestion and dbt together and publish successful model runs only after tests pass.
+`dbt build` checks source identifiers, play uniqueness, required columns, a weekly mart schema contract, player/week uniqueness, valid counts/shares, and reconciliation of total targets. Unused example starter models have been removed. Historical source tables do not have arbitrary wall-clock freshness failures: their intended season coverage should be checked by the ingestion job. In production, schedule ingestion and dbt together and publish successful model runs only after tests pass.
 
 ## Deployment / CI contract
 

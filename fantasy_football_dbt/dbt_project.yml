@@ -22,5 +22,3 @@ models:
     viz:
       +schema: viz
       +materialized: view
-    example:
-      +enabled: false

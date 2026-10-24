@@ -86,3 +86,7 @@ Implementation references: [Plotly HTML export](https://plotly.com/python/intera
 The new `forecast`, `evaluate-factors`, and `lineup` commands provide boosted-tree season/weekly forecasts and constrained lineup assignment. Install `pip install -e ".[model]"`. See [model features, usage and limitations](docs/MODELS.md), [live verification results](docs/VALIDATION.md), and [warehouse workflow](fantasy_football_dbt/README.md).
 
 Run `python examples/verify_live.py` for bounded live checks. FantasyPros public projections expose a limited preview, not a complete draft pool. The scraper supports its current published JSON report payload without executing JavaScript. PFR may deny access with HTTP 403; no bypass is implemented. nflverse provides a verified alternative for play-by-play data.
+
+## Maintenance and next steps
+
+See the [repository audit and prioritized roadmap](docs/ROADMAP.md) for completed cleanup, retained legacy research, known data/model gaps, and the next draft and weekly-planning features.
