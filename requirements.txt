@@ -1,2 +1,2 @@
-﻿# Runtime and development dependencies are maintained in pyproject.toml.
--e .[scraping,database,viz,dev]
+# Runtime and development dependencies are maintained in pyproject.toml.
+-e .[scraping,database,viz,model,dev]

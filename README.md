@@ -1,4 +1,4 @@
-﻿# Fantasy football research
+# Fantasy football research
 
 Python tools for data ingestion, league-specific draft valuation, historical projection baselines, and interactive reports. The new workflow runs from CSV files without a database or live scraping.
 
@@ -8,7 +8,7 @@ Python 3.10+ is required. From the repository directory:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python -m pip install -e ".[viz,dev,scraping,database]"
+.\.venv\Scripts\python -m pip install -e ".[viz,dev,scraping,database,model]"
 .\.venv\Scripts\python -m fantasyfootball draft examples/projections.csv --league examples/league.json --pick 5 --output work/draft.csv --html work/draft.html
 .\.venv\Scripts\python -m fantasyfootball evaluate examples/history.csv --output work/evaluation.csv
 .\.venv\Scripts\python -m pytest -q
@@ -20,7 +20,7 @@ The existing `ff-venv` environment can also run these commands. Examples contain
 
 Projections require `player_id`, `player_name`, `pos`, and `projected_points`. IDs must be stable, nonempty and unique. Supply every starting position and enough depth to include a player beyond each position's league-wide starter and flex demand. Missing depth raises an error rather than inventing replacement values.
 
-If `projected_points` is absent, supply every stat configured in `ScoringRules`; the application computes league points. Missing stats are not assumed zero. Optional `adp` and `adp_std` represent average draft pick and observed pick standard deviation. Alternatively use `--adp market.csv` to join by player ID. Missing market data remains unknown.
+If `projected_points` is absent, supply every stat configured in `ScoringRules`; the application computes league points. Missing stats are not assumed zero. FantasyPros transformer output is adapted automatically: plural touchdown/interception columns are normalized, and stats are rescored for your league. The provider's `projected_fantasy_points` total is retained for reference, not substituted for league-specific points. Optional `adp` and `adp_std` represent average draft pick and observed pick standard deviation. Alternatively use `--adp market.csv` to join by player ID. Missing market data remains unknown.
 
 ```powershell
 python -m fantasyfootball draft projections.csv --league league.json --pick 17 --drafted player123 player456 --output work/board.csv --html work/board.html

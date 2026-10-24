@@ -1,5 +1,6 @@
-﻿"""Template-method ingestion: shared lifecycle, validation and output handling."""
+"""Template-method ingestion: shared lifecycle, validation and output handling."""
 from abc import ABC, abstractmethod
+import csv
 from contextlib import nullcontext
 from datetime import datetime
 from pathlib import Path
@@ -79,8 +80,21 @@ class BaseStrategy(ABC):
     def save_to_csv(self, data, append=False, **kwargs):
         filename = self.combined_config.get('output_path', f'{self.get_filename()}_{self.time_now:%Y-%m-%d}.csv')
         path = Path(filename)
+        # CSV headers are strings. Validate before opening the file for writing,
+        # including collisions caused by stringifying non-string column labels.
+        columns = data.columns.map(str)
+        if columns.has_duplicates:
+            raise ValueError('CSV frames must have unique column names')
+        frame = data.set_axis(columns, axis=1)
+        if append:
+            with path.open(encoding='utf-8', newline='') as stream:
+                header = next(csv.reader(stream), [])
+            if len(header) != len(set(header)) or set(columns) != set(header):
+                raise ValueError('CSV columns do not match the existing header')
+            frame = frame.loc[:, header]
         path.parent.mkdir(parents=True, exist_ok=True)
-        data.to_csv(path, mode='a' if append else 'w', header=not append, index=False)
+        frame.to_csv(path, mode='a' if append else 'w', header=not append, index=False)
+
 
     def append_to_df(self, data, append=False, **kwargs):
         if not append:

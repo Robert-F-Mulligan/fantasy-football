@@ -142,3 +142,53 @@ def test_sql_chunk_read(tmp_path):
     assert [len(frame) for frame in frames] == [2, 1]
     assert pd.concat(frames).value.tolist() == [1, 2, 3]
     connector.engine.dispose()
+
+
+def test_csv_reordered_year_matches_dataframe(tmp_path):
+    instance = strategy()
+    destination = tmp_path / "years.csv"
+    instance.combined_config["output_path"] = destination
+
+    class ReorderedSource:
+        def get_data(self, connector, endpoint, **kwargs):
+            if endpoint == "2022":
+                return pd.DataFrame({"season": [2022], "yards": [100]})
+            return pd.DataFrame({"yards": [200], "season": [2023]})
+
+    instance.datasource = ReorderedSource()
+    expected = instance.run("df")
+    instance.run("csv")
+    pd.testing.assert_frame_equal(pd.read_csv(destination), expected)
+    # A new run must take its schema from its own first frame, not old state.
+    instance.combined_config["min_year"] = 2023
+    instance.run("csv")
+    assert pd.read_csv(destination).columns.tolist() == ["yards", "season"]
+
+
+@pytest.mark.parametrize(
+    "bad_frame",
+    [
+        pd.DataFrame({"season": [2024]}),
+        pd.DataFrame({"season": [2024], "yards": [200], "extra": [1]}),
+        pd.DataFrame([[2024, 200]], columns=["season", "season"]),
+    ],
+)
+def test_incompatible_csv_append_leaves_file_unchanged(tmp_path, bad_frame):
+    instance = strategy()
+    destination = tmp_path / "years.csv"
+    instance.combined_config["output_path"] = destination
+    instance.save_to_csv(pd.DataFrame({"season": [2023], "yards": [100]}))
+    before = destination.read_bytes()
+    with pytest.raises(ValueError, match="CSV"):
+        instance.save_to_csv(bad_frame, append=True)
+    assert destination.read_bytes() == before
+
+
+def test_duplicate_csv_header_rejected_before_overwrite(tmp_path):
+    instance = strategy()
+    destination = tmp_path / "years.csv"
+    destination.write_text("keep this file", encoding="utf-8")
+    instance.combined_config["output_path"] = destination
+    with pytest.raises(ValueError, match="unique"):
+        instance.save_to_csv(pd.DataFrame([[1, 2]], columns=[1, "1"]))
+    assert destination.read_text(encoding="utf-8") == "keep this file"

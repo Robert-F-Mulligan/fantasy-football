@@ -189,3 +189,50 @@ def test_weekly_history_adapter():
         WeeklyHistoryAdapter(ScoringRules({"rushing_yds": 0.1})).transform(
             pd.concat([weekly, weekly])
         )
+
+
+@pytest.mark.parametrize("passing_td_points", [4, 6])
+def test_fantasypros_transformer_to_league_draft(passing_td_points):
+    from fantasyfootball.transformers.fantasypros_transformer import (
+        ProjectionsTransfomer,
+    )
+
+    raw = pd.DataFrame(
+        {
+            "player_id": ["fp:1", "fp:2"],
+            "player": ["Alpha BUF", "Beta NYJ"],
+            "pos": ["QB", "QB"],
+            "passing_yds": [4000, 3000],
+            "passing_tds": [30, 20],
+            "passing_ints": [10, 5],
+            "rushing_yds": [200, 100],
+            "rushing_tds": [2, 1],
+            "misc_fl": [1, 0],
+            "misc_fpts": [999, 999],
+        }
+    )
+    projections = ProjectionsTransfomer().transform(raw)
+    original = projections.copy(deep=True)
+    weights = dict(ScoringRules().weights)
+    weights["passing_td"] = passing_td_points
+    league = LeagueSettings(
+        teams=1, starters={"QB": 1}, flex=0, scoring=ScoringRules(weights)
+    )
+    result = DraftApplication(league).prepare(projections).set_index("player_id")
+    assert result.loc["fp:1", "projected_points"] == pytest.approx(
+        170 + 30 * passing_td_points
+    )
+    assert result.loc["fp:2", "projected_points"] == pytest.approx(
+        126 + 20 * passing_td_points
+    )
+    assert result.loc["fp:1", "projected_fantasy_points"] == 999
+    assert_frame_equal(projections, original)
+
+
+def test_fantasypros_alias_collision_is_explicit():
+    from fantasyfootball.adapters import FantasyProsProjectionAdapter
+
+    with pytest.raises(ValueError, match="Ambiguous"):
+        FantasyProsProjectionAdapter().transform(
+            pd.DataFrame({"passing_td": [1], "passing_tds": [2]})
+        )

@@ -32,3 +32,27 @@ class WeeklyHistoryAdapter:
             games=("week", "size"),
             fantasy_points=("fantasy_points", "sum"),
         )
+
+
+class FantasyProsProjectionAdapter:
+    """Normalize FantasyPros stat names without assuming its scoring rules.
+
+    The provider's projected_fantasy_points is retained for comparison, never
+    promoted to projected_points. DraftApplication scores the normalized stats
+    using the requested league unless the caller supplies projected_points.
+    """
+
+    STAT_ALIASES = {
+        "passing_tds": "passing_td",
+        "passing_ints": "passing_int",
+        "rushing_tds": "rushing_td",
+        "receiving_tds": "receiving_td",
+    }
+
+    def transform(self, projections):
+        if projections.columns.has_duplicates:
+            raise ValueError("Projection columns must be unique")
+        for source, target in self.STAT_ALIASES.items():
+            if source in projections and target in projections:
+                raise ValueError(f"Ambiguous projection columns: {source} and {target}")
+        return projections.rename(columns=self.STAT_ALIASES).copy()
