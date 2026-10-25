@@ -1,0 +1,13 @@
+fantasy_football_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DB_HOST') }}"
+      port: "{{ env_var('DB_PORT', '5432') | int }}"
+      dbname: "{{ env_var('DB_NAME') }}"
+      user: "{{ env_var('DB_USER') }}"
+      password: "{{ env_var('DB_PASSWORD') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'ff_dev') }}"
+      threads: 4
+      connect_timeout: 10

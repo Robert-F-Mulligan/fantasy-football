@@ -12,13 +12,13 @@ from fantasyfootball.factories.connector_factory import ConnectorFactory
 
 logger = logging.getLogger(__name__)
 
-DRIVER_PATH = r'C:\Users\rmull\python-projects\fantasy-football\chrome-driver\chromedriver.exe'
+DRIVER_PATH = None
 
 @ConnectorFactory.register("selenium")
 class SeleniumConnector(BaseConnector):
-    def __init__(self, base_url: str, headless: bool = True):
+    def __init__(self, base_url: str, headless: bool = True, driver_path: str = None):
         super().__init__(base_url)
-        self.driver_path = DRIVER_PATH
+        self.driver_path = driver_path
         self.headless = headless
         self.driver = None
 
@@ -31,7 +31,7 @@ class SeleniumConnector(BaseConnector):
         options.add_argument("--no-sandbox")
         options.add_argument("--log-level=3")
         #options.add_argument("--window-size=1920,1200")
-        service = Service(self.driver_path)
+        service = Service(self.driver_path) if self.driver_path else Service()
         self.driver = webdriver.Chrome(service=service, options=options)
         logger.info("Selenium driver initialized.")
         return self

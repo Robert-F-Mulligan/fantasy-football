@@ -142,4 +142,5 @@ def run_draft_script(save=True, year=weekly_stats_year):
         df.to_csv(path.join(DATA_DIR, rf'vor\{date}_{league.get("name")}_draft.csv'), index=False)
     return df.head()
 
-run_draft_script(save=True)
+if __name__ == "__main__":
+    run_draft_script(save=True)

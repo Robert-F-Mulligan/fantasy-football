@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fantasyfootball"
+version = "0.1.0"
+description = "Fantasy football ingestion, draft research and interactive visualization"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24,<3", "pandas>=2.1,<3"]
+
+[project.optional-dependencies]
+model = ["scikit-learn>=1.5,<2", "scipy>=1.11,<2"]
+dbt = ["dbt-postgres>=1.9,<2"]
+scraping = ["requests>=2.31,<3", "beautifulsoup4>=4.12,<5", "lxml>=5,<7", "selenium>=4.27,<5"]
+database = ["SQLAlchemy>=2,<3", "psycopg2-binary>=2.9,<3"]
+viz = ["plotly>=5.24,<7"]
+legacy = ["matplotlib>=3.8,<4", "seaborn>=0.13,<1", "scikit-learn>=1.5,<2", "scipy>=1.11,<2", "nltk>=3.8,<4"]
+dev = ["pytest>=8,<9", "build>=1,<2"]
+
+[project.scripts]
+fantasy-football = "fantasyfootball.cli:main"
+fantasy-data = "fantasyfootball.facade.data_facade:main"
+
+[tool.setuptools.packages.find]
+include = ["fantasyfootball*"]
+
+[tool.setuptools.package-data]
+fantasyfootball = ["data_config.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

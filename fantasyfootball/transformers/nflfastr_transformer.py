@@ -68,6 +68,6 @@ class NflfastrTransfomer(BaseTransformer):
         # Convert other columns ending with specific suffixes
         for column in self.dataframe.columns:
             if column.endswith(target_suffixes):
-                self.dataframe[column] = self.dataframe[column].astype(str)
+                self.dataframe[column] = self.dataframe[column].astype(object)
 
         return self

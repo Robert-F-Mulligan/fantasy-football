@@ -1,0 +1,70 @@
+name: Wednesday fantasy report
+on:
+  schedule:
+    - cron: '0 10 * * 3'
+      timezone: America/New_York
+  workflow_dispatch:
+    inputs:
+      send_email:
+        description: Send email after successful preparation (false is a dry run)
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: wednesday-fantasy-report
+  cancel-in-progress: false
+jobs:
+  report:
+    if: github.repository == 'Robert-F-Mulligan/fantasy-football' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write # Durable send reservations on report-delivery-state only.
+    env:
+      FF_LEAGUE_ID: ${{ vars.FF_LEAGUE_ID }}
+      FF_TEAM_NAME: ${{ vars.FF_TEAM_NAME }}
+      FF_SEASON: ${{ vars.FF_SEASON }}
+      OMP_NUM_THREADS: '2'
+      LOKY_MAX_CPU_COUNT: '2'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install report dependencies
+        run: python -m pip install -e '.[model,scraping]'
+      - name: Validate configuration
+        env:
+          REPORT_EMAIL_TO: ${{ secrets.REPORT_EMAIL_TO }}
+          GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          SEND_EMAIL: ${{ github.event_name == 'schedule' || inputs.send_email }}
+          REPORT_EMAIL_ENABLED: ${{ vars.REPORT_EMAIL_ENABLED }}
+        run: |
+          python - <<'PY'
+          import os
+          required = ['FF_LEAGUE_ID', 'FF_TEAM_NAME', 'FF_SEASON']
+          if os.environ['SEND_EMAIL'] == 'true':
+              if os.environ['REPORT_EMAIL_ENABLED'] != 'true':
+                  raise SystemExit('Email cutover is not enabled. Run a dry run first, pause the desktop schedule, then set REPORT_EMAIL_ENABLED=true.')
+              required += ['REPORT_EMAIL_TO', 'GMAIL_USERNAME', 'GMAIL_APP_PASSWORD']
+          missing = [name for name in required if not os.environ.get(name)]
+          if missing:
+              raise SystemExit('Configure missing GitHub variables/secrets: ' + ', '.join(missing))
+          PY
+      - name: Refresh data and prepare report
+        run: python -m fantasyfootball.hosted prepare --output work/hosted-report
+      - name: Send once per league week
+        if: github.event_name == 'schedule' || inputs.send_email
+        env:
+          REPORT_EMAIL_TO: ${{ secrets.REPORT_EMAIL_TO }}
+          GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
+        run: python -m fantasyfootball.hosted send --output work/hosted-report
+      # Reports stay on the ephemeral runner and in the recipient's inbox.
+      # Do not upload personal roster/report artifacts from this public repository.

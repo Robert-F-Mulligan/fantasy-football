@@ -1,0 +1,24 @@
+name: fantasy_football_dbt
+version: '2.0.0'
+config-version: 2
+profile: fantasy_football_dbt
+model-paths: [models]
+test-paths: [tests]
+macro-paths: [macros]
+seed-paths: [seeds]
+clean-targets: [target, dbt_packages]
+models:
+  fantasy_football_dbt:
+    +persist_docs: {relation: true, columns: true}
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table
+    viz:
+      +schema: viz
+      +materialized: view

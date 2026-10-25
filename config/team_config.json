@@ -1,0 +1,233 @@
+{
+"directories": {
+    "wiki_logo": "../figures/logos/wikipedia",
+    "espn_logo": "../figures/logos/espn",
+    "wordmark": "../figures/logos/wordmarks"
+  },
+  "teams": {
+    "ARI": {
+      "primary_color": "#97233F",
+      "secondary_color": "#000000",
+      "wiki_logo": "Arizona_Cardinals_logo.png",
+      "espn_logo": "ARI.png",
+      "wordmark": "ARI_fullcolor.png"
+    },
+    "ATL": {
+      "primary_color": "#A71930",
+      "secondary_color": "#000000",
+      "wiki_logo": "Atlanta_Falcons_logo.png",
+      "espn_logo": "ATL.png",
+      "wordmark": "ATL_fullcolor.png"
+    },
+    "BAL": {
+      "primary_color": "#241773",
+      "secondary_color": "#000000",
+      "wiki_logo": "Baltimore_Ravens_logo.png",
+      "espn_logo": "BAL.png",
+      "wordmark": "BAL_fullcolor.png"
+    },
+    "BUF": {
+      "primary_color": "#00338D",
+      "secondary_color": "#c60c30",
+      "wiki_logo": "Buffalo_Bills_logo.png",
+      "espn_logo": "BUF.png",
+      "wordmark": "BUF_fullcolor.png"
+    },
+    "CAR": {
+      "primary_color": "#0085CA",
+      "secondary_color": "#000000",
+      "wiki_logo": "Carolina_Panthers_logo.png",
+      "espn_logo": "CAR.png",
+      "wordmark": "CAR_fullcolor.png"
+    },
+    "CHI": {
+      "primary_color": "#0B162A",
+      "secondary_color": "#c83803",
+      "wiki_logo": "Chicago_Bears_logo.png",
+      "espn_logo": "CHI.png",
+      "wordmark": "CHI_fullcolor.png"
+    },
+    "CIN": {
+      "primary_color": "#FB4F14",
+      "secondary_color": "#000000",
+      "wiki_logo": "Cincinnati_Bengals_logo.png",
+      "espn_logo": "CIN.png",
+      "wordmark": "CIN_fullcolor.png"
+    },
+    "CLE": {
+      "primary_color": "#311D00",
+      "secondary_color": "#fb4f14",
+      "wiki_logo": "Cleveland_Browns_logo.png",
+      "espn_logo": "CLE.png",
+      "wordmark": "CLE_fullcolor.png"
+    },
+    "DAL": {
+      "primary_color": "#041E42",
+      "secondary_color": "#b0b7bc",
+      "wiki_logo": "Dallas_Cowboys_logo.png",
+      "espn_logo": "DAL.png",
+      "wordmark": "DAL_fullcolor.png"
+    },
+    "DEN": {
+      "primary_color": "#FB4F14",
+      "secondary_color": "#002244",
+      "wiki_logo": "Denver_Broncos_logo.png",
+      "espn_logo": "DEN.png",
+      "wordmark": "DEN_fullcolor.png"
+    },
+    "DET": {
+      "primary_color": "#0076B6",
+      "secondary_color": "#b0b7bc",
+      "wiki_logo": "Detroit_Lions_logo.png",
+      "espn_logo": "DET.png",
+      "wordmark": "DET_fullcolor.png"
+    },
+    "GB": {
+      "primary_color": "#203731",
+      "secondary_color": "#ffb612",
+      "wiki_logo": "Green_Bay_Packers_logo.png",
+      "espn_logo": "GB.png",
+      "wordmark": "GB_fullcolor.png"
+    },
+    "HOU": {
+      "primary_color": "#03202F",
+      "secondary_color": "#a71930",
+      "wiki_logo": "Houston_Texans_logo.png",
+      "espn_logo": "HOU.png",
+      "wordmark": "HOU_fullcolor.png"
+    },
+    "IND": {
+      "primary_color": "#002C5F",
+      "secondary_color": "#a5acaf",
+      "wiki_logo": "Indianapolis_Colts_logo.png",
+      "espn_logo": "IND.png",
+      "wordmark": "IND_fullcolor.png"
+    },
+    "JAX": {
+      "primary_color": "#006778",
+      "secondary_color": "#000000",
+      "wiki_logo": "Jacksonville_Jaguars_logo.png",
+      "espn_logo": "JAX.png",
+      "wordmark": "JAX_fullcolor.png"
+    },
+    "KC": {
+      "primary_color": "#E31837",
+      "secondary_color": "#ffb612",
+      "wiki_logo": "Kansas_City_Chiefs_logo.png",
+      "espn_logo": "KC.png",
+      "wordmark": "KC_fullcolor.png"
+    },
+    "LAC": {
+      "primary_color": "#0080C6",
+      "secondary_color": "#FFC20E",
+      "wiki_logo": "Los_Angeles_Chargers_logo.png",
+      "espn_logo": "LAC.png",
+      "wordmark": "LAC_fullcolor.png"
+    },
+    "LAR": {
+      "primary_color": "#003594",
+      "secondary_color": "#FFA300",
+      "wiki_logo": "Los_Angeles_Rams_logo..png",
+      "espn_logo": "LAR.png",
+      "wordmark": "LAR_fullcolor.png"
+    },
+    "LV": {
+      "primary_color": "#000000",
+      "secondary_color": "#a5acaf",
+      "wiki_logo": "Las_Vegas_Raiders_logo.png",
+      "espn_logo": "LV.png",
+      "wordmark": "LV_fullcolor.png"
+    },
+    "MIA": {
+      "primary_color": "#008E97",
+      "secondary_color": "#f58220",
+      "wiki_logo": "Miami_Dolphins_logo.png",
+      "espn_logo": "MIA.png",
+      "wordmark": "MIA_fullcolor.png"
+    },
+    "MIN": {
+      "primary_color": "#4F2683",
+      "secondary_color": "#ffc62f",
+      "wiki_logo": "Minnesota_Vikings_logo.png",
+      "espn_logo": "MIN.png",
+      "wordmark": "MIN_fullcolor.png"
+    },
+    "NE": {
+      "primary_color": "#B0B7BC",
+      "secondary_color": "#c60c30",
+      "wiki_logo": "New_England_Patriots_logo.png",
+      "espn_logo": "NE.png",
+      "wordmark": "NE_fullcolor.png"
+    },
+    "NO": {
+      "primary_color": "#D3BC8D",
+      "secondary_color": "#000000",
+      "wiki_logo": "New_Orleans_Saints_logo.png",
+      "espn_logo": "NO.png",
+      "wordmark": "NO_fullcolor.png"
+    },
+    "NYG": {
+      "primary_color": "#0B2265",
+      "secondary_color": "#a71930",
+      "wiki_logo": "New_York_Giants_logo.png",
+      "espn_logo": "NYG.png",
+      "wordmark": "NYG_fullcolor.png"
+    },
+    "NYJ": {
+      "primary_color": "#125740",
+      "secondary_color": "#000000",
+      "wiki_logo": "New_York_Jets_logo.png",
+      "espn_logo": "NYJ.png",
+      "wordmark": "NYJ_fullcolor.png"
+    },
+    "PHI": {
+      "primary_color": "#004C54",
+      "secondary_color": "#a5acaf",
+      "wiki_logo": "Philadelphia_Eagles_logo.png",
+      "espn_logo": "PHI.png",
+      "wordmark": "PHI_fullcolor.png"
+    },
+    "PIT": {
+      "primary_color": "#FFB612",
+      "secondary_color": "#000000",
+      "wiki_logo": "Pittsburgh_Steelers_logo.png",
+      "espn_logo": "PIT.png",
+      "wordmark": "PIT_fullcolor.png"
+    },
+    "SF": {
+      "primary_color": "#B3995D",
+      "secondary_color": "#aa0000",
+      "wiki_logo": "San_Francisco_49ers_logo.png",
+      "espn_logo": "SF.png",
+      "wordmark": "SF_fullcolor.png"
+    },
+    "SEA": {
+      "primary_color": "#69BE28",
+      "secondary_color": "#002244",
+      "wiki_logo": "Seattle_Seahawks_logo.png",
+      "espn_logo": "SEA.png",
+      "wordmark": "SEA_fullcolor.png"
+    },
+    "TB": {
+      "primary_color": "#D50A0A",
+      "secondary_color": "#34302b",
+      "wiki_logo": "Tampa_Bay_Buccaneers_logo.png",
+      "espn_logo": "TB.png",
+      "wordmark": "TB_fullcolor.png"
+    },
+    "TEN": {
+      "primary_color": "#4B92DB",
+      "secondary_color": "#0C2340",
+      "wiki_logo": "Tennessee_Titans_logo.png",
+      "espn_logo": "TEN.png",
+      "wordmark": "TEN_fullcolor.png"
+    },
+    "WAS": {
+      "primary_color": "#5A1414",
+      "secondary_color": "#ffb612",
+      "wiki_logo": "Washington_Commanders_logo.png",
+      "espn_logo": "WAS.png",
+      "wordmark": "WAS_fullcolor.png"
+    }
+  }
+}
