@@ -1,0 +1,14 @@
+﻿# Usage experiment protocol (frozen before fitting)
+
+- Source: local versioned nflverse snapshot ad296d51b938acb31ad6, collected October 25, 2026. Include 2024–2026 regular-season offensive rows, ending at 2026 week 6; exclude partial week 7.
+- Scoring: imported Bower Rangers supported-offense rules. Special-teams forced/recovered fumble categories remain omitted consistently across models.
+- Baseline: existing WeeklyFeatures and FactorModel estimator settings, including random seed 42. Identical observed-player rows and training cutoffs for each candidate. No hyperparameter tuning.
+- Shares variant: add lagged 4/12-observed-game target share, air-yard share and carry share. Carry share uses all observed QB/RB/WR/TE carries for that team-week. Zero denominators remain missing.
+- Trends variant: shares plus last-observed share, 4-minus-12 share changes, and 4-minus-12 target/carry/pass-attempt changes. Features may cross seasons and team changes, like the current baseline; current-team role resets are a future experiment.
+- Fit on all earlier weeks, predict the next held-out week, repeat. Exclude players with no earlier observed games from this evaluation, matching baseline evaluation eligibility. Report excluded rows.
+- Development: 2025 weeks 1–18. Select the usage variant with the lower pooled MAE (shares wins an exact tie). Freeze that choice before calculating confirmation metrics.
+- Confirmation: 2026 weeks 1–6. Report both candidates transparently but only use the preselected candidate for the promotion decision.
+- Metrics: MAE, RMSE and positional MAE. Use a paired week-cluster bootstrap with 2,000 resamples, seed 42, for change in MAE; six confirmation weeks imply limited precision.
+- Start/sit proxy: within each week and position, take baseline-predicted top 24 QBs, 60 RBs, 72 WRs and 24 TEs. Compare all pairs within 3 baseline projected points, using exactly the same pairs for each variant. Regret is the actual better score minus the actual score of the predicted choice; ties break by player ID. Report mean regret and accuracy excluding actual-score ties. This is not a historical league-lineup replay, and excludes cross-position FLEX decisions.
+- Promotion gate: at least 2% confirmation MAE improvement, paired interval entirely below zero, no more than 2% worsening in pair regret or any positional MAE. Otherwise leave production unchanged. These thresholds are research policy, not proof of a guaranteed edge.
+- Limitations: observed player-games only; no DNP reconstruction, historical injury snapshots, or as-published stat-correction archives. Snapshot corrections may differ from what was available on a historical Wednesday. No route/snap/red-zone/weather additions in this experiment. No confidence-range recalibration or production activation.
