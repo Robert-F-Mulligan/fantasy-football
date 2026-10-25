@@ -146,10 +146,15 @@ class DataSyncService:
             raise ValueError("Roster does not match requested season")
         registry = PlayerRegistry(players, rosters)
         frames = []
+        kickers = []
         coverage = []
         for season in seasons:
             raw, sources[f"stats_{season}"] = self.client.csv(
                 "stats_player", f"stats_player_week_{season}.csv"
+            )
+            # Keep kicking box scores separate from the offensive model contract.
+            kickers.append(
+                raw.loc[(raw.season_type == "REG") & (raw.position == "K")].copy()
             )
             frame = PlayerStatsAdapter().transform(raw, registry, season)
             maximum = int(frame.week.max())
@@ -176,6 +181,7 @@ class DataSyncService:
             "rosters.csv": registry.rosters,
             "unidentified_rosters.csv": registry.unidentified_rosters,
             "weekly.csv": weekly,
+            "kickers.csv": pd.concat(kickers, ignore_index=True),
         }
         contents = {
             name: frame.to_csv(index=False).encode("utf-8")
