@@ -23,10 +23,13 @@ If a run fails after reservation, inspect Gmail Sent for the Message-ID from the
 
 Each run downloads a fresh schedule, player status, canonical IDs and two prior seasons plus current-season stats (from week 2 onward). It selects the next regular-season game week in the configured season, checks that the previous week's games have scores and both teams have player-stat coverage, then trains only on earlier weeks. This team-level check does not prove every individual player record is present.
 
-The email includes start/sit choices, projected points, opponents, availability warnings and changes from imported starters. It uses the existing offensive model; K/DEF, exact special-teams scoring and calibrated uncertainty remain unfinished. Infeasible plans and stale inputs fail without sending advice. This job has no LLM API dependency and does not submit lineup changes.
+The email includes start/sit choices, projected points, opponents, availability warnings, changes from imported starters, and nominal 80% historical error ranges with later-week coverage checks. It uses the existing offensive model; K/DEF, exact special-teams scoring, individual volatility estimates and formal coverage guarantees remain unfinished. Infeasible plans and stale inputs fail without sending advice. This job has no LLM API dependency and does not submit lineup changes.
 
 ## Verification
 
 Local live preparation completed on October 24, 2026 and produced the week-7 HTML/plain-text report. SMTP behavior and reservation/retry behavior are tested with fakes. Actual hosted execution and Gmail SMTP delivery require the user's GitHub secrets and merged workflow; they have not been verified yet. PostgreSQL/dbt are not used by this workflow.
 
 Official references: [GitHub schedules](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule), [Gmail app passwords](https://support.google.com/mail/answer/185833).
+
+
+Changes to the application or report workflow merged into main also trigger an automatic email-free hosted dry run. Workflow syntax is parsed by regression tests; the dependency-version command uses a YAML block scalar so Python dictionary colons cannot invalidate it. Mail remains restricted to the Wednesday schedule or an explicit `send_email=true` dispatch.

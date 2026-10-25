@@ -34,3 +34,12 @@ Reproduce repository evaluations with `python examples/evaluate_factors.py`. It 
 The current nflverse weekly input has no age values. Training excludes columns with no observed values in the training partition and retains that column selection for prediction. Partially missing columns retain native estimator missing-value handling. Each chronological evaluation fold selects its columns from its own training rows; future/holdout availability cannot influence the schema. Weekly plan metadata lists `dropped_training_features`. Training fails clearly if no observed feature remains.
 
 This avoids scikit-learn 1.9.1's histogram-binning failure on an all-missing column (`window shape cannot be larger than input array shape`). The original failure was reproduced with NumPy 2.5.4, pandas 2.3.3, scikit-learn 1.9.1 and SciPy 1.18.1; corrected live report preparation passed on that stack. Hosted and CI jobs now print the installed model-library versions to aid diagnosis.
+
+
+## Weekly prediction ranges
+
+The weekly report now estimates nominal 80% prediction ranges from chronological out-of-sample errors. For each of the last eight observed weeks, a separate weekly model trains only on earlier rows. Absolute forecast errors from the first six weeks calibrate a position-level half-width; the last two weeks are reserved to measure coverage. The width is the sorted residual at rank `ceil((n + 1) * 0.8)`. Each position needs at least 30 calibration outcomes. Players need at least four observed historical games; otherwise their range is unavailable.
+
+The current point model still trains on all earlier weeks. Because the residual forecasts use different training cutoffs and football observations are temporally dependent, these ranges have **no formal coverage guarantee**. They describe observed player-games, omit DNP zero labels, and do not quantify injury probability or the chance one player outscores another. Widths are position-level, not personalized volatility estimates. The final point model is newer than the historical models used for calibration. Independent later-week coverage and sample sizes are displayed so an 80% target cannot be mistaken for measured accuracy.
+
+The email uses a shared-scale horizontal range chart made from HTML table cells, with numeric bounds and a point marker. It requires no JavaScript, SVG, external images, or image loading. The text alternative includes the bounds. Wide and overlapping ranges discourage overinterpreting small projected differences. Season/draft-time uncertainty ranges remain future work.
