@@ -6,7 +6,17 @@ from .optimization import LineupOptimizer
 
 
 class WeeklyLineupPlanner:
-    def availability(self, roster, player_details, schedule, *, season, week, as_of):
+    def availability(
+        self,
+        roster,
+        player_details,
+        schedule,
+        *,
+        season,
+        week,
+        as_of,
+        supported_positions=("QB", "RB", "WR", "TE"),
+    ):
         roster_columns = {
             "sleeper_id",
             "player_id",
@@ -85,12 +95,13 @@ class WeeklyLineupPlanner:
                 warning="",
                 locked_slot="",
             )
-            if row.get("pos") in {"K", "DEF"} or (
-                details and details.get("position") in {"K", "DEF"}
-            ):
+            if (
+                row.get("pos") in {"K", "DEF"}
+                or (details and details.get("position") in {"K", "DEF"})
+            ) and row.get("pos") not in supported_positions:
                 result["availability"] = "unsupported_position"
             elif (
-                row.get("pos") not in {"QB", "RB", "WR", "TE"}
+                row.get("pos") not in supported_positions
                 or pd.isna(row.get("player_id"))
                 or not details
             ):
@@ -250,11 +261,30 @@ def write_weekly_plan(args):
             "players": str(args.players),
         },
         "notes": [
-            "Research projections; no K/DEF recommendations. Recheck injuries and schedule before using.",
+            "Offensive research lineup; separate kicker baselines and defense context are recorded under specialists. Recheck injuries and schedule.",
             "Caller-supplied snapshots must be current at as_of; historical availability is not reconstructed.",
             "Started players retain their imported slots; their values are preweek predictions, not live remaining points.",
         ],
     }
+    from .specialists import specialist_context
+
+    kicker_path = args.input.parent / "kickers.csv"
+    specialists, specialist_audit = specialist_context(
+        roster,
+        json.loads(args.players.read_text(encoding="utf-8-sig")),
+        pd.read_csv(args.schedule),
+        pd.read_csv(kicker_path, dtype={"player_id": str})
+        if kicker_path.exists()
+        else None,
+        report["scoring_settings"],
+        season=args.season,
+        week=args.week,
+        as_of=args.as_of,
+        kicker_slots=report["roster_positions"].count("K"),
+    )
+    if not specialists.empty:
+        specialists.to_csv(args.output / "specialists.csv", index=False)
+    audit["specialists"] = specialist_audit
     audit["input_sha256"] = {
         str(path): sha256(path.read_bytes()).hexdigest()
         for path in [
@@ -267,6 +297,10 @@ def write_weekly_plan(args):
             args.league_dir / "offensive-slots.json",
         ]
     }
+    if kicker_path.exists():
+        audit["input_sha256"][str(kicker_path)] = sha256(
+            kicker_path.read_bytes()
+        ).hexdigest()
     try:
         lineup = planner.recommend(projections, availability, slots)
         lineup.to_csv(args.output / "lineup.csv", index=False)

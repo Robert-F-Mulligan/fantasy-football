@@ -23,13 +23,24 @@ If a run fails after reservation, inspect Gmail Sent for the Message-ID from the
 
 Each run downloads a fresh schedule, player status, canonical IDs and two prior seasons plus current-season stats (from week 2 onward). It selects the next regular-season game week in the configured season, checks that the previous week's games have scores and both teams have player-stat coverage, then trains only on earlier weeks. This team-level check does not prove every individual player record is present.
 
-The email includes start/sit choices, projected points, opponents, availability warnings, changes from imported starters, and nominal 80% historical error ranges with later-week coverage checks. It uses the existing offensive model; K/DEF, exact special-teams scoring, individual volatility estimates and formal coverage guarantees remain unfinished. Infeasible plans and stale inputs fail without sending advice. This job has no LLM API dependency and does not submit lineup changes.
+The email includes start/sit choices, projected points, opponents, availability warnings, changes from imported starters, and nominal 80% historical error ranges with later-week coverage checks. It uses the existing offensive model; defense forecasts, full special-teams scoring, individual volatility estimates and formal coverage guarantees remain unfinished. Kicking-only baselines are reported separately as described below. Infeasible plans and stale inputs fail without sending advice. This job has no LLM API dependency and does not submit lineup changes.
 
 ## Verification
 
-Local live preparation completed on October 24, 2026 and produced the week-7 HTML/plain-text report. SMTP behavior and reservation/retry behavior are tested with fakes. Actual hosted execution and Gmail SMTP delivery require the user's GitHub secrets and merged workflow; they have not been verified yet. PostgreSQL/dbt are not used by this workflow.
+Local live preparation completed on October 24, 2026 and produced the week-7 HTML/plain-text report. SMTP behavior and reservation/retry behavior are tested with fakes. Hosted preparation and Gmail SMTP delivery were verified on October 25, 2026 (Actions run 40201365106), and the user confirmed inbox receipt. REPORT_EMAIL_ENABLED is true and the desktop schedule is paused. PostgreSQL/dbt are not used by this workflow.
 
 Official references: [GitHub schedules](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule), [Gmail app passwords](https://support.google.com/mail/answer/185833).
 
 
 Changes to the application or report workflow merged into main also trigger an automatic email-free hosted dry run. Workflow syntax is parsed by regression tests; the dependency-version command uses a YAML block scalar so Python dictionary colons cannot invalidate it. Mail remains restricted to the Wednesday schedule or an explicit `send_email=true` dispatch.
+
+
+## Kicker and defense coverage
+
+Reports include a separate specialist section with actual Sleeper slots, opponents, kickoffs, injury/byes and kickoff locks. The offensive table now names assigned slots, including FLEX1.
+
+Kicker estimates use the last eight observed current-team games, shrunk toward the recent league kicker average with four games of prior weight. At least four current-team observations are required. These are kicking-only research baselines, not the offensive factor model; they exclude rare offensive contributions, weather, opponent effects and DNP probabilities. No calibrated kicker interval or superiority over expert projections is claimed. Unknown kicking rules disable these estimates, and only single-kicker leagues receive baseline start/bench labels. Defense remains context-only, without point forecasts or start/sit advice.
+
+Kicking scores include blocked FG/PAT misses and stack general and distance-specific penalties. A live comparison matched all 68 available rostered kicker scores from this league's 2026 weeks 1?6. This validates those scoring observations, not future prediction quality.
+
+References: [nflverse player statistics](https://nflreadr.nflverse.com/articles/dictionary_player_stats.html), [Sleeper scoring rules](https://support.sleeper.com/en/articles/3998131-what-scoring-options-are-available). Defense scoring still needs play-level reconciliation because [Sleeper points allowed](https://support.sleeper.com/en/articles/4126495-how-are-points-allowed-calculated) differs from the game's final score.

@@ -71,6 +71,57 @@ def render_ranges(board, selected, metadata):
     )
 
 
+def render_specialists(plan_dir, metadata):
+    path = plan_dir / "specialists.csv"
+    if not path.exists():
+        return "", "", set()
+    frame = pd.read_csv(path, dtype={"sleeper_id": str})
+    rows, lines = [], []
+    for row in frame.to_dict("records"):
+        points = row["projected_points"]
+        values = [
+            row["player_name"],
+            row["pos"],
+            row.get("starter_slot"),
+            row.get("opp"),
+            row.get("kickoff"),
+            row["availability"],
+            row["recommendation"],
+            f"{points:.1f}" if pd.notna(points) else "Unavailable",
+            row.get("warning"),
+            row["model_note"],
+        ]
+        values = [str(v) if pd.notna(v) else "" for v in values]
+        safe = [escape(v) for v in values]
+        rows.append(
+            '<div style="border:1px solid #d6dee5;padding:12px;margin-bottom:12px">'
+            + f"<b>{safe[0]} ({safe[1]})</b><p>Current slot: {safe[2] or 'Bench'} | Opponent: {safe[3] or 'Unavailable'}<br>"
+            + f"Kickoff (UTC): {safe[4] or 'Unavailable'}<br>Availability: {safe[5]}</p>"
+            + f"<p><b>{safe[6]}</b> | Kicking estimate: {safe[7]}</p>"
+            + f"<p>{safe[8]} {safe[9]}</p></div>"
+        )
+        lines.append(" | ".join(values))
+    limitation = metadata.get("limitations", "")
+    blocker = metadata.get("kicker_blocker", "")
+    html = (
+        "<h2>Kicker and defense</h2><p>Kicker numbers are a separate kicking-only research baseline. Current slots reflect Sleeper; defense has no start/sit recommendation.</p>"
+        + "".join(rows)
+        + "<p>"
+        + escape(limitation + " " + blocker)
+        + "</p>"
+    )
+    return (
+        html,
+        "\n\nKicker and defense (kickoffs UTC):\n"
+        + "\n".join(lines)
+        + "\n"
+        + limitation
+        + " "
+        + blocker,
+        set(frame.sleeper_id),
+    )
+
+
 def render_report(plan_dir, team_name, season, week):
     plan_dir = Path(plan_dir)
     audit = json.loads((plan_dir / "plan-report.json").read_text(encoding="utf-8"))
@@ -95,7 +146,12 @@ def render_report(plan_dir, team_name, season, week):
         how="left",
         validate="one_to_one",
     )
+    specialist_html, specialist_text, specialist_ids = render_specialists(
+        plan_dir, audit.get("specialists", {})
+    )
+    board = board.loc[~board.sleeper_id.astype(str).isin(specialist_ids)].copy()
     selected = set(lineup.player_id)
+    assigned = lineup.set_index("player_id").slot.to_dict()
     rows = []
     text_rows = []
     for row in board.to_dict("records"):
@@ -106,6 +162,7 @@ def render_report(plan_dir, team_name, season, week):
         points = row["projected_points"]
         values = [
             decision,
+            assigned.get(row["player_id"], ""),
             name,
             row.get("pos"),
             row.get("opp"),
@@ -151,19 +208,21 @@ def render_report(plan_dir, team_name, season, week):
 <h1>{escape(title)}</h1><p>{escape(summary)}</p>
 <p>Data as of {escape(audit["as_of"])}. Training cutoff: {audit["history_cutoff"]}.</p>
 {range_visual}
-<table border="1" cellpadding="7" cellspacing="0"><tr><th>Decision</th><th>Player</th><th>Pos</th><th>Opponent</th><th>Projected points</th><th>Availability</th><th>Watch</th></tr>{"".join(rows)}</table>
+<table border="1" cellpadding="7" cellspacing="0"><tr><th>Decision</th><th>Assigned slot</th><th>Player</th><th>Pos</th><th>Opponent</th><th>Projected points</th><th>Availability</th><th>Watch</th></tr>{"".join(rows)}</table>
 <p>Recommendations maximize projected offensive points subject to eligible slots and kickoff locks. Opponent context comes from historical positional points allowed; this is not a calibrated matchup difficulty grade. Small projected differences are not strong evidence.</p>
 <p>Wednesday reports are preliminary. Recheck injuries and active status before kickoff. Started players retain their imported slots; displayed values are preweek estimates, not remaining points.</p>
-<p>Kickers and team defense are not modeled. Unsupported offensive scoring: {escape(omissions)}. Rookies and players with little history may have weak forecasts. No lineup changes were submitted.</p>
+{specialist_html}
+<p>The main lineup and ranges cover offense. Kicker estimates, when available, are separate kicking-only baselines; team defense points are not modeled. Unsupported offensive scoring: {escape(omissions)}. Rookies and players with little history may have weak forecasts. No lineup changes were submitted.</p>
 <p>Sources: <a href="https://sleeper.com">Sleeper</a>, <a href="https://github.com/nflverse/nflverse-data">nflverse player data</a>, <a href="https://github.com/nflverse/nfldata">NFL schedule</a>.</p></body></html>"""
     plain = title + "\n\n" + summary + "\n\n" + "\n".join(text_rows)
-    plain += f"\n\nOffensive research only. K/DEF not modeled. Unsupported scoring: {omissions}. Recheck injuries before kickoff. No lineup changes submitted."
+    plain += f"\n\nOffensive research only. Defense points not modeled; kicker baselines are separate. Unsupported scoring: {omissions}. Recheck injuries before kickoff. No lineup changes submitted."
     if "prediction_lower" in board:
         plain += "\n\nHistorical prediction ranges (nominal 80%, not guaranteed):"
         for row in board.dropna(
             subset=["prediction_lower", "prediction_upper"]
         ).itertuples():
             plain += f"\n{row.player_name}: {row.prediction_lower:.1f} to {row.prediction_upper:.1f}"
+    plain += specialist_text
     return title, plain, html
 
 

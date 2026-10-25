@@ -225,7 +225,7 @@ class SleeperLeagueImporter:
             ].tolist(),
             "notes": [
                 "Supported-offense configuration omits the scoring categories listed above.",
-                "K/DEF projections and full-lineup recommendations are not implemented.",
+                "The main optimizer is offense-only. Weekly reports may add separate kicking-only baselines and defense context; defense points remain unmodeled.",
                 "Starter slots are preserved; weekly-plan combines them with schedule-based kickoff locks.",
             ],
         }
