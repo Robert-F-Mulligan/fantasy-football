@@ -3,7 +3,8 @@
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
-from .features import WeeklyFeatures, SeasonFeatures
+
+from .features import SeasonFeatures, WeeklyFeatures
 
 
 class FactorModel:
@@ -27,14 +28,27 @@ class FactorModel:
             random_state=42,
         )
 
+    @staticmethod
+    def _training_columns(data, columns):
+        # Choose only from training rows, never from forecast/holdout values.
+        # Preserve partial missingness for the estimator's native missing-value support.
+        retained = [column for column in columns if data[column].notna().any()]
+        if not retained:
+            raise ValueError("No observed training features are available")
+        return retained
+
     def fit(self, history):
-        data, self.columns = self.features.build(history)
+        data, columns = self.features.build(history)
         if self.horizon == "weekly":
             data = data[data.previous_games > 0]
         if len(data) < self.min_samples:
             raise ValueError(
                 f"Need at least {self.min_samples} historical training rows"
             )
+        self.columns = self._training_columns(data, columns)
+        self.dropped_features = [
+            column for column in columns if column not in self.columns
+        ]
         self.estimator = self._estimator()
         self.estimator.fit(data[self.columns], data.fantasy_points)
         self.cutoff = int(history.period.max())
@@ -47,11 +61,11 @@ class FactorModel:
         if self.horizon == "weekly":
             if fixtures is None:
                 raise ValueError("Weekly forecasts require scheduled fixtures")
-            data, cols = self.features.build(self.history, fixtures=fixtures)
+            data, _ = self.features.build(self.history, fixtures=fixtures)
         else:
             if season is None:
                 raise ValueError("Season forecast requires target season")
-            data, cols = self.features.build(self.history, season=season)
+            data, _ = self.features.build(self.history, season=season)
         if data.empty:
             raise ValueError("No eligible forecast rows")
         result = data[["player_id", "player_name", "pos", "season"]].copy()
@@ -74,8 +88,11 @@ class FactorModel:
             test = data[data.season == season]
             if len(train) < self.min_samples or test.empty:
                 continue
-            estimator = self._estimator().fit(train[cols], train.fantasy_points)
-            prediction = estimator.predict(test[cols])
+            train_columns = self._training_columns(train, cols)
+            estimator = self._estimator().fit(
+                train[train_columns], train.fantasy_points
+            )
+            prediction = estimator.predict(test[train_columns])
             baseline = (
                 test.prior4_fantasy_points
                 if self.horizon == "weekly"

@@ -1,4 +1,4 @@
-﻿# Factor models and weekly lineup optimization
+# Factor models and weekly lineup optimization
 
 Install the `model` extra. The CLI accepts weekly history with stable IDs, year/season, week, position, opponent (`opp`), age if known, passing attempts/yards/TDs/interceptions, rushing attempts/yards/TDs, receiving targets/receptions/yards/TDs and all configured scoring stats. Only regular-season QB/RB/WR/TE rows are supported.
 
@@ -27,3 +27,10 @@ Upcoming fixtures need player_id, player_name, pos, season, week and opp. They m
 Forecasts return the same player/projection columns consumed by the draft CLI. Supply a sufficiently deep and eligible pool; supplement rookies using a separately sourced model before draft valuation.
 
 Reproduce repository evaluations with `python examples/evaluate_factors.py`. It uses config.sean scoring on 2015–2023 stored weekly rows and evaluates 2021–2023. These archived samples are not complete current NFL rosters, and season coverage is approximately 68–71%. The season model loses to prior-season points on the 2023 holdout. See VALIDATION.md for measured results; do not assume universal superiority.
+
+
+## Entirely missing training features
+
+The current nflverse weekly input has no age values. Training excludes columns with no observed values in the training partition and retains that column selection for prediction. Partially missing columns retain native estimator missing-value handling. Each chronological evaluation fold selects its columns from its own training rows; future/holdout availability cannot influence the schema. Weekly plan metadata lists `dropped_training_features`. Training fails clearly if no observed feature remains.
+
+This avoids scikit-learn 1.9.1's histogram-binning failure on an all-missing column (`window shape cannot be larger than input array shape`). The original failure was reproduced with NumPy 2.5.4, pandas 2.3.3, scikit-learn 1.9.1 and SciPy 1.18.1; corrected live report preparation passed on that stack. Hosted and CI jobs now print the installed model-library versions to aid diagnosis.

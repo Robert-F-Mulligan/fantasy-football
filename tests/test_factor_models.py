@@ -199,3 +199,67 @@ def test_projection_metadata_remains_missing_not_zero():
     assert pd.isna(result.as_of_date.iloc[0])
     assert result.receiving_rec.iloc[0] == 0
     assert "passing_att" not in raw
+
+
+@pytest.mark.parametrize("horizon", ["weekly", "season"])
+def test_missing_age_can_train_and_predict(horizon):
+    data = history()
+    data["age"] = np.nan
+    model = FactorModel(horizon, min_samples=10).fit(data)
+    fixtures = pd.DataFrame(
+        {
+            "player_id": ["0"],
+            "player_name": ["P"],
+            "pos": ["RB"],
+            "season": [2024],
+            "week": [1],
+            "opp": ["ABC"],
+        }
+    )
+    result = (
+        model.predict(fixtures=fixtures)
+        if horizon == "weekly"
+        else model.predict(season=2024)
+    )
+    assert np.isfinite(result.projected_points).all()
+    assert any("age" in name for name in model.dropped_features)
+    assert all("age" not in name for name in model.columns)
+
+
+def test_partly_missing_age_is_retained():
+    data = history()
+    data.loc[data.season < 2021, "age"] = np.nan
+    model = FactorModel("weekly", min_samples=10).fit(data)
+    assert "prior_age" in model.columns
+
+
+def test_holdout_age_cannot_determine_training_schema(monkeypatch):
+    data = history()
+    data.loc[data.season < 2022, "age"] = np.nan
+    model = FactorModel("weekly", min_samples=10)
+    original = model._estimator
+    trained_columns = []
+
+    def estimator():
+        fitted = original()
+        original_fit = fitted.fit
+
+        def capture_fit(x, y):
+            trained_columns.append(list(x.columns))
+            return original_fit(x, y)
+
+        fitted.fit = capture_fit
+        return fitted
+
+    monkeypatch.setattr(model, "_estimator", estimator)
+    result = model.evaluate(data, holdouts=[2022])
+    assert "prior_age" not in trained_columns[0]
+    assert np.isfinite(result.model_mae).all()
+
+
+def test_no_observed_training_features_fails_clearly(monkeypatch):
+    model = FactorModel("season", min_samples=1)
+    frame = pd.DataFrame({"missing": [np.nan, np.nan], "fantasy_points": [1, 2]})
+    monkeypatch.setattr(model.features, "build", lambda _: (frame, ["missing"]))
+    with pytest.raises(ValueError, match="No observed training features"):
+        model.fit(history())

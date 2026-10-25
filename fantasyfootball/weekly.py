@@ -223,7 +223,8 @@ def write_weekly_plan(args):
         availability.availability.isin(["eligible", "locked_starter"]),
         ["player_id", "player_name", "pos", "season", "week", "opp"],
     ]
-    projections = FactorModel("weekly").fit(history).predict(fixtures=fixtures)
+    model = FactorModel("weekly").fit(history)
+    projections = model.predict(fixtures=fixtures)
     slots = json.loads(
         (args.league_dir / "offensive-slots.json").read_text(encoding="utf-8-sig")
     )
@@ -235,6 +236,7 @@ def write_weekly_plan(args):
         "week": args.week,
         "as_of": args.as_of,
         "history_cutoff": int(history.period.max()),
+        "dropped_training_features": model.dropped_features,
         "scope": "QB/RB/WR/TE only",
         "unsupported_scoring": report["unsupported_offensive_scoring"],
         "inputs": {
