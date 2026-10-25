@@ -13,6 +13,64 @@ import pandas as pd
 import requests
 
 
+def render_ranges(board, selected, metadata):
+    """Email-safe range plot using table cells, with numeric fallbacks and a shared axis."""
+    needed = {"prediction_lower", "prediction_upper", "projected_points"}
+    if not needed.issubset(board):
+        return "<p>Prediction ranges unavailable for this report.</p>"
+    plotted = board.dropna(subset=list(needed)).copy()
+    if plotted.empty:
+        return "<p>Prediction ranges unavailable: insufficient historical evidence.</p>"
+    lower = min(0.0, float(plotted.prediction_lower.min()))
+    upper = max(float(plotted.prediction_upper.max()), lower + 1)
+    span = upper - lower
+    width = 260
+    rows = []
+    for row in plotted.sort_values(
+        ["pos", "projected_points"], ascending=[True, False]
+    ).to_dict("records"):
+        lo, point, hi = (
+            row["prediction_lower"],
+            row["projected_points"],
+            row["prediction_upper"],
+        )
+        left = max(0, round((lo - lower) / span * width))
+        before = max(0, round((point - lo) / span * width))
+        after = max(0, round((hi - point) / span * width))
+        color = "#166c80" if row["player_id"] in selected else "#667085"
+        segments = [
+            (left, "#ffffff"),
+            (before, "#b6dce2"),
+            (4, color),
+            (after, "#b6dce2"),
+        ]
+        cells = "".join(
+            f'<td width="{n}" bgcolor="{c}" style="width:{n}px;height:12px;font-size:1px;line-height:12px">&nbsp;</td>'
+            for n, c in segments
+            if n
+        )
+        label = escape(str(row["player_name"]))
+        decision = "START" if row["player_id"] in selected else "SIT"
+        rows.append(
+            f'<tr><td style="padding:8px">{label}<br><small>{decision} / {escape(str(row["pos"]))}</small></td><td><table role="presentation" cellpadding="0" cellspacing="0"><tr>{cells}</tr></table></td><td style="padding:8px;white-space:nowrap">{lo:.1f} to {hi:.1f}<br><b>{point:.1f} projected</b></td></tr>'
+        )
+    checks = []
+    for position, info in metadata.get("positions", {}).items():
+        coverage = info.get("observed_coverage")
+        if coverage is not None:
+            checks.append(
+                f"{escape(position)}: {coverage:.0%} of {info['validation_rows']} later observations inside the range"
+            )
+    target = metadata.get("target_coverage", 0.8)
+    return (
+        f'<h2>Projected points and {target:.0%} target ranges</h2><p>Dark marker: point estimate. Pale bar: historical error range. Shared scale: {lower:.0f} to {upper:.0f} points. START/SIT labels remain readable without color.</p><table cellpadding="0" cellspacing="0">'
+        + "".join(rows)
+        + "</table><p>"
+        + ("; ".join(checks) or "Independent coverage check unavailable.")
+        + "</p><p>Ranges use past out-of-sample errors for each position. They are not confidence intervals, floor/ceiling guarantees, or an 80% chance of beating another player. DNP/injury risk is not included. Players without bars lack enough evidence or are outside the modeled scope. Overlapping ranges indicate that small ranking differences should be treated cautiously.</p>"
+    )
+
+
 def render_report(plan_dir, team_name, season, week):
     plan_dir = Path(plan_dir)
     audit = json.loads((plan_dir / "plan-report.json").read_text(encoding="utf-8"))
@@ -25,7 +83,14 @@ def render_report(plan_dir, team_name, season, week):
         )
     lineup = pd.read_csv(plan_dir / "lineup.csv", dtype={"player_id": str})
     board = availability.merge(
-        projections[["player_id", "projected_points"]],
+        projections[
+            ["player_id", "projected_points"]
+            + [
+                c
+                for c in ["prediction_lower", "prediction_upper", "range_status"]
+                if c in projections
+            ]
+        ],
         on="player_id",
         how="left",
         validate="one_to_one",
@@ -74,6 +139,7 @@ def render_report(plan_dir, team_name, season, week):
             changes.append(
                 f"{row['slot']}: {row['player_name']} instead of {old.player_name}{comparison}"
             )
+    range_visual = render_ranges(board, selected, audit.get("prediction_ranges", {}))
     title = f"{team_name} \u2014 Week {week} Start/Sit Report ({season})"
     summary = (
         "; ".join(changes)
@@ -84,6 +150,7 @@ def render_report(plan_dir, team_name, season, week):
     html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{escape(title)}</title></head><body style="font-family:Arial,sans-serif;color:#182538">
 <h1>{escape(title)}</h1><p>{escape(summary)}</p>
 <p>Data as of {escape(audit["as_of"])}. Training cutoff: {audit["history_cutoff"]}.</p>
+{range_visual}
 <table border="1" cellpadding="7" cellspacing="0"><tr><th>Decision</th><th>Player</th><th>Pos</th><th>Opponent</th><th>Projected points</th><th>Availability</th><th>Watch</th></tr>{"".join(rows)}</table>
 <p>Recommendations maximize projected offensive points subject to eligible slots and kickoff locks. Opponent context comes from historical positional points allowed; this is not a calibrated matchup difficulty grade. Small projected differences are not strong evidence.</p>
 <p>Wednesday reports are preliminary. Recheck injuries and active status before kickoff. Started players retain their imported slots; displayed values are preweek estimates, not remaining points.</p>
@@ -91,6 +158,12 @@ def render_report(plan_dir, team_name, season, week):
 <p>Sources: <a href="https://sleeper.com">Sleeper</a>, <a href="https://github.com/nflverse/nflverse-data">nflverse player data</a>, <a href="https://github.com/nflverse/nfldata">NFL schedule</a>.</p></body></html>"""
     plain = title + "\n\n" + summary + "\n\n" + "\n".join(text_rows)
     plain += f"\n\nOffensive research only. K/DEF not modeled. Unsupported scoring: {omissions}. Recheck injuries before kickoff. No lineup changes submitted."
+    if "prediction_lower" in board:
+        plain += "\n\nHistorical prediction ranges (nominal 80%, not guaranteed):"
+        for row in board.dropna(
+            subset=["prediction_lower", "prediction_upper"]
+        ).itertuples():
+            plain += f"\n{row.player_name}: {row.prediction_lower:.1f} to {row.prediction_upper:.1f}"
     return title, plain, html
 
 

@@ -179,6 +179,7 @@ def write_weekly_plan(args):
     from .application import league_from_dict
     from .features import prepare_weekly
     from .models import FactorModel
+    from .uncertainty import RollingErrorRanges
 
     report = json.loads(
         (args.league_dir / "import-report.json").read_text(encoding="utf-8-sig")
@@ -225,6 +226,8 @@ def write_weekly_plan(args):
     ]
     model = FactorModel("weekly").fit(history)
     projections = model.predict(fixtures=fixtures)
+    ranges = RollingErrorRanges().fit(history)
+    projections = ranges.apply(projections)
     slots = json.loads(
         (args.league_dir / "offensive-slots.json").read_text(encoding="utf-8-sig")
     )
@@ -237,6 +240,7 @@ def write_weekly_plan(args):
         "as_of": args.as_of,
         "history_cutoff": int(history.period.max()),
         "dropped_training_features": model.dropped_features,
+        "prediction_ranges": ranges.report,
         "scope": "QB/RB/WR/TE only",
         "unsupported_scoring": report["unsupported_offensive_scoring"],
         "inputs": {

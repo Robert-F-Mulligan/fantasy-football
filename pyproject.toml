@@ -17,7 +17,7 @@ scraping = ["requests>=2.31,<3", "beautifulsoup4>=4.12,<5", "lxml>=5,<7", "selen
 database = ["SQLAlchemy>=2,<3", "psycopg2-binary>=2.9,<3"]
 viz = ["plotly>=5.24,<7"]
 legacy = ["matplotlib>=3.8,<4", "seaborn>=0.13,<1", "scikit-learn>=1.5,<2", "scipy>=1.11,<2", "nltk>=3.8,<4"]
-dev = ["pytest>=8,<9", "build>=1,<2"]
+dev = ["pytest>=8,<9", "build>=1,<2", "PyYAML>=6,<7"]
 
 [project.scripts]
 fantasy-football = "fantasyfootball.cli:main"
