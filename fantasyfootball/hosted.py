@@ -5,7 +5,7 @@ import contextlib
 import io
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -30,7 +30,8 @@ def target_week(schedule, season, now):
         .dt.tz_convert("UTC")
     )
     future = games.loc[
-        (games.kickoff > now) & (games.kickoff <= now + pd.Timedelta(days=7))
+        (games.kickoff > now)
+        & (games.kickoff <= now.to_pydatetime() + timedelta(days=7))
     ]
     if future.empty:
         return None

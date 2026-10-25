@@ -22,5 +22,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install -e '.[dev,model,viz,scraping,database]'
+      - name: Record model dependency versions
+        run: python -c "import numpy, pandas, sklearn, scipy; print({m.__name__: m.__version__ for m in (numpy, pandas, sklearn, scipy)})"
       - run: python -m pytest -q
       - run: python -m build --wheel
