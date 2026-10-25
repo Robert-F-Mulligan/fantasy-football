@@ -146,6 +146,9 @@ def test_report_escapes_source_text_and_discloses_limitations(tmp_path):
     assert "+10.0 projected points" in html
     assert "st_ff" in html and "not modeled" in html
     assert "Week 8" in subject
+    assert "\u2014" in subject
+    assert '<meta charset="utf-8">' in html
+    assert "\u00e2\u20ac\u201d" not in html
     audit["status"] = "blocked"
     audit["reason"] = "missing player"
     (tmp_path / "plan-report.json").write_text(json.dumps(audit))
@@ -166,6 +169,8 @@ def test_smtp_uses_tls_and_multipart_without_logging_secret(monkeypatch):
     smtp.login.assert_called_once_with("sender@example.com", "secret")
     message = smtp.send_message.call_args.args[0]
     assert message["To"] == "to@example.com"
+    assert message.get_body(preferencelist=("html",)).get_content_charset() == "utf-8"
+    assert message.get_body(preferencelist=("plain",)).get_content_charset() == "utf-8"
     assert (
         message.get_body(preferencelist=("html",)).get_content().strip()
         == "<p>HTML</p>"

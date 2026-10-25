@@ -15,7 +15,7 @@ import requests
 
 def render_report(plan_dir, team_name, season, week):
     plan_dir = Path(plan_dir)
-    audit = json.loads((plan_dir / "plan-report.json").read_text())
+    audit = json.loads((plan_dir / "plan-report.json").read_text(encoding="utf-8"))
     availability = pd.read_csv(plan_dir / "availability.csv", dtype={"player_id": str})
     projections = pd.read_csv(plan_dir / "projections.csv", dtype={"player_id": str})
     if audit["status"] != "offensive_lineup_created":
@@ -44,7 +44,7 @@ def render_report(plan_dir, team_name, season, week):
             name,
             row.get("pos"),
             row.get("opp"),
-            f"{points:.1f}" if pd.notna(points) else "â€”",
+            f"{points:.1f}" if pd.notna(points) else "\u2014",
             row["availability"],
             row.get("warning"),
         ]
@@ -52,7 +52,7 @@ def render_report(plan_dir, team_name, season, week):
         rows.append(
             "<tr>"
             + "".join(
-                "<td>" + escape(str(v) if pd.notna(v) else "â€”") + "</td>"
+                "<td>" + escape(str(v) if pd.notna(v) else "\u2014") + "</td>"
                 for v in values
             )
             + "</tr>"
@@ -74,14 +74,14 @@ def render_report(plan_dir, team_name, season, week):
             changes.append(
                 f"{row['slot']}: {row['player_name']} instead of {old.player_name}{comparison}"
             )
-    title = f"{team_name} â€” Week {week} Start/Sit Report ({season})"
+    title = f"{team_name} \u2014 Week {week} Start/Sit Report ({season})"
     summary = (
         "; ".join(changes)
         if changes
         else "No replacement of a current offensive starter is recommended; check slot assignments and availability below."
     )
     omissions = ", ".join(audit["unsupported_scoring"]) or "none"
-    html = f"""<!doctype html><html><body style="font-family:Arial,sans-serif;color:#182538">
+    html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{escape(title)}</title></head><body style="font-family:Arial,sans-serif;color:#182538">
 <h1>{escape(title)}</h1><p>{escape(summary)}</p>
 <p>Data as of {escape(audit["as_of"])}. Training cutoff: {audit["history_cutoff"]}.</p>
 <table border="1" cellpadding="7" cellspacing="0"><tr><th>Decision</th><th>Player</th><th>Pos</th><th>Opponent</th><th>Projected points</th><th>Availability</th><th>Watch</th></tr>{"".join(rows)}</table>
@@ -107,8 +107,8 @@ class GmailSMTP:
         message["To"] = recipient
         message["Subject"] = subject
         message["Message-ID"] = message_id
-        message.set_content(plain)
-        message.add_alternative(html, subtype="html")
+        message.set_content(plain, charset="utf-8")
+        message.add_alternative(html, subtype="html", charset="utf-8")
         with smtplib.SMTP_SSL(
             "smtp.gmail.com", 465, context=ssl.create_default_context(), timeout=60
         ) as smtp:
