@@ -33,7 +33,7 @@ def paired_interval(frame, candidate, reference="baseline", resamples=2000):
     return [float(v) for v in np.quantile(means, [0.025, 0.975])]
 
 
-def decision_pairs(predictions):
+def decision_pairs(predictions, variants=VARIANTS):
     records = []
     for (period, pos), frame in predictions.groupby(["period", "pos"]):
         pool = frame.sort_values(
@@ -52,7 +52,7 @@ def decision_pairs(predictions):
                     "player_b": b["player_id"],
                     "actual_tie": a["actual"] == b["actual"],
                 }
-                for variant in VARIANTS:
+                for variant in variants:
                     chosen = min([a, b], key=lambda r: (-r[variant], r["player_id"]))
                     record[variant] = best - chosen["actual"]
                     record[variant + "_correct"] = chosen["actual"] == best
@@ -60,10 +60,10 @@ def decision_pairs(predictions):
     return pd.DataFrame(records)
 
 
-def summarize(predictions):
+def summarize(predictions, variants=VARIANTS):
     metrics = []
     errors = predictions[["period", "pos"]].copy()
-    for variant in VARIANTS:
+    for variant in variants:
         errors[variant] = (predictions[variant] - predictions.actual).abs()
         for pos, data in [("ALL", predictions), *list(predictions.groupby("pos"))]:
             error = data[variant] - data.actual
@@ -76,9 +76,9 @@ def summarize(predictions):
                     "rmse": float(np.sqrt((error**2).mean())),
                 }
             )
-    pairs = decision_pairs(predictions)
+    pairs = decision_pairs(predictions, variants)
     pair_metrics = []
-    for variant in VARIANTS:
+    for variant in variants:
         untied = pairs.loc[~pairs.actual_tie]
         pair_metrics.append(
             {
@@ -94,7 +94,7 @@ def summarize(predictions):
             "mae_delta_95_interval": paired_interval(errors, v),
             "regret_delta_95_interval": paired_interval(pairs, v),
         }
-        for v in VARIANTS[1:]
+        for v in variants[1:]
     }
     return {
         "point_metrics": metrics,
@@ -103,22 +103,40 @@ def summarize(predictions):
     }, pairs
 
 
-def run(input_path, league_path, output):
+def run(
+    input_path,
+    league_path,
+    output,
+    *,
+    builders=None,
+    training_season=2024,
+    development_seasons=(2025,),
+    confirmation_season=2026,
+    confirmation_weeks=6,
+    extra_checksums=(),
+    limitations=None,
+):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
     source = pd.read_csv(input_path, dtype={"player_id": str})
-    source = source.loc[(source.season * 100 + source.week) <= 202606].copy()
+    source = source.loc[
+        (source.season * 100 + source.week)
+        <= confirmation_season * 100 + confirmation_weeks
+    ].copy()
     settings = json.loads(Path(league_path).read_text(encoding="utf-8-sig"))
     history = prepare_weekly(source, ScoringRules(settings["scoring"]))
-    if set(history.season.unique()) != {2024, 2025, 2026}:
-        raise ValueError(
-            "Protocol requires 2024 training history, 2025 development, and 2026 confirmation"
-        )
-    builders = {
+    if set(history.season.unique()) != {
+        training_season,
+        *development_seasons,
+        confirmation_season,
+    }:
+        raise ValueError("Input seasons do not match the experiment protocol")
+    builders = builders or {
         "baseline": WeeklyFeatures(),
         "shares": UsageFeatures(),
         "trends": UsageFeatures(trends=True),
     }
+    variants = tuple(builders)
     matrices = {}
     coverage = {}
     for name, builder in builders.items():
@@ -134,9 +152,11 @@ def run(input_path, league_path, output):
     for data, _ in matrices.values():
         if not data[["player_id", "period"]].equals(reference[["player_id", "period"]]):
             raise ValueError("Variant evaluation populations differ")
-    periods = sorted(reference.loc[reference.season >= 2025, "period"].unique())
-    if periods != [202500 + w for w in range(1, 19)] + [
-        202600 + w for w in range(1, 7)
+    periods = sorted(
+        reference.loc[reference.season > training_season, "period"].unique()
+    )
+    if periods != [s * 100 + w for s in development_seasons for w in range(1, 19)] + [
+        confirmation_season * 100 + w for w in range(1, confirmation_weeks + 1)
     ]:
         raise ValueError("Missing development or confirmation weeks")
     predictions = []
@@ -146,9 +166,9 @@ def run(input_path, league_path, output):
     with threadpool_limits(limits=2):
         for period in periods:
             # Freeze selection before any confirmation metrics are calculated.
-            if period == 202601:
+            if period == confirmation_season * 100 + 1:
                 dev_frame = pd.concat(predictions, ignore_index=True)
-                development, dev_pairs = summarize(dev_frame)
+                development, dev_pairs = summarize(dev_frame, variants)
                 candidates = [
                     m
                     for m in development["point_metrics"]
@@ -159,7 +179,10 @@ def run(input_path, league_path, output):
                 ]
                 (output / "selection.json").write_text(
                     json.dumps(
-                        {"selected": selected, "selection_periods": "2025 only"},
+                        {
+                            "selected": selected,
+                            "selection_seasons": list(development_seasons),
+                        },
                         indent=2,
                     ),
                     encoding="utf-8",
@@ -205,7 +228,8 @@ def run(input_path, league_path, output):
             )
     all_predictions = pd.concat(predictions, ignore_index=True)
     confirmation, pairs = summarize(
-        all_predictions.loc[all_predictions.period >= 202601]
+        all_predictions.loc[all_predictions.period >= confirmation_season * 100 + 1],
+        variants,
     )
     all_predictions.to_csv(output / "predictions.csv", index=False)
     pairs.to_csv(output / "confirmation-pairs.csv", index=False)
@@ -242,6 +266,7 @@ def run(input_path, league_path, output):
     checksums = {
         str(p): hashlib.sha256(Path(p).read_bytes()).hexdigest()
         for p in [
+            *extra_checksums,
             input_path,
             league_path,
             Path(__file__),
@@ -251,7 +276,7 @@ def run(input_path, league_path, output):
         ]
     }
     report = {
-        "selected_on_2025": selected,
+        "selected_on_" + "_".join(map(str, development_seasons)): selected,
         "confirmation_mae_relative_improvement": improvement,
         "promotion_gates": gates,
         "passes_promotion_gates": all(gates.values()),
@@ -268,9 +293,10 @@ def run(input_path, league_path, output):
             "scipy": scipy.__version__,
         },
         "excluded_no_prior_game_rows": int(
-            (history.season.ge(2025)).sum() - len(all_predictions)
+            (history.season.gt(training_season)).sum() - len(all_predictions)
         ),
-        "limitations": [
+        "limitations": limitations
+        or [
             "Observed player-games only; no DNP or historical roster reconstruction.",
             "Pair ranking is a proxy, not realized league lineup value or cross-position FLEX evaluation.",
             "Historical stat corrections use this snapshot, not as-published Wednesday snapshots.",
