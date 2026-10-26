@@ -1,0 +1,56 @@
+{
+  "schedule_sha256": "a0c3ac7c7518c557d271e81832c3519987504e5b190282680236ec5e790a2e9d",
+  "reports": [
+    {
+      "file": "injuries-2023.csv",
+      "seasons": [
+        2023
+      ],
+      "sha256": "16b04e21da5aa3944cfa9c22cafcc84ed7e6d9866eaddf0344e9b8cbf2f63afe",
+      "rows": 5451,
+      "has_date_modified": true,
+      "missing_gsis_ids": 0,
+      "timestamped_rows": 5451,
+      "modified_by_wednesday_10et": 28,
+      "fraction_by_wednesday": 0.005136672170243992,
+      "eligible_for_wednesday_backtest": false
+    },
+    {
+      "file": "injuries-2024.csv",
+      "seasons": [
+        2024
+      ],
+      "sha256": "498bce8e13cb64b2ab9bb0ad6cb81d0a63c2ddb24016c9fc90c2de2126fae449",
+      "rows": 5954,
+      "has_date_modified": true,
+      "missing_gsis_ids": 0,
+      "timestamped_rows": 5954,
+      "modified_by_wednesday_10et": 56,
+      "fraction_by_wednesday": 0.009405441719852201,
+      "eligible_for_wednesday_backtest": false
+    },
+    {
+      "file": "injuries-2025.csv",
+      "seasons": [
+        2025
+      ],
+      "sha256": "873ca1606dd575bd01152508a243ef6b3a0f8f97b90b707217e62ee8c7ceb735",
+      "rows": 5783,
+      "has_date_modified": false,
+      "missing_gsis_ids": 0,
+      "eligible_for_wednesday_backtest": false
+    },
+    {
+      "file": "injuries-2026.csv",
+      "seasons": [
+        2026
+      ],
+      "sha256": "8f43bbc84087bd4d11a1658c9bb58e51eeb492e8f864a4ade25ea8d55c2b24a4",
+      "rows": 2139,
+      "has_date_modified": false,
+      "missing_gsis_ids": 0,
+      "eligible_for_wednesday_backtest": false
+    }
+  ],
+  "decision": "No Wednesday injury backtest: archive pregame observations prospectively."
+}

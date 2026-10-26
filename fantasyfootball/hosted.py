@@ -58,7 +58,7 @@ def require_recent_coverage(schedule, history, season, week):
         raise ValueError("Previous week player stats lack one or more scheduled teams")
 
 
-def prepare(destination, league_id, team_name, season, now=None):
+def prepare(destination, league_id, team_name, season, now=None, archive_dir=None):
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=False)
     now = now or datetime.now(timezone.utc)
@@ -95,6 +95,11 @@ def prepare(destination, league_id, team_name, season, now=None):
     )
     with contextlib.redirect_stdout(io.StringIO()):
         write_weekly_plan(args)
+    from .evidence import runtime_provenance
+
+    (args.output / "forecast-provenance.json").write_text(
+        json.dumps(runtime_provenance(), indent=2), encoding="utf-8"
+    )
     subject, plain, html = render_report(args.output, team_name, season, week)
     (destination / "report.html").write_text(html, encoding="utf-8")
     (destination / "report.txt").write_text(plain, encoding="utf-8")
@@ -112,6 +117,10 @@ def prepare(destination, league_id, team_name, season, now=None):
         ),
         encoding="utf-8",
     )
+    if archive_dir is not None:
+        from .evidence import capture
+
+        capture(destination, archive_dir)
     return "ready"
 
 
@@ -146,13 +155,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=["prepare", "send"])
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--archive", type=Path, help="Private local evidence directory (prepare only)"
+    )
     args = parser.parse_args()
+    if args.mode == "send" and args.archive is not None:
+        parser.error("--archive is only supported with prepare")
     if args.mode == "prepare":
         status = prepare(
             args.output,
             os.environ["FF_LEAGUE_ID"],
             os.environ["FF_TEAM_NAME"],
             int(os.environ["FF_SEASON"]),
+            archive_dir=args.archive,
         )
     else:
         status = send(args.output)
