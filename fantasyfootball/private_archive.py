@@ -31,15 +31,39 @@ def require_hidden(repository, session):
         )
 
 
+def normalized_private_key(key):
+    """Windows text-mode stdin can introduce CRLF before gh stores a secret."""
+    return (
+        key.lstrip("\ufeff").replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
+    ).encode("utf-8")
+
+
 def _git(args, cwd, env):
     result = subprocess.run(
         ["git", *args], cwd=cwd, env=env, capture_output=True, timeout=180, check=False
     )
     if result.returncode:
         # Never forward command output or private paths to public workflow logs.
-        raise RuntimeError(
-            "Private archive Git operation failed; check deploy key and repository access"
-        )
+        error = result.stderr.decode("utf-8", errors="replace").lower()
+        reason = "check deploy key and repository access"
+        for markers, description in [
+            (("error in libcrypto", "invalid format"), "deploy key format is invalid"),
+            (("permission denied (publickey)",), "deploy key was not accepted"),
+            (("host key verification failed",), "SSH host verification failed"),
+            (("repository not found",), "repository is missing or key lacks access"),
+            (
+                (
+                    "connection timed out",
+                    "connection refused",
+                    "network is unreachable",
+                ),
+                "SSH connection could not be established",
+            ),
+        ]:
+            if any(marker in error for marker in markers):
+                reason = description
+                break
+        raise RuntimeError("Private archive Git operation failed: " + reason)
     return result.stdout.decode("utf-8").strip()
 
 
@@ -70,7 +94,7 @@ def publish(archive, repository, key, session=None):
     with tempfile.TemporaryDirectory(prefix="ff-evidence-") as directory:
         root = Path(directory)
         identity = root / "identity"
-        identity.write_text(key.strip() + "\n", encoding="utf-8")
+        identity.write_bytes(normalized_private_key(key))
         identity.chmod(0o600)
         hosts = root / "known_hosts"
         hosts.write_text("".join(f"github.com {k}\n" for k in keys), encoding="utf-8")

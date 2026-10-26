@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -66,3 +67,65 @@ def test_failed_git_does_not_expose_stderr_or_key(monkeypatch, tmp_path):
     with pytest.raises(RuntimeError, match="deploy key") as exc:
         private_archive._git(["push"], tmp_path, {})
     assert "PRIVATE CONTENT" not in str(exc.value)
+
+
+def test_windows_secret_line_endings_are_normalized_to_lf():
+    key = "\ufeff-----BEGIN OPENSSH PRIVATE KEY-----\r\nAAAA\r\n-----END OPENSSH PRIVATE KEY-----\r\n"
+    normalized = private_archive.normalized_private_key(key)
+    assert b"\r" not in normalized
+    assert (
+        normalized
+        == b"-----BEGIN OPENSSH PRIVATE KEY-----\nAAAA\n-----END OPENSSH PRIVATE KEY-----\n"
+    )
+
+
+@pytest.mark.parametrize(
+    "stderr,expected",
+    [
+        (b"secret path: error in libcrypto", "format is invalid"),
+        (b"secret identity: Permission denied (publickey).", "was not accepted"),
+        (b"private-host: Host key verification failed.", "host verification failed"),
+    ],
+)
+def test_git_errors_report_only_safe_failure_categories(
+    monkeypatch, tmp_path, stderr, expected
+):
+    monkeypatch.setattr(
+        private_archive.subprocess,
+        "run",
+        lambda *a, **k: Mock(returncode=1, stderr=stderr),
+    )
+    with pytest.raises(RuntimeError, match=expected) as exc:
+        private_archive._git(["clone"], tmp_path, {})
+    assert "secret" not in str(exc.value) and "private-host" not in str(exc.value)
+
+
+@pytest.mark.skipif(
+    os.name == "nt",
+    reason="Exercises Linux runner key permissions; Windows requires ACLs, not chmod",
+)
+def test_normalized_windows_key_is_accepted_by_openssh(tmp_path):
+    import shutil
+    import subprocess
+
+    keygen = shutil.which("ssh-keygen")
+    if not keygen:
+        pytest.skip("OpenSSH is unavailable")
+    original = tmp_path / "generated"
+    subprocess.run(
+        [keygen, "-q", "-t", "ed25519", "-N", "", "-f", str(original)],
+        check=True,
+        capture_output=True,
+    )
+    original_text = original.read_text(encoding="utf-8")
+    transported = "\ufeff" + original_text.replace("\n", "\r\n")
+    restored = tmp_path / "restored"
+    restored.write_bytes(private_archive.normalized_private_key(transported))
+    restored.chmod(0o600)
+    result = subprocess.run(
+        [keygen, "-y", "-P", "", "-f", str(restored)], check=True, capture_output=True
+    )
+    assert (
+        result.stdout.decode().split()[:2]
+        == original.with_suffix(".pub").read_text().split()[:2]
+    )
