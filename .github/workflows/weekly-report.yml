@@ -67,6 +67,12 @@ jobs:
           PY
       - name: Refresh data and prepare report
         run: python -m fantasyfootball.hosted prepare --output work/hosted-report
+      - name: Preserve private pregame evidence
+        if: vars.FF_ARCHIVE_REPOSITORY != ''
+        env:
+          FF_ARCHIVE_REPOSITORY: ${{ vars.FF_ARCHIVE_REPOSITORY }}
+          FF_ARCHIVE_SSH_KEY: ${{ secrets.FF_ARCHIVE_SSH_KEY }}
+        run: python -m fantasyfootball.private_archive --report work/hosted-report
       - name: Send once per league week
         if: github.event_name == 'schedule' || inputs.send_email
         env:
@@ -75,5 +81,5 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           GH_TOKEN: ${{ github.token }}
         run: python -m fantasyfootball.hosted send --output work/hosted-report
-      # Reports stay on the ephemeral runner and in the recipient's inbox.
+      # Evidence is pushed only to the separately configured private repository.
       # Do not upload personal roster/report artifacts from this public repository.
