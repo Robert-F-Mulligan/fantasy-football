@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from fantasyfootball.features import STATS
-from fantasyfootball.scorecard import (
+from fantasyfootball.forecasting.features import STATS
+from fantasyfootball.evaluation.scorecard import (
     ArchivedForecast,
     FinalOutcomes,
     WeeklyScorecard,
@@ -206,7 +206,7 @@ def test_absent_baseline_preserves_identical_comparison_population():
 
 
 def test_observed_outcomes_wait_for_completed_games_and_never_infer_dnp():
-    from fantasyfootball.scorecard_archive import observed_outcomes
+    from fantasyfootball.evaluation.scorecard_archive import observed_outcomes
 
     previous = forecast()
     current = SimpleNamespace(
@@ -252,7 +252,7 @@ def test_private_scorecards_choose_earliest_capture_and_save_outputs(
 ):
     from zipfile import ZipFile
 
-    from fantasyfootball import scorecard_archive
+    from fantasyfootball.evaluation import scorecard_archive
 
     previous = forecast()
     current = SimpleNamespace(

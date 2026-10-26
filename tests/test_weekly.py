@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-from fantasyfootball.optimization import LineupOptimizer
-from fantasyfootball.weekly import WeeklyLineupPlanner
+from fantasyfootball.lineups.optimization import LineupOptimizer
+from fantasyfootball.lineups.weekly import WeeklyLineupPlanner
 
 
 def fixture():

@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from fantasyfootball import private_archive
+from fantasyfootball.archives import private_archive
 
 
 @pytest.mark.parametrize("status", [200, 301, 401, 403, 429, 500])

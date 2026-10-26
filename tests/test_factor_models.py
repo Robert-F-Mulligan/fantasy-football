@@ -2,15 +2,15 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
-from fantasyfootball.features import (
+from fantasyfootball.forecasting.features import (
     WeeklyFeatures,
     SeasonFeatures,
     prepare_weekly,
     STATS,
 )
-from fantasyfootball.models import FactorModel
-from fantasyfootball.optimization import LineupOptimizer
-from fantasyfootball.domain import ScoringRules
+from fantasyfootball.forecasting.models import FactorModel
+from fantasyfootball.lineups.optimization import LineupOptimizer
+from fantasyfootball.core.domain import ScoringRules
 
 
 def history():

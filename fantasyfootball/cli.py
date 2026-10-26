@@ -4,10 +4,10 @@ import argparse
 import json
 from pathlib import Path
 import pandas as pd
-from .application import DraftApplication, league_from_dict
-from .domain import LeagueSettings
-from .drafting import next_snake_pick
-from .projections import WeightedHistoryModel, WalkForwardEvaluator
+from fantasyfootball.drafting.application import DraftApplication, league_from_dict
+from fantasyfootball.core.domain import LeagueSettings
+from fantasyfootball.drafting.drafting import next_snake_pick
+from fantasyfootball.forecasting.projections import WeightedHistoryModel, WalkForwardEvaluator
 
 
 def read_csv(path):
@@ -100,17 +100,17 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.command == "sync-weekly-context":
-            from .weekly import sync_weekly_context
+            from fantasyfootball.lineups.weekly import sync_weekly_context
 
             print(sync_weekly_context(args.output))
             return
         if args.command == "weekly-plan":
-            from .weekly import write_weekly_plan
+            from fantasyfootball.lineups.weekly import write_weekly_plan
 
             write_weekly_plan(args)
             return
         if args.command == "import-sleeper":
-            from .sleeper import SleeperLeagueImporter, load_registry
+            from fantasyfootball.data.sleeper import SleeperLeagueImporter, load_registry
 
             importer = SleeperLeagueImporter()
             bundle = importer.fetch(
@@ -120,7 +120,7 @@ def main(argv=None):
             print(json.dumps(bundle["report"], indent=2))
             return
         if args.command == "sync-data":
-            from .data_sync import DataSyncService
+            from fantasyfootball.data.data_sync import DataSyncService
 
             target, report = DataSyncService().sync(
                 args.seasons, args.roster_season, args.output, args.minimum_week
@@ -132,8 +132,8 @@ def main(argv=None):
             )
             return
         if args.command in ("evaluate-factors", "forecast"):
-            from .features import prepare_weekly
-            from .models import FactorModel
+            from fantasyfootball.forecasting.features import prepare_weekly
+            from fantasyfootball.forecasting.models import FactorModel
 
             league = (
                 league_from_dict(
@@ -153,7 +153,7 @@ def main(argv=None):
                     fixtures=read_csv(args.fixtures) if args.fixtures else None,
                 )
         elif args.command == "lineup":
-            from .optimization import LineupOptimizer
+            from fantasyfootball.lineups.optimization import LineupOptimizer
 
             result = LineupOptimizer().optimize(
                 read_csv(args.input),
@@ -184,7 +184,7 @@ def main(argv=None):
                 else next_snake_pick(args.pick, league.teams),
             )
             if args.html:
-                from .visualization import PlotlyVisualizer
+                from fantasyfootball.reports.visualization import PlotlyVisualizer
 
                 PlotlyVisualizer().write_report(result, args.html)
         args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -2,15 +2,15 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
-from fantasyfootball.domain import LeagueSettings, ScoringRules
-from fantasyfootball.drafting import (
+from fantasyfootball.core.domain import LeagueSettings, ScoringRules
+from fantasyfootball.drafting.drafting import (
     DraftService,
     ADPAvailability,
     GapTiers,
     next_snake_pick,
 )
-from fantasyfootball.projections import WeightedHistoryModel, WalkForwardEvaluator
-from fantasyfootball.application import DraftApplication
+from fantasyfootball.forecasting.projections import WeightedHistoryModel, WalkForwardEvaluator
+from fantasyfootball.drafting.application import DraftApplication
 
 
 @pytest.fixture
@@ -169,7 +169,7 @@ def test_adp_join_preserves_string_ids(pool, league):
 
 
 def test_weekly_history_adapter():
-    from fantasyfootball.adapters import WeeklyHistoryAdapter
+    from fantasyfootball.data.adapters import WeeklyHistoryAdapter
 
     weekly = pd.DataFrame(
         {
@@ -230,7 +230,7 @@ def test_fantasypros_transformer_to_league_draft(passing_td_points):
 
 
 def test_fantasypros_alias_collision_is_explicit():
-    from fantasyfootball.adapters import FantasyProsProjectionAdapter
+    from fantasyfootball.data.adapters import FantasyProsProjectionAdapter
 
     with pytest.raises(ValueError, match="Ambiguous"):
         FantasyProsProjectionAdapter().transform(

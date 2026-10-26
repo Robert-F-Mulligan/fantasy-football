@@ -1,9 +1,9 @@
 import pandas as pd
 from pathlib import Path
-from fantasyfootball.features import prepare_weekly
-from fantasyfootball.models import FactorModel
-from fantasyfootball.domain import LeagueSettings
-from fantasyfootball import config
+from fantasyfootball.forecasting.features import prepare_weekly
+from fantasyfootball.forecasting.models import FactorModel
+from fantasyfootball.core.domain import LeagueSettings
+from fantasyfootball.legacy import config
 
 frames = [
     pd.read_csv(p) for p in sorted(Path("data/game-by-game").glob("*_weekly.csv"))

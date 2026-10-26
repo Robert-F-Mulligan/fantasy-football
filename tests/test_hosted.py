@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock
 import pandas as pd
 import pytest
 
-from fantasyfootball.hosted import require_recent_coverage, target_week
-from fantasyfootball.reporting import GmailSMTP, deliver_once, render_report
+from fantasyfootball.reports.hosted import require_recent_coverage, target_week
+from fantasyfootball.reports.reporting import GmailSMTP, deliver_once, render_report
 
 
 class Ledger:
@@ -161,7 +161,7 @@ def test_smtp_uses_tls_and_multipart_without_logging_secret(monkeypatch):
     smtp = context.__enter__.return_value
     smtp.send_message.return_value = {}
     factory = Mock(return_value=context)
-    monkeypatch.setattr("fantasyfootball.reporting.smtplib.SMTP_SSL", factory)
+    monkeypatch.setattr("fantasyfootball.reports.reporting.smtplib.SMTP_SSL", factory)
     GmailSMTP("sender@example.com", "secret").send(
         "to@example.com", "Test", "Plain", "<p>HTML</p>", "<id@example.com>"
     )

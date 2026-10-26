@@ -33,7 +33,7 @@ The next useful step is a role-change and availability experiment: identify team
 Install `pip install -e ".[dev,model]"`. Supply the downloaded nflverse stats/aliases snapshot, `snaps-2021.csv` through `snaps-2024.csv`, and `play_by_play_2021.csv.gz` through `play_by_play_2024.csv.gz`. The protocol defines the sources, filters and promotion gate. Run:
 
 ```powershell
-python -m fantasyfootball.opportunity_experiment --data work/opportunity-data --snapshot work/opportunity-data/stats/snapshots/8a3f1bc51404a9405604 --league work/hosted-specialists-preview/league/league-supported-offense.json --output work/opportunity-experiment-new
+python -m fantasyfootball.experiments.opportunity_experiment --data work/opportunity-data --snapshot work/opportunity-data/stats/snapshots/8a3f1bc51404a9405604 --league work/hosted-specialists-preview/league/league-supported-offense.json --output work/opportunity-experiment-new
 ```
 
 The command saves joined-input coverage, forecasts, paired decisions, selection, fold cutoffs, feature names, source/code SHA-256 checksums and dependency versions. Input paths are local and data must be downloaded separately. This run used NumPy 2.5.4, pandas 2.3.3, scikit-learn 1.9.1 and SciPy 1.18.1.

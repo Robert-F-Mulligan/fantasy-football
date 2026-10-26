@@ -28,7 +28,7 @@ python examples/audit_availability_inputs.py --schedule work/hosted-ranges-previ
 The hosted prepare command can now retain a private local evidence ZIP:
 
 ```powershell
-python -m fantasyfootball.hosted prepare --output work/new-report --archive work/private-evidence
+python -m fantasyfootball.reports.hosted prepare --output work/new-report --archive work/private-evidence
 ```
 
 It uses the existing FF_LEAGUE_ID, FF_TEAM_NAME and FF_SEASON environment variables. Preparation does not send an email. Each capture uses a unique, exclusively created file; rerunning cannot replace earlier predictions. Files contain sensitive league rosters and should remain in ignored work/ or a private storage location.
@@ -36,8 +36,8 @@ It uses the existing FF_LEAGUE_ID, FF_TEAM_NAME and FF_SEASON environment variab
 To export an existing report or verify an archive:
 
 ```powershell
-python -m fantasyfootball.evidence capture --report work/new-report --archive work/private-evidence
-python -m fantasyfootball.evidence verify work/private-evidence/2026/week-08/ARCHIVE.zip
+python -m fantasyfootball.archives.evidence capture --report work/new-report --archive work/private-evidence
+python -m fantasyfootball.archives.evidence verify work/private-evidence/2026/week-08/ARCHIVE.zip
 ```
 
 The bundle includes an explicit allowlist of schedule/player-status inputs, league scoring and rosters, the versioned stats snapshot, offensive projections, availability, lineup, and optional specialist context. SMTP configuration, environment files, recipient mail and rendered reports are excluded. File SHA-256 checksums are verified before capture and again when checking the bundle. New prepared forecasts record generating code hashes and dependency versions; old exports explicitly lack that provenance. Capture-runtime information is labeled separately.

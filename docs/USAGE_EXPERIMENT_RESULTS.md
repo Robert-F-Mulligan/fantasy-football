@@ -45,7 +45,7 @@ The next stronger experiment should add snap participation and high-value opport
 Run from the repository with the model dependencies installed:
 
 ```powershell
-python -m fantasyfootball.usage_experiment --input work/hosted-specialists-preview/data/snapshots/ad296d51b938acb31ad6/weekly.csv --league work/hosted-specialists-preview/league/league-supported-offense.json --output work/usage-experiment-rerun
+python -m fantasyfootball.experiments.usage_experiment --input work/hosted-specialists-preview/data/snapshots/ad296d51b938acb31ad6/weekly.csv --league work/hosted-specialists-preview/league/league-supported-offense.json --output work/usage-experiment-rerun
 ```
 
 Use a new output directory. The runner saves forecasts, all comparison pairs, feature coverage, training cutoffs, input/code checksums, package versions and promotion gates. The data snapshot is ignored locally; preserve it to reproduce this exact run.
