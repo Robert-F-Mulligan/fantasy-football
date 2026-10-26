@@ -67,7 +67,7 @@ def _git(args, cwd, env):
     return result.stdout.decode("utf-8").strip()
 
 
-def publish(archive, repository, key, session=None):
+def publish(archive, repository, key, session=None, *, scorecards=False):
     archive = Path(archive)
     manifest = verify(archive)
     season, week = int(manifest["season"]), int(manifest["week"])
@@ -143,7 +143,12 @@ def publish(archive, repository, key, session=None):
             return "already_archived"
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(archive, target)
-        _git(["add", "--", relative.as_posix()], checkout, env)
+        added = [relative.as_posix()]
+        if scorecards:
+            from .scorecard_archive import build_private_scorecards
+
+            added.extend(build_private_scorecards(archive, checkout))
+        _git(["add", "--", *added], checkout, env)
         _git(
             [
                 "-c",
@@ -161,12 +166,11 @@ def publish(archive, repository, key, session=None):
         _git(["push", "origin", "HEAD:main"], checkout, env)
         # Verify the exact remote blob via fetch instead of trusting push exit alone.
         _git(["fetch", "origin", "main"], checkout, env)
-        local_blob = _git(["hash-object", str(target)], checkout, env)
-        remote_blob = _git(
-            ["rev-parse", "FETCH_HEAD:" + relative.as_posix()], checkout, env
-        )
-        if local_blob != remote_blob:
-            raise ValueError("Private archive remote verification failed")
+        for name in added:
+            local_blob = _git(["hash-object", str(checkout / name)], checkout, env)
+            remote_blob = _git(["rev-parse", "FETCH_HEAD:" + name], checkout, env)
+            if local_blob != remote_blob:
+                raise ValueError("Private archive remote verification failed")
     return "archived_and_verified"
 
 
@@ -185,6 +189,7 @@ def main():
             archive,
             os.environ["FF_ARCHIVE_REPOSITORY"],
             os.environ["FF_ARCHIVE_SSH_KEY"],
+            scorecards=True,
         )
     print("Private evidence:", status)
     if os.environ.get("GITHUB_STEP_SUMMARY"):
