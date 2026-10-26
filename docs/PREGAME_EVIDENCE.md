@@ -1,4 +1,4 @@
-﻿# Pregame evidence and availability experiment
+# Pregame evidence and availability experiment
 
 The role-change/injury experiment is gated on trustworthy pregame inputs. No new availability model has been fitted or promoted.
 
@@ -52,7 +52,19 @@ A live Sleeper/nflverse preparation completed successfully and saved a verified 
 
 The Python suite passes (122 tests), including archive integrity, duplicate capture preservation, allowlist exclusions, exact kickoff boundaries, historical backdating rejection, future-source rejection and invalid training cutoffs.
 
-Automatic durable retention from GitHub is not enabled. The public workflow deliberately does not upload roster/report artifacts. Runner files disappear after the job; a private destination and narrowly scoped access must be configured before scheduled retention can work without this PC. The existing Wednesday email schedule remains unchanged.
+The workflow now supports private GitHub retention when FF_ARCHIVE_REPOSITORY is configured. Before email delivery, it verifies the archive, checks that the destination is not anonymously visible, pushes with a dedicated SSH deploy key, fetches the result and compares the exact Git blob. A failed configured upload stops delivery and marks the run failed. No public Actions artifacts contain the evidence. The existing Wednesday schedule remains unchanged.
+
+The destination is Robert-F-Mulligan/fantasy-football-evidence, created and confirmed private. Activation still requires the owner's authenticated setup command below. The deploy key has write access to this one repository and is held in the source repository's FF_ARCHIVE_SSH_KEY Actions secret; it is not an account-wide token. Setup verifies authenticated metadata private=true. Runtime uses an anonymous 404 check plus successful authenticated SSH access, rejects public/redirected/unavailable responses, and checks visibility again immediately before push. Do not change the archive repository to public; these checks cannot make a simultaneous visibility change atomic.
+
+After the reviewed workflow is merged, run from the repository in your authenticated PowerShell:
+
+```powershell
+.\ff-venv\Scripts\python.exe scripts/setup_private_archive.py --gh .\work\github-cli\bin\gh.exe
+```
+
+The script checks login and repository privacy, generates a fresh deployment key, installs its public half on the private repository, encrypts the private half into the source Actions secret through gh stdin, removes temporary key files, sets the destination variable and dispatches an email-free test. It never prints private keys. If saving the secret fails, it revokes the just-created deploy key. A subsequent failure leaves the configuration available for diagnosis; avoid rerunning setup unnecessarily, since each completed setup creates a new key. Revoke superseded keys in the private repository settings after any rotation.
+
+Archives are retained as content-addressed files under snapshots/SEASON/week-WW with Git history; no automatic pruning is enabled. Weekly bundles are currently about 6.6 MB. Monitor repository size as seasons accumulate; migrations or retention changes should preserve the evaluation record. Deploy keys have no automatic expiry, so revoke this key if the automation is retired. GitHub host keys come from the HTTPS metadata API and SSH strict host verification stays enabled.
 
 ## Next experiment protocol
 
