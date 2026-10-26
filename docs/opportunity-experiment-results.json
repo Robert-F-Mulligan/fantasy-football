@@ -1,0 +1,358 @@
+{
+  "selected_on_2022_2023": "snaps",
+  "confirmation_mae_relative_improvement": 0.0040211361611494295,
+  "promotion_gates": {
+    "mae_improvement_at_least_2pct": false,
+    "paired_mae_interval_below_zero": true,
+    "pair_regret_not_over_2pct_worse": true,
+    "no_position_over_2pct_worse": true
+  },
+  "passes_promotion_gates": false,
+  "production_changed": false,
+  "development": {
+    "point_metrics": [
+      {
+        "variant": "baseline",
+        "position": "ALL",
+        "rows": 11354,
+        "mae": 4.77096713633742,
+        "rmse": 6.447369893970977
+      },
+      {
+        "variant": "baseline",
+        "position": "QB",
+        "rows": 1265,
+        "mae": 7.3641469899487335,
+        "rmse": 9.200156255797836
+      },
+      {
+        "variant": "baseline",
+        "position": "RB",
+        "rows": 2988,
+        "mae": 4.720451602420458,
+        "rmse": 6.320554667642531
+      },
+      {
+        "variant": "baseline",
+        "position": "TE",
+        "rows": 2340,
+        "mae": 3.6133955857774414,
+        "rmse": 4.949672195828823
+      },
+      {
+        "variant": "baseline",
+        "position": "WR",
+        "rows": 4761,
+        "mae": 4.68260026568754,
+        "rmse": 6.287238260302384
+      },
+      {
+        "variant": "snaps",
+        "position": "ALL",
+        "rows": 11354,
+        "mae": 4.739323432508869,
+        "rmse": 6.433449582493401
+      },
+      {
+        "variant": "snaps",
+        "position": "QB",
+        "rows": 1265,
+        "mae": 7.408490643000569,
+        "rmse": 9.20111800039525
+      },
+      {
+        "variant": "snaps",
+        "position": "RB",
+        "rows": 2988,
+        "mae": 4.632888843641311,
+        "rmse": 6.276174509392132
+      },
+      {
+        "variant": "snaps",
+        "position": "TE",
+        "rows": 2340,
+        "mae": 3.6078392987803087,
+        "rmse": 4.940515779191776
+      },
+      {
+        "variant": "snaps",
+        "position": "WR",
+        "rows": 4761,
+        "mae": 4.653039648259571,
+        "rmse": 6.284299681541305
+      },
+      {
+        "variant": "opportunities",
+        "position": "ALL",
+        "rows": 11354,
+        "mae": 4.74907441018787,
+        "rmse": 6.449211323737919
+      },
+      {
+        "variant": "opportunities",
+        "position": "QB",
+        "rows": 1265,
+        "mae": 7.410247455876896,
+        "rmse": 9.226603273049614
+      },
+      {
+        "variant": "opportunities",
+        "position": "RB",
+        "rows": 2988,
+        "mae": 4.647194234365565,
+        "rmse": 6.303272341443765
+      },
+      {
+        "variant": "opportunities",
+        "position": "TE",
+        "rows": 2340,
+        "mae": 3.612433736914927,
+        "rmse": 4.940031288628676
+      },
+      {
+        "variant": "opportunities",
+        "position": "WR",
+        "rows": 4761,
+        "mae": 4.664590738274221,
+        "rmse": 6.296054267750535
+      }
+    ],
+    "pair_metrics": [
+      {
+        "variant": "baseline",
+        "pairs": 76868,
+        "untied_pairs": 76292,
+        "mean_regret": 3.162469948483114,
+        "accuracy": 0.5650789073559482
+      },
+      {
+        "variant": "snaps",
+        "pairs": 76868,
+        "untied_pairs": 76292,
+        "mean_regret": 3.1370294530884117,
+        "accuracy": 0.5687621244691449
+      },
+      {
+        "variant": "opportunities",
+        "pairs": 76868,
+        "untied_pairs": 76292,
+        "mean_regret": 3.1660345007025033,
+        "accuracy": 0.566140617627012
+      }
+    ],
+    "paired_week_bootstrap": {
+      "snaps": {
+        "mae_delta_95_interval": [
+          -0.04567835123919194,
+          -0.017691825046344388
+        ],
+        "regret_delta_95_interval": [
+          -0.09641769514489487,
+          0.04180540770011695
+        ]
+      },
+      "opportunities": {
+        "mae_delta_95_interval": [
+          -0.036957734244879505,
+          -0.006216757150620492
+        ],
+        "regret_delta_95_interval": [
+          -0.060156905865385406,
+          0.06868419881081421
+        ]
+      }
+    }
+  },
+  "confirmation": {
+    "point_metrics": [
+      {
+        "variant": "baseline",
+        "position": "ALL",
+        "rows": 5746,
+        "mae": 4.737985318167599,
+        "rmse": 6.502596209092005
+      },
+      {
+        "variant": "baseline",
+        "position": "QB",
+        "rows": 653,
+        "mae": 7.709518266801705,
+        "rmse": 9.619576405010541
+      },
+      {
+        "variant": "baseline",
+        "position": "RB",
+        "rows": 1504,
+        "mae": 4.518120870619487,
+        "rmse": 6.106908966488648
+      },
+      {
+        "variant": "baseline",
+        "position": "TE",
+        "rows": 1198,
+        "mae": 3.619264603751541,
+        "rmse": 4.896409099950892
+      },
+      {
+        "variant": "baseline",
+        "position": "WR",
+        "rows": 2391,
+        "mae": 4.625267848290864,
+        "rmse": 6.3930829375877645
+      },
+      {
+        "variant": "snaps",
+        "position": "ALL",
+        "rows": 5746,
+        "mae": 4.71893323407372,
+        "rmse": 6.481761665708868
+      },
+      {
+        "variant": "snaps",
+        "position": "QB",
+        "rows": 653,
+        "mae": 7.719840209018685,
+        "rmse": 9.59194861834362
+      },
+      {
+        "variant": "snaps",
+        "position": "RB",
+        "rows": 1504,
+        "mae": 4.477730305242122,
+        "rmse": 6.09466742246405
+      },
+      {
+        "variant": "snaps",
+        "position": "TE",
+        "rows": 1198,
+        "mae": 3.6016167853149166,
+        "rmse": 4.892420999893468
+      },
+      {
+        "variant": "snaps",
+        "position": "WR",
+        "rows": 2391,
+        "mae": 4.610912345716008,
+        "rmse": 6.362379043412403
+      },
+      {
+        "variant": "opportunities",
+        "position": "ALL",
+        "rows": 5746,
+        "mae": 4.721928104865706,
+        "rmse": 6.48473573658018
+      },
+      {
+        "variant": "opportunities",
+        "position": "QB",
+        "rows": 653,
+        "mae": 7.732954300456913,
+        "rmse": 9.620448024281913
+      },
+      {
+        "variant": "opportunities",
+        "position": "RB",
+        "rows": 1504,
+        "mae": 4.481858857275929,
+        "rmse": 6.085592130889353
+      },
+      {
+        "variant": "opportunities",
+        "position": "TE",
+        "rows": 1198,
+        "mae": 3.603711084873333,
+        "rmse": 4.890274010537856
+      },
+      {
+        "variant": "opportunities",
+        "position": "WR",
+        "rows": 2391,
+        "mae": 4.610881694411848,
+        "rmse": 6.364201402807735
+      }
+    ],
+    "pair_metrics": [
+      {
+        "variant": "baseline",
+        "pairs": 38610,
+        "untied_pairs": 38369,
+        "mean_regret": 3.2566449106449107,
+        "accuracy": 0.5628502176236024
+      },
+      {
+        "variant": "snaps",
+        "pairs": 38610,
+        "untied_pairs": 38369,
+        "mean_regret": 3.2365055685055686,
+        "accuracy": 0.5642576037947301
+      },
+      {
+        "variant": "opportunities",
+        "pairs": 38610,
+        "untied_pairs": 38369,
+        "mean_regret": 3.257596477596478,
+        "accuracy": 0.5632672209335662
+      }
+    ],
+    "paired_week_bootstrap": {
+      "snaps": {
+        "mae_delta_95_interval": [
+          -0.03875382172654712,
+          -0.0010927480364192612
+        ],
+        "regret_delta_95_interval": [
+          -0.1084126235537929,
+          0.0642498551027378
+        ]
+      },
+      "opportunities": {
+        "mae_delta_95_interval": [
+          -0.03521563086868822,
+          0.0022559057426282544
+        ],
+        "regret_delta_95_interval": [
+          -0.08164711542532248,
+          0.07431473432210789
+        ]
+      }
+    }
+  },
+  "input_and_code_sha256": {
+    "work\\opportunity-data\\stats\\snapshots\\8a3f1bc51404a9405604\\weekly.csv": "d43568ae504f2227161507ee138d1e5b5f8ec95a39cf33073d913856922f9df7",
+    "work\\opportunity-data\\stats\\snapshots\\8a3f1bc51404a9405604\\aliases.csv": "1136a9e8f54a71ee0f820de6446d43398ee354d486f82b849c39fadef4aa5a95",
+    "work\\opportunity-data\\snaps-2021.csv": "6f7ebc1ca78059c839d20e2699ec50e6909d33397199e4fadf2dd4791462a1c7",
+    "work\\opportunity-data\\snaps-2022.csv": "2439b480197d4b6993560ae73a7fa4d4abafb01f5dd242e7ef6d3a5e5388c272",
+    "work\\opportunity-data\\snaps-2023.csv": "e5a778c81369d255089aabc6fd336826c87e526f247b6ca5cbbe5d11c7722cf8",
+    "work\\opportunity-data\\snaps-2024.csv": "ee3a0dcbd9118e913c4dfb57626f0ed3ae816d40304534b2717013e473a4e1c0",
+    "work\\opportunity-data\\play_by_play_2021.csv.gz": "e8743a568f99667a8bdcd29ba12224ee1782ad2b7916bee78ee335c099383739",
+    "work\\opportunity-data\\play_by_play_2022.csv.gz": "0c69a71eb39498956c7b1d5c1ca52ce7fe679934a95d1af249facb5ea9829ea4",
+    "work\\opportunity-data\\play_by_play_2023.csv.gz": "4649804ee0f0a40b41e51ec75a1ce921949d7fab5459213488656b92f78560e8",
+    "work\\opportunity-data\\play_by_play_2024.csv.gz": "23370d5d10f8104d80d46a1fc5e61f4f6f5a3263fe96fe2dd629913cfcb08c06",
+    "C:\\Users\\rmull\\python-projects\\fantasy-football\\fantasyfootball\\opportunity_experiment.py": "dbd70f41c6987f4b58c5a1d503fbfbc5f17a35c034bd9b430311ea16e770a90f",
+    "C:\\Users\\rmull\\python-projects\\fantasy-football\\fantasyfootball\\opportunity_features.py": "fce2f7d94e2f03bf1bc283833204ff6826f9e2183003978c7ec381c8106a7e3f",
+    "docs\\OPPORTUNITY_EXPERIMENT_PROTOCOL.md": "ce9ca5801c2d21f0c7e35837f8128265952c49923c8fbec9026316505f9276ba",
+    "work\\opportunity-experiment-v1-input.json": "7cbf0d1229fa5165f6a8532b3c6c1e248fabf850932ed975116f507612cbd256",
+    "work\\opportunity-experiment-v1-input.csv": "8c629b24316be326c8d1611c3f9144138da01fda772a77d95d2cf50c49871027",
+    "work\\hosted-specialists-preview\\league\\league-supported-offense.json": "7b64df9f363a3190097a233f042ba1d1a3c7186bb6041d6b36198ab9c4e603ca",
+    "C:\\Users\\rmull\\python-projects\\fantasy-football\\fantasyfootball\\usage_experiment.py": "09ef713d3eefeba0cf99e2834c15361b585f098399130c63d6fce7fc62733469",
+    "C:\\Users\\rmull\\python-projects\\fantasy-football\\fantasyfootball\\usage_features.py": "7e47c57b4dead88fc303a237163382d4a7a812af0db67201fb4e1ac8bbfd274d",
+    "C:\\Users\\rmull\\python-projects\\fantasy-football\\fantasyfootball\\features.py": "5f5f100cefcdd33ba1ec24b5c74dc41f5176731fa21ebadf13dd624807ce8895",
+    "C:\\Users\\rmull\\python-projects\\fantasy-football\\fantasyfootball\\models.py": "e454591ed9f7e58ff72874e1deebfe11d1c6504e7e67dc7abb9ea08efd292eb6"
+  },
+  "versions": {
+    "numpy": "2.5.4",
+    "pandas": "2.3.3",
+    "sklearn": "1.9.1",
+    "scipy": "1.18.1"
+  },
+  "excluded_no_prior_game_rows": 373,
+  "limitations": [
+    "Observed player-games only, excluding DNPs and players without prior observations.",
+    "Same-position pair proxy, not actual league rosters or cross-position FLEX decisions.",
+    "Corrected snapshots, not as-published historical Wednesday data.",
+    "2024 confirmation differs from previous usage holdout but was previously training data.",
+    "End-zone targets are inferred from air yards, not charted routes.",
+    "History crosses seasons and teams; historical results may not generalize to 2026.",
+    "Production unchanged; passing gates requires further contemporary validation."
+  ]
+}

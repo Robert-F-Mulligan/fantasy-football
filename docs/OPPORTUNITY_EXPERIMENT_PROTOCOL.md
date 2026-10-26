@@ -1,0 +1,13 @@
+﻿# Opportunity experiment protocol (frozen before model fitting)
+
+Source: nflverse 2021-2024 regular-season player stats, PFR snap counts via nflverse, and nflverse play-by-play downloaded October 25, 2026. Join PFR IDs through the registry to GSIS IDs, never player names. Record source checksums and coverage. Do not treat missing games or unknown throw depth as zero.
+
+Training starts in 2021. Rolling development covers every week in 2022-2023. Select the lower pooled-MAE candidate (lexical tie break), save selection before scoring confirmation. Confirmation is all 18 weeks of 2024; this is a different evaluation period from the prior usage experiment's six 2026 weeks, but not a globally untouched dataset (2024 previously served as training). Each fold trains on earlier weeks only, including earlier confirmation weeks. No hyperparameter tuning.
+
+Candidates: baseline production WeeklyFeatures/FactorModel; snaps adds lagged 4/12 observed-game offensive snap shares; opportunities adds snaps plus lagged 4/12 observed-game goal-line carries and inferred end-zone targets. Goal-line carries start at or inside the opponent five-yard line and exclude kneels. End-zone targets are recorded receiver pass attempts with air_yards >= yardline_100, excluding spikes. Both exclude no-play records and two-point attempts. Unknown depth/location makes that player's game feature missing. These are inferred opportunities, not charted routes or expected touchdowns. History crosses seasons and teams, matching the baseline.
+
+Scoring uses Bower Rangers supported offense. Identical observed-player population with prior history for every variant. Missing raw feature coverage below 95% in any season blocks fitting until explained; no dropping difficult rows. Metrics, fixed same-position start/sit pairs, 2,000 week-cluster bootstrap resamples and promotion gates match USAGE_EXPERIMENT_PROTOCOL.md: >=2% MAE improvement, paired interval below zero, no >2% positional MAE or pair-regret deterioration. Production remains unchanged by this research command regardless of result.
+
+Limitations: corrected historical snapshots rather than archived Wednesday releases; observed games omit DNPs; no historical fantasy rosters or cross-position FLEX decisions; schedule-era drift; a single confirmation season; overlapping pair comparisons are dependent and must be resampled by week. A passing result requires additional contemporary and operational validation before activation.
+
+Sources: https://nflreadr.nflverse.com/articles/dictionary_snap_counts.html and https://nflreadr.nflverse.com/articles/dictionary_pbp.html .
