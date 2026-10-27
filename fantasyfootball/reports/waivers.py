@@ -105,13 +105,14 @@ def render_waivers(plan_dir):
             plain.append(reason)
         else:
             html.append(
-                '<table border="1" cellpadding="6" cellspacing="0"><tr><th>Add</th><th>Drop scenario</th><th>Net weekly lineup change</th></tr>'
+                '<table border="1" cellpadding="6" cellspacing="0"><tr><th>Add</th><th>Drop scenario</th><th>Net weekly lineup change</th><th>Next 3 weeks: slots covered before -&gt; after</th></tr>'
             )
             for row in comparisons.to_dict("records"):
                 values = [
                     str(row["add_player_name"]) + " (" + str(row["add_pos"]) + ")",
                     str(row["drop_player_name"]) + " (" + str(row["drop_pos"]) + ")",
                     f"{row['net_gain']:+.1f}",
+                    str(row.get("future_coverage", "Not recorded")),
                 ]
                 html.append(
                     "<tr>"
