@@ -87,4 +87,37 @@ def render_waivers(plan_dir):
             )
             plain.append(category + " | " + " | ".join(values))
         html.append("</table>")
+    comparison_path = plan_dir / "waiver-add-drop.csv"
+    if comparison_path.exists():
+        comparisons = pd.read_csv(comparison_path).head(10)
+        guidance = meta.get(
+            "add_drop_note", "One-week scenarios only; check drop eligibility."
+        )
+        html.append(
+            "<h2>Add/drop what-if comparisons</h2><p>" + escape(guidance) + "</p>"
+        )
+        plain.extend(["\nAdd/drop what-if comparisons", guidance])
+        if comparisons.empty:
+            reason = meta.get(
+                "add_drop_reason", "No eligible, feasible offensive bench-drop pairs."
+            )
+            html.append("<p>" + escape(reason) + "</p>")
+            plain.append(reason)
+        else:
+            html.append(
+                '<table border="1" cellpadding="6" cellspacing="0"><tr><th>Add</th><th>Drop scenario</th><th>Net weekly lineup change</th></tr>'
+            )
+            for row in comparisons.to_dict("records"):
+                values = [
+                    str(row["add_player_name"]) + " (" + str(row["add_pos"]) + ")",
+                    str(row["drop_player_name"]) + " (" + str(row["drop_pos"]) + ")",
+                    f"{row['net_gain']:+.1f}",
+                ]
+                html.append(
+                    "<tr>"
+                    + "".join("<td>" + escape(v) + "</td>" for v in values)
+                    + "</tr>"
+                )
+                plain.append(" | ".join(values))
+            html.append("</table>")
     return "".join(html), "\n".join(plain)

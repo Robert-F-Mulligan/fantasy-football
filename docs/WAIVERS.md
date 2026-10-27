@@ -20,3 +20,11 @@ FAAB is a transparent spending policy, not a calibrated winning-bid estimate. Fo
 Kickers, injury-designated players and players with fewer than four observations are capped at 1–3%. An eligible modeled kicker covering a rostered kicker with no scheduled game receives a 1–3% coverage guideline; no numerical lineup gain is invented. Unknown budget, insufficient minimum bid, unmodeled defense or unknown roster comparison means no dollar recommendation. Every range is an independent alternative; adding them together may exceed the available budget. These policy boundaries are configurable code, not empirically validated market prices.
 
 Tuesday can still be too early if Monday game statistics have not arrived. Prior-week completeness checks remain mandatory. A failed preparation does not send stale advice. See [Sleeper API](https://docs.sleeper.com/) for read-only league settings, rosters and player data. Reports and full league snapshots remain in the private archive, never public Actions artifacts.
+
+## Add/drop what-if comparisons
+
+The email shows up to ten independent pairs drawn from the displayed offensive waiver candidates and eligible offensive bench players. The private `waiver-add-drop.csv` retains all evaluated feasible pairs. Each pair removes one rostered player, adds one candidate and reoptimizes all offensive slots, including FLEX. The signed change is relative to the optimized original roster; a negative value exposes lost production. Ties sort deterministically by names and IDs.
+
+Assigned starters, reserve/taxi players, unavailable players and kickoff-locked players are protected from removal. Scenarios that cannot fill every offensive slot are omitted. If the baseline cannot be evaluated, comparisons are withheld. K/DEF are outside this comparison because full specialist optimization remains unvalidated.
+
+These are weekly what-if calculations, not recommended drops: future value, keeper value, future bye coverage, undroppable lists, pending claims, positional roster limits and platform drop eligibility are not modeled. The existing FAAB ranges remain add-only guidelines and are not recomputed as pair-specific bids. No lineup or transaction is submitted.

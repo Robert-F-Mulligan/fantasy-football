@@ -184,3 +184,13 @@ def test_shadow_files_are_sealed_and_checksums_enforced(tmp_path, clock):
     history.write_bytes(b"tampered")
     with pytest.raises(ValueError, match="Shadow evidence checksum"):
         evidence.capture(root, tmp_path / "archive")
+
+
+def test_add_drop_comparisons_are_in_private_archive(tmp_path, clock):
+    root = sample(tmp_path)
+    payload = b"add_player_id,drop_player_id,net_gain\nx,a,2.0\n"
+    (root / "plan/waiver-add-drop.csv").write_bytes(payload)
+    archive = evidence.capture(root, tmp_path / "archive")
+    evidence.verify(archive)
+    with ZipFile(archive) as z:
+        assert z.read("plan/waiver-add-drop.csv") == payload
