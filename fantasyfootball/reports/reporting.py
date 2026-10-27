@@ -196,6 +196,9 @@ def render_report(plan_dir, team_name, season, week):
             changes.append(
                 f"{row['slot']}: {row['player_name']} instead of {old.player_name}{comparison}"
             )
+    from fantasyfootball.reports.waivers import render_waivers
+
+    waiver_html, waiver_text = render_waivers(plan_dir)
     range_visual = render_ranges(board, selected, audit.get("prediction_ranges", {}))
     title = f"{team_name} \u2014 Week {week} Start/Sit Report ({season})"
     summary = (
@@ -212,6 +215,7 @@ def render_report(plan_dir, team_name, season, week):
 <p>Recommendations maximize projected offensive points subject to eligible slots and kickoff locks. Opponent context comes from historical positional points allowed; this is not a calibrated matchup difficulty grade. Small projected differences are not strong evidence.</p>
 <p>Wednesday reports are preliminary. Recheck injuries and active status before kickoff. Started players retain their imported slots; displayed values are preweek estimates, not remaining points.</p>
 {specialist_html}
+{waiver_html}
 <p>The main lineup and ranges cover offense. Kicker estimates, when available, are separate kicking-only baselines; team defense points are not modeled. Unsupported offensive scoring: {escape(omissions)}. Rookies and players with little history may have weak forecasts. No lineup changes were submitted.</p>
 <p>Sources: <a href="https://sleeper.com">Sleeper</a>, <a href="https://github.com/nflverse/nflverse-data">nflverse player data</a>, <a href="https://github.com/nflverse/nfldata">NFL schedule</a>.</p></body></html>"""
     plain = title + "\n\n" + summary + "\n\n" + "\n".join(text_rows)
@@ -222,7 +226,7 @@ def render_report(plan_dir, team_name, season, week):
             subset=["prediction_lower", "prediction_upper"]
         ).itertuples():
             plain += f"\n{row.player_name}: {row.prediction_lower:.1f} to {row.prediction_upper:.1f}"
-    plain += specialist_text
+    plain += specialist_text + "\n" + waiver_text
     return title, plain, html
 
 
@@ -317,11 +321,25 @@ class GitHubDeliveryLedger:
 
 
 def deliver_once(
-    ledger, mailer, recipient, league_id, season, week, subject, plain, html
+    ledger,
+    mailer,
+    recipient,
+    league_id,
+    season,
+    week,
+    subject,
+    plain,
+    html,
+    *,
+    report_type="lineup",
 ):
-    key = sha256(
-        f"{recipient.lower()}:{league_id}:{season}:{week}".encode()
-    ).hexdigest()
+    if report_type not in {"lineup", "waivers"}:
+        raise ValueError("Unknown report type")
+    identity = f"{recipient.lower()}:{league_id}:{season}:{week}"
+    # Preserve the original lineup key, so existing deliveries stay deduplicated.
+    if report_type == "waivers":
+        identity += ":waivers"
+    key = sha256(identity.encode()).hexdigest()
     ledger.ensure_branch()
     existing, _ = ledger.get(key)
     if existing:
