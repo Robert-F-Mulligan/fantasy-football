@@ -25,3 +25,7 @@ Models are views except the small weekly fact table, which is rebuilt atomically
 Verified locally against 48,251 live stored 2024 plays: five models built and 24 tests passed in the `ff_verify_20261023_*` schemas. These review schemas remain available; no source tables were overwritten.
 
 Sources: https://docs.getdbt.com/best-practices/how-we-structure/1-guide-overview and https://docs.getdbt.com/best-practices/how-we-structure/6-mapping-folders-to-warehouse
+
+## Automated correction validation
+
+The database CI job uses PostgreSQL 16 with disposable source and target schemas. It checks replay-safe keyed ingestion, rebuilds marts after a stat correction, and asserts team-specific shares and exclusion rules. See [database ingestion semantics](../docs/DATABASE_INGESTION.md). Existing production source constraints are not modified by CI.
