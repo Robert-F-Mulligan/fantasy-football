@@ -190,7 +190,9 @@ def test_add_drop_comparisons_are_in_private_archive(tmp_path, clock):
     root = sample(tmp_path)
     payload = b"add_player_id,drop_player_id,net_gain\nx,a,2.0\n"
     (root / "plan/waiver-add-drop.csv").write_bytes(payload)
+    (root / "plan/waiver-coverage.csv").write_bytes(b"week,status\n9,schedule_only\n")
     archive = evidence.capture(root, tmp_path / "archive")
     evidence.verify(archive)
     with ZipFile(archive) as z:
         assert z.read("plan/waiver-add-drop.csv") == payload
+        assert "plan/waiver-coverage.csv" in z.namelist()

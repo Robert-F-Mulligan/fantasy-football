@@ -27,4 +27,10 @@ The email shows up to ten independent pairs drawn from the displayed offensive w
 
 Assigned starters, reserve/taxi players, unavailable players and kickoff-locked players are protected from removal. Scenarios that cannot fill every offensive slot are omitted. If the baseline cannot be evaluated, comparisons are withheld. K/DEF are outside this comparison because full specialist optimization remains unvalidated.
 
-These are weekly what-if calculations, not recommended drops: future value, keeper value, future bye coverage, undroppable lists, pending claims, positional roster limits and platform drop eligibility are not modeled. The existing FAAB ranges remain add-only guidelines and are not recomputed as pair-specific bids. No lineup or transaction is submitted.
+These are weekly what-if calculations, not recommended drops: future value, keeper value, future availability, undroppable lists, pending claims, positional roster limits and platform drop eligibility are not modeled. The existing FAAB ranges remain add-only guidelines and are not recomputed as pair-specific bids. No lineup or transaction is submitted.
+
+## Next-three-week schedule coverage
+
+Each add/drop pair now shows offensive slots covered before and after the change for the next three regular-season weeks (capped at week 18). Maximum distinct-player matching respects each slot's eligible positions, including FLEX; one player cannot cover two slots. The full matrix is retained in private `waiver-coverage.csv`. The email displays the same weekly-gain ordering as before; coverage does not change bids or predicted points.
+
+This is a schedule-only count assuming non-reserve/non-taxi offensive players are healthy and stay on their current teams. Current injuries and kickoff locks are not projected into future weeks. K/DEF, role changes, trades, future points and keeper value are not modeled. A missing team game means bye or schedule gap, not a verified bye. Entirely missing weeks, duplicate team schedules, unresolved players and unknown teams produce unknown coverage rather than an invented zero. Counts measure capacity, not the quality or certainty of the lineup. Check live eligibility before making claims.

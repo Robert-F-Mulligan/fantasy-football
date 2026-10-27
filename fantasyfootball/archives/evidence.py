@@ -136,6 +136,7 @@ def capture(report_dir, archive_dir):
         "forecast-provenance.json",
         "waivers.csv",
         "waiver-add-drop.csv",
+        "waiver-coverage.csv",
         "waiver-availability.csv",
         "waiver-report.json",
         "shadow-projections.csv",

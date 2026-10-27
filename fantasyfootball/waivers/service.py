@@ -296,7 +296,7 @@ def write_waivers(
     comparison_note = (
         "Independent one-week what-if pairs, not drop recommendations. Protects assigned starters, "
         "reserve/taxi players and kickoff locks. Net gain is versus your optimized current offense. "
-        "Does not value future weeks, keeper value or bye coverage; check positional roster limits, "
+        "Future coverage counts scheduled players only, assuming healthy active-roster players; reserve/taxi excluded. Counts are not forecasts. No game may mean a bye or schedule gap. Does not value future points or keeper value; check positional roster limits, "
         "undroppable lists, pending claims and drop eligibility in Sleeper. FAAB above remains an add-only guideline."
     )
     metadata["add_drop_note"] = comparison_note
@@ -315,6 +315,28 @@ def write_waivers(
     except ValueError as exc:
         metadata["add_drop_status"] = "unavailable"
         metadata["add_drop_reason"] = str(exc)
+    from fantasyfootball.waivers.coverage import ScheduleCoverage
+
+    coverage = ScheduleCoverage().evaluate(
+        comparison,
+        availability,
+        context,
+        details,
+        schedule,
+        slots,
+        season=args.season,
+        week=args.week,
+    )
+    coverage.to_csv(args.output / "waiver-coverage.csv", index=False)
+    comparison["future_coverage"] = [
+        ScheduleCoverage.summarize(
+            coverage.loc[
+                coverage.add_player_id.eq(row.add_player_id)
+                & coverage.drop_player_id.eq(row.drop_player_id)
+            ]
+        )
+        for row in comparison.itertuples()
+    ]
     comparison.to_csv(args.output / "waiver-add-drop.csv", index=False)
 
     metadata["categories"] = list(categories)
