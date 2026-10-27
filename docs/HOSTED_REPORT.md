@@ -44,3 +44,10 @@ Kicker estimates use the last eight observed current-team games, shrunk toward t
 Kicking scores include blocked FG/PAT misses and stack general and distance-specific penalties. A live comparison matched all 68 available rostered kicker scores from this league's 2026 weeks 1?6. This validates those scoring observations, not future prediction quality.
 
 References: [nflverse player statistics](https://nflreadr.nflverse.com/articles/dictionary_player_stats.html), [Sleeper scoring rules](https://support.sleeper.com/en/articles/3998131-what-scoring-options-are-available). Defense scoring still needs play-level reconciliation because [Sleeper points allowed](https://support.sleeper.com/en/articles/4126495-how-are-points-allowed-calculated) differs from the game's final score.
+
+
+## Midweek readiness checks
+
+A manual or merge-triggered dry run can fail with `Previous week schedule is incomplete; refusing a stale forecast` while the last game of the previous week is still in progress or the provider has not posted its final score. A second guard checks that prior-week player statistics cover every scheduled team. Do not remove either guard or substitute older statistics to make a dry run pass.
+
+The October 26, 2026 post-organization run reached report preparation with the new module paths, then stopped before archive upload or email. A live local reproduction found Week 8 was the target and Week 7 Dallas–Philadelphia was missing final scores. This verifies the readiness safeguard, not a completed hosted report. Retry the email-free workflow after final scores and player statistics have arrived; the Wednesday schedule remains enabled.

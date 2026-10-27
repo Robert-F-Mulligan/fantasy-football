@@ -100,3 +100,5 @@ Run `python examples/verify_live.py` for bounded live checks. FantasyPros public
 ## Maintenance and next steps
 
 See the [repository audit and prioritized roadmap](docs/ROADMAP.md) for completed cleanup, retained legacy research, known data/model gaps, and the next draft and weekly-planning features.
+
+Role-change research: [protocol and results](docs/ROLE_EXPERIMENT_RESULTS.md). The candidate remains experimental; production forecasts are unchanged.
