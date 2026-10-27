@@ -291,6 +291,32 @@ def write_waivers(
         else pd.DataFrame(columns=columns)
     )
     result.to_csv(args.output / "waivers.csv", index=False)
+    from fantasyfootball.waivers.comparisons import AddDropEvaluator
+
+    comparison_note = (
+        "Independent one-week what-if pairs, not drop recommendations. Protects assigned starters, "
+        "reserve/taxi players and kickoff locks. Net gain is versus your optimized current offense. "
+        "Does not value future weeks, keeper value or bye coverage; check positional roster limits, "
+        "undroppable lists, pending claims and drop eligibility in Sleeper. FAAB above remains an add-only guideline."
+    )
+    metadata["add_drop_note"] = comparison_note
+    evaluator = AddDropEvaluator()
+    comparison = pd.DataFrame(columns=evaluator.columns)
+    try:
+        selected = result.loc[
+            result.pos.isin(["QB", "RB", "WR", "TE"])
+        ].drop_duplicates("player_id")
+        comparison = evaluator.evaluate(
+            availability, projections, context, selected, slots
+        )
+        metadata["add_drop_status"] = (
+            "ready" if not comparison.empty else "no_eligible_pairs"
+        )
+    except ValueError as exc:
+        metadata["add_drop_status"] = "unavailable"
+        metadata["add_drop_reason"] = str(exc)
+    comparison.to_csv(args.output / "waiver-add-drop.csv", index=False)
+
     metadata["categories"] = list(categories)
     metadata["unranked_offensive_candidates"] = int(
         (
