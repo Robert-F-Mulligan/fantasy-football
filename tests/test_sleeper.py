@@ -1,8 +1,8 @@
 import pytest
 from test_data_sync import sources
 
-from fantasyfootball.registry import PlayerRegistry
-from fantasyfootball.sleeper import SleeperLeagueImporter
+from fantasyfootball.data.registry import PlayerRegistry
+from fantasyfootball.data.sleeper import SleeperLeagueImporter
 
 
 class Client:

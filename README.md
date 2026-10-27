@@ -2,6 +2,8 @@
 
 Python tools for data ingestion, league-specific draft valuation, historical projection baselines, and interactive reports. The new workflow runs from CSV files without a database or live scraping.
 
+See the [package map and import migration guide](docs/PACKAGE_LAYOUT.md) for the code layout and retained historical utilities.
+
 ## Quick start
 
 Python 3.10+ is required. From the repository directory:
@@ -47,9 +49,9 @@ Ranks sort by value over replacement, projected points, then ID. Replacement is 
 Add `scoring` mapping stat columns to point weights. Defaults are full PPR, 4-point passing TDs and -2 interceptions. `LeagueSettings.from_legacy(config.sean)` preserves your existing league rules, including 6-point passing TDs. Precomputed projections must already match your league's scoring system.
 
 ```python
-from fantasyfootball.domain import LeagueSettings
-from fantasyfootball.application import DraftApplication
-from fantasyfootball import config
+from fantasyfootball.core.domain import LeagueSettings
+from fantasyfootball.drafting.application import DraftApplication
+from fantasyfootball.legacy import config
 league = LeagueSettings.from_legacy(config.sean)
 board = DraftApplication(league).prepare(projections, pick=5, next_pick=20)
 ```

@@ -3,9 +3,9 @@ from hashlib import sha256
 import pandas as pd
 import pytest
 
-from fantasyfootball.data_sync import DataSyncService, PlayerStatsAdapter
-from fantasyfootball.features import prepare_weekly
-from fantasyfootball.registry import PlayerRegistry
+from fantasyfootball.data.data_sync import DataSyncService, PlayerStatsAdapter
+from fantasyfootball.forecasting.features import prepare_weekly
+from fantasyfootball.data.registry import PlayerRegistry
 
 
 def sources():

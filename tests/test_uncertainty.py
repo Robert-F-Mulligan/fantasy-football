@@ -3,8 +3,8 @@ from typing import ClassVar
 import pandas as pd
 import pytest
 
-from fantasyfootball.reporting import render_ranges
-from fantasyfootball.uncertainty import RollingErrorRanges
+from fantasyfootball.reports.reporting import render_ranges
+from fantasyfootball.forecasting.uncertainty import RollingErrorRanges
 
 
 def history():

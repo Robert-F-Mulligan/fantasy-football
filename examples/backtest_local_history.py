@@ -1,8 +1,8 @@
 import pandas as pd
-from fantasyfootball.adapters import WeeklyHistoryAdapter
-from fantasyfootball.domain import LeagueSettings
-from fantasyfootball import config
-from fantasyfootball.projections import WalkForwardEvaluator, WeightedHistoryModel
+from fantasyfootball.data.adapters import WeeklyHistoryAdapter
+from fantasyfootball.core.domain import LeagueSettings
+from fantasyfootball.legacy import config
+from fantasyfootball.forecasting.projections import WalkForwardEvaluator, WeightedHistoryModel
 
 league = LeagueSettings.from_legacy(config.sean)
 frames = []

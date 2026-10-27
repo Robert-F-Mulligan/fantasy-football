@@ -1,8 +1,8 @@
 import pandas as pd
-from fantasyfootball.visualization import PlotlyVisualizer
+from fantasyfootball.reports.visualization import PlotlyVisualizer
 from fantasyfootball.cli import main
-from fantasyfootball.application import DraftApplication
-from fantasyfootball.domain import LeagueSettings
+from fantasyfootball.drafting.application import DraftApplication
+from fantasyfootball.core.domain import LeagueSettings
 
 
 def sample():

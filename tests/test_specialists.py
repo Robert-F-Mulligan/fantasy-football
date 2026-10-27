@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-from fantasyfootball.reporting import render_specialists
-from fantasyfootball.specialists import (
+from fantasyfootball.reports.reporting import render_specialists
+from fantasyfootball.forecasting.specialists import (
     BANDS,
     KickerBaseline,
     kicking_scores,

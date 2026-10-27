@@ -2,12 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from fantasyfootball.features import STATS, prepare_weekly
-from fantasyfootball.opportunity_features import (
+from fantasyfootball.forecasting.features import STATS, prepare_weekly
+from fantasyfootball.experiments.opportunity_features import (
     OpportunityFeatures,
     attach_opportunities,
 )
-from fantasyfootball.usage_experiment import summarize
+from fantasyfootball.experiments.usage_experiment import summarize
 
 
 def history():

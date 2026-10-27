@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from fantasyfootball.features import STATS, prepare_weekly
-from fantasyfootball.usage_experiment import decision_pairs, paired_interval
-from fantasyfootball.usage_features import UsageFeatures
+from fantasyfootball.forecasting.features import STATS, prepare_weekly
+from fantasyfootball.experiments.usage_experiment import decision_pairs, paired_interval
+from fantasyfootball.experiments.usage_features import UsageFeatures
 
 
 def history():

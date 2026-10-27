@@ -45,7 +45,7 @@ def main():
     )
     import base64
 
-    if b"fantasyfootball.private_archive" not in base64.b64decode(workflow["content"]):
+    if b"fantasyfootball.archives.private_archive" not in base64.b64decode(workflow["content"]):
         raise ValueError(
             "Merge the reviewed private-archive workflow PR before running setup"
         )

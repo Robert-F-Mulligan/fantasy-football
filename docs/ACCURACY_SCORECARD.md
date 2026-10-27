@@ -1,4 +1,4 @@
-﻿# Weekly forecast accuracy scorecard
+# Weekly forecast accuracy scorecard
 
 Scorecards compare the production forecast with the mean of each player's previous four observed games, calculated solely from the sealed forecast archive. Both methods use the same resolved, pregame player observations. Outputs include MAE, RMSE, signed bias, counts by position, and conditional prediction-range coverage/width. Positive bias means overprediction; lower MAE/RMSE is better.
 
@@ -29,8 +29,8 @@ Lineup regret is withheld unless all movable candidates have pregame evidence, a
 ## Run locally
 
 ```powershell
-python -m fantasyfootball.scorecard --archive path/to/forecast.zip --output work/scorecard-week8
-python -m fantasyfootball.scorecard --archive path/to/forecast.zip --outcomes work/final-outcomes.json --output work/scorecard-week8-final
+python -m fantasyfootball.evaluation.scorecard --archive path/to/forecast.zip --output work/scorecard-week8
+python -m fantasyfootball.evaluation.scorecard --archive path/to/forecast.zip --outcomes work/final-outcomes.json --output work/scorecard-week8-final
 ```
 
 Without finalized outcomes the report shows pending evidence rather than zero accuracy. Each output folder must be new, preserving older evaluations. The template includes the required archived scoring fingerprint. For each resolved player, supply a source reference and timezone-aware finalization time after kickoff; set status to `played` or explicitly verified `dnp`. A DNP must have zero points. Unresolved records must have null points. Finalization times in the future and mismatched weeks/scoring are rejected. The program validates this contract but cannot independently certify a caller's evidence claim.

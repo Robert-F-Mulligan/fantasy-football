@@ -6,7 +6,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import pandas as pd
 import pytest
 
-from fantasyfootball import evidence
+from fantasyfootball.archives import evidence
 
 
 def sample(tmp_path):
