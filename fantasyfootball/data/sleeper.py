@@ -211,6 +211,16 @@ class SleeperLeagueImporter:
                 "team_name", user["display_name"]
             ),
             "roster_id": own["roster_id"],
+            "waiver_settings": league.get("settings", {}),
+            "owned_sleeper_ids": sorted(
+                {
+                    str(pid)
+                    for r in rosters
+                    for field in ("players", "reserve", "taxi")
+                    for pid in (r.get(field) or [])
+                }
+            ),
+            "waiver_budget_used": (own.get("settings") or {}).get("waiver_budget_used"),
             "fetched_at": datetime.now(timezone.utc).isoformat(),
             "source_url": f"{SleeperClient.BASE}/league/{league_id}",
             "scoring_settings": league["scoring_settings"],

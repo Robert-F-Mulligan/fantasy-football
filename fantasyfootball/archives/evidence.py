@@ -131,12 +131,36 @@ def capture(report_dir, archive_dir):
         read("league/" + name)
     for name in ["availability.csv", "projections.csv", "lineup.csv"]:
         read("plan/" + name)
-    for name in ["specialists.csv", "forecast-provenance.json"]:
+    for name in [
+        "specialists.csv",
+        "forecast-provenance.json",
+        "waivers.csv",
+        "waiver-availability.csv",
+        "waiver-report.json",
+        "shadow-projections.csv",
+        "shadow-history.csv",
+        "shadow-report.json",
+    ]:
         if (root / "plan" / name).exists():
             read("plan/" + name)
     availability = pd.read_csv(
         io.BytesIO(payloads["plan/availability.csv"]), dtype={"sleeper_id": str}
     )
+    if "plan/shadow-report.json" in payloads:
+        shadow = json.loads(payloads["plan/shadow-report.json"])
+        if shadow["status"] == "recorded":
+            if int(shadow["history_cutoff"]) >= season * 100 + week:
+                raise ValueError("Shadow training cutoff is not pregame")
+            for name, key in [
+                ("shadow-history.csv", "history_sha256"),
+                ("projections.csv", "baseline_sha256"),
+            ]:
+                if hashlib.sha256(payloads["plan/" + name]).hexdigest() != shadow[key]:
+                    raise ValueError("Shadow evidence checksum mismatch")
+            observed.append(timestamp(shadow["generated_at"]))
+            observed.extend(
+                timestamp(source["fetched_at"]) for source in shadow["sources"]
+            )
     captured = timestamp(utc_now())
     if max(observed + [timestamp(plan["as_of"])]) > captured:
         raise ValueError("Source or plan timestamp is in the future")

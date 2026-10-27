@@ -51,3 +51,8 @@ References: [nflverse player statistics](https://nflreadr.nflverse.com/articles/
 A manual or merge-triggered dry run can fail with `Previous week schedule is incomplete; refusing a stale forecast` while the last game of the previous week is still in progress or the provider has not posted its final score. A second guard checks that prior-week player statistics cover every scheduled team. Do not remove either guard or substitute older statistics to make a dry run pass.
 
 The October 26, 2026 post-organization run reached report preparation with the new module paths, then stopped before archive upload or email. A live local reproduction found Week 8 was the target and Week 7 Dallas–Philadelphia was missing final scores. This verifies the readiness safeguard, not a completed hosted report. Retry the email-free workflow after final scores and player statistics have arrived; the Wednesday schedule remains enabled.
+
+
+## Tuesday waiver email
+
+The workflow now has two schedules: Tuesday 10 a.m. Eastern for waiver rankings/FAAB and Wednesday 10 a.m. Eastern for start/sit. Manual dispatch selects `report_type` (`waivers` or `lineup`) and defaults to no email. See [waiver scope and spending rules](WAIVERS.md). These schedules become active when the workflow change reaches main. The existing lineup delivery keys are preserved; waiver delivery uses a separate namespace.

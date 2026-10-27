@@ -12,9 +12,14 @@ from types import SimpleNamespace
 import pandas as pd
 
 from fantasyfootball.data.data_sync import DataSyncService
-from fantasyfootball.reports.reporting import GitHubDeliveryLedger, GmailSMTP, deliver_once, render_report
 from fantasyfootball.data.sleeper import SleeperLeagueImporter, load_registry
 from fantasyfootball.lineups.weekly import sync_weekly_context, write_weekly_plan
+from fantasyfootball.reports.reporting import (
+    GitHubDeliveryLedger,
+    GmailSMTP,
+    deliver_once,
+    render_report,
+)
 
 
 def target_week(schedule, season, now):
@@ -58,7 +63,17 @@ def require_recent_coverage(schedule, history, season, week):
         raise ValueError("Previous week player stats lack one or more scheduled teams")
 
 
-def prepare(destination, league_id, team_name, season, now=None, archive_dir=None):
+def prepare(
+    destination,
+    league_id,
+    team_name,
+    season,
+    now=None,
+    archive_dir=None,
+    report_type="lineup",
+):
+    if report_type not in {"lineup", "waivers"}:
+        raise ValueError("Unknown report type")
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=False)
     now = now or datetime.now(timezone.utc)
@@ -92,6 +107,8 @@ def prepare(destination, league_id, team_name, season, now=None, archive_dir=Non
         as_of=now.isoformat(),
         allow_partial_scoring=True,
         output=destination / "plan",
+        waivers=True,
+        shadow=True,
     )
     with contextlib.redirect_stdout(io.StringIO()):
         write_weekly_plan(args)
@@ -100,13 +117,32 @@ def prepare(destination, league_id, team_name, season, now=None, archive_dir=Non
     (args.output / "forecast-provenance.json").write_text(
         json.dumps(runtime_provenance(), indent=2), encoding="utf-8"
     )
-    subject, plain, html = render_report(args.output, team_name, season, week)
+    if report_type == "waivers":
+        from html import escape
+
+        from fantasyfootball.reports.waivers import render_waivers
+
+        subject = f"{team_name} - Week {week} Waiver Wire ({season})"
+        body, plain = render_waivers(args.output)
+        html = (
+            '<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif"><h1>'
+            + escape(subject)
+            + "</h1><p>As of "
+            + escape(now.isoformat())
+            + "</p>"
+            + body
+            + "</body></html>"
+        )
+        plain = subject + "\n" + plain
+    else:
+        subject, plain, html = render_report(args.output, team_name, season, week)
     (destination / "report.html").write_text(html, encoding="utf-8")
     (destination / "report.txt").write_text(plain, encoding="utf-8")
     (destination / "delivery.json").write_text(
         json.dumps(
             {
                 "status": "ready",
+                "report_type": report_type,
                 "league_id": league_id,
                 "season": season,
                 "week": week,
@@ -148,6 +184,7 @@ def send(destination):
         metadata["subject"],
         (destination / "report.txt").read_text(encoding="utf-8"),
         (destination / "report.html").read_text(encoding="utf-8"),
+        report_type=metadata.get("report_type", "lineup"),
     )
 
 
@@ -155,6 +192,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=["prepare", "send"])
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--report-type", choices=["lineup", "waivers"], default="lineup"
+    )
     parser.add_argument(
         "--archive", type=Path, help="Private local evidence directory (prepare only)"
     )
@@ -168,6 +208,7 @@ def main():
             os.environ["FF_TEAM_NAME"],
             int(os.environ["FF_SEASON"]),
             archive_dir=args.archive,
+            report_type=args.report_type,
         )
     else:
         status = send(args.output)
