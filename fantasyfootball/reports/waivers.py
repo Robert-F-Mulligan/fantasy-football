@@ -21,7 +21,21 @@ def render_waivers(plan_dir):
         if balance is not None
         else "FAAB balance unavailable; dollar recommendations withheld."
     )
-    note = meta["limits"] + " " + meta["lineup_gain_note"]
+    audit_path = plan_dir / "plan-report.json"
+    audit = (
+        json.loads(audit_path.read_text(encoding="utf-8"))
+        if audit_path.exists()
+        else {}
+    )
+    omitted = ", ".join(audit.get("unsupported_scoring", {})) or "none recorded"
+    note = (
+        meta["limits"]
+        + " "
+        + meta["lineup_gain_note"]
+        + " Supported offensive scoring only; omitted rules: "
+        + omitted
+        + ". Kicker estimates use a separate kicking-only baseline."
+    )
     html = [
         "<h2>Waiver wire by position</h2><p>"
         + escape(intro)
