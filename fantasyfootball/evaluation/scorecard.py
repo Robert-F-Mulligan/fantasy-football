@@ -11,8 +11,8 @@ from zipfile import ZipFile
 import numpy as np
 import pandas as pd
 
-from fantasyfootball.core.domain import ScoringRules
 from fantasyfootball.archives.evidence import timestamp, verify
+from fantasyfootball.core.domain import ScoringRules
 from fantasyfootball.forecasting.features import prepare_weekly
 from fantasyfootball.lineups.optimization import LineupOptimizer
 
@@ -43,6 +43,11 @@ class ArchivedForecast:
             self.roster = frame("plan/availability.csv")
             self.projections = frame("plan/projections.csv")
             self.lineup = frame("plan/lineup.csv")
+            self.shadow = (
+                frame("plan/shadow-projections.csv")
+                if "plan/shadow-projections.csv" in archive.namelist()
+                else None
+            )
             pointer = document("data/current.json")
             snapshot = pointer["snapshot"].replace("\\", "/")
             self.history = frame("data/" + snapshot + "/weekly.csv")
@@ -114,6 +119,49 @@ class FinalOutcomes:
         if result.player_id.duplicated().any():
             raise ValueError("Duplicate outcome player IDs")
         return result
+
+
+def shadow_scores(forecast, board):
+    shadow = getattr(forecast, "shadow", None)
+    if shadow is None:
+        return {"status": "not_recorded"}
+    if shadow.player_id.duplicated().any():
+        raise ValueError("Duplicate shadow forecast IDs")
+    if (
+        not shadow.season.eq(forecast.manifest["season"]).all()
+        or not shadow.week.eq(forecast.manifest["week"]).all()
+    ):
+        raise ValueError("Shadow forecast period mismatch")
+    sample = board.merge(
+        shadow[["player_id", "baseline_points", "candidate_points"]].rename(
+            columns={"baseline_points": "recorded_baseline"}
+        ),
+        on="player_id",
+        how="inner",
+        validate="one_to_one",
+    )
+    if not np.allclose(
+        sample.recorded_baseline, sample.projected_points, equal_nan=False
+    ):
+        raise ValueError("Shadow baseline differs from sealed production forecast")
+    sample = sample.loc[
+        sample.scored
+        & sample.status.eq("played")
+        & np.isfinite(sample.candidate_points)
+    ].copy()
+    baseline = (sample.projected_points - sample.points).abs()
+    candidate = (sample.candidate_points - sample.points).abs()
+    return {
+        "status": "scored" if len(sample) else "awaiting_outcomes",
+        "candidate": "workload_momentum_v1",
+        "protocol_window": forecast.manifest["season"] == 2026
+        and 9 <= forecast.manifest["week"] <= 17,
+        "paired_rows": len(sample),
+        "baseline_absolute_error_sum": float(baseline.sum()),
+        "candidate_absolute_error_sum": float(candidate.sum()),
+        "mae_delta": float((candidate - baseline).mean()) if len(sample) else None,
+        "notes": "Played-only, same pregame roster population; weekly descriptive totals, no promotion decision.",
+    }
 
 
 class WeeklyScorecard:
@@ -244,6 +292,7 @@ class WeeklyScorecard:
             "unresolved_rows": int(board.status.eq("unresolved").sum()),
             "confirmed_dnp_rows": int(board.status.eq("dnp").sum()),
             "point_metrics": metrics,
+            "shadow": shadow_scores(forecast, board),
             "prediction_ranges": coverage,
             "lineup": self.lineup_regret(forecast, board),
             "limitations": [

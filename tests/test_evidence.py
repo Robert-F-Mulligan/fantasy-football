@@ -155,3 +155,32 @@ def test_eligibility_requires_timezone_and_unique_identity():
             pd.DataFrame({"sleeper_id": ["1", "1"], "kickoff": ["", ""]}),
             "2026-10-28T14:00:00Z",
         )
+
+
+def test_shadow_files_are_sealed_and_checksums_enforced(tmp_path, clock):
+    root = sample(tmp_path)
+    history = root / "plan/shadow-history.csv"
+    history.write_bytes(b"player_id,period\na,202607\n")
+    (root / "plan/shadow-projections.csv").write_bytes(
+        b"player_id,baseline_points,candidate_points\na,10,11\n"
+    )
+    metadata = {
+        "status": "recorded",
+        "history_cutoff": 202607,
+        "generated_at": "2026-10-28T13:58:00Z",
+        "sources": [{"fetched_at": "2026-10-28T13:56:00Z"}],
+        "history_sha256": hashlib.sha256(history.read_bytes()).hexdigest(),
+        "baseline_sha256": hashlib.sha256(
+            (root / "plan/projections.csv").read_bytes()
+        ).hexdigest(),
+    }
+    (root / "plan/shadow-report.json").write_text(
+        json.dumps(metadata), encoding="utf-8"
+    )
+    archive = evidence.capture(root, tmp_path / "archive")
+    with ZipFile(archive) as z:
+        assert "plan/shadow-projections.csv" in z.namelist()
+        assert "plan/shadow-history.csv" in z.namelist()
+    history.write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="Shadow evidence checksum"):
+        evidence.capture(root, tmp_path / "archive")

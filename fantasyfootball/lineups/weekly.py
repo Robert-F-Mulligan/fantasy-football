@@ -308,6 +308,16 @@ def write_weekly_plan(args):
     except ValueError as exc:
         audit["status"] = "blocked"
         audit["reason"] = str(exc)
+    if getattr(args, "waivers", False):
+        from fantasyfootball.waivers.service import write_waivers
+
+        audit["waivers"] = write_waivers(
+            args, history, model, ranges, availability, projections, report, slots
+        )
+    if getattr(args, "shadow", False):
+        from fantasyfootball.experiments.shadow import write_shadow
+
+        audit["shadow"] = write_shadow(args, history, fixtures, projections)
     (args.output / "plan-report.json").write_text(
         json.dumps(audit, indent=2), encoding="utf-8"
     )

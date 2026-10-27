@@ -1,4 +1,4 @@
-name: Wednesday fantasy report
+name: Fantasy waiver and lineup reports
 on:
   push:
     branches: [main]
@@ -7,10 +7,17 @@ on:
       - 'pyproject.toml'
       - '.github/workflows/weekly-report.yml'
   schedule:
+    - cron: '0 10 * * 2'
+      timezone: America/New_York
     - cron: '0 10 * * 3'
       timezone: America/New_York
   workflow_dispatch:
     inputs:
+      report_type:
+        description: Report to prepare
+        type: choice
+        options: [lineup, waivers]
+        default: lineup
       send_email:
         description: Send email after successful preparation (false is a dry run)
         type: boolean
@@ -28,6 +35,7 @@ jobs:
     permissions:
       contents: write # Durable send reservations on report-delivery-state only.
     env:
+      REPORT_TYPE: ${{ github.event.schedule == '0 10 * * 2' && 'waivers' || inputs.report_type || 'lineup' }}
       FF_LEAGUE_ID: ${{ vars.FF_LEAGUE_ID }}
       FF_TEAM_NAME: ${{ vars.FF_TEAM_NAME }}
       FF_SEASON: ${{ vars.FF_SEASON }}
@@ -66,7 +74,7 @@ jobs:
               raise SystemExit('Configure missing GitHub variables/secrets: ' + ', '.join(missing))
           PY
       - name: Refresh data and prepare report
-        run: python -m fantasyfootball.reports.hosted prepare --output work/hosted-report
+        run: python -m fantasyfootball.reports.hosted prepare --output work/hosted-report --report-type "$REPORT_TYPE"
       - name: Preserve private pregame evidence
         if: vars.FF_ARCHIVE_REPOSITORY != ''
         env:
