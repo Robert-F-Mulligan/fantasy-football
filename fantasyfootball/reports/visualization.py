@@ -120,6 +120,51 @@ class PlotlyVisualizer:
         figure.update_xaxes(rangemode="tozero")
         return figure
 
+    def neutral_tendencies(self, tendencies):
+        """Plot dropback rates on a common 0-100% scale with sample coverage."""
+        needed = {
+            "team",
+            "dropback_rate",
+            "neutral_plays",
+            "incomplete_context",
+            "neutral_games",
+        }
+        if not needed.issubset(tendencies):
+            raise ValueError("Missing neutral tendency columns")
+        data = tendencies.dropna(subset=["dropback_rate"]).copy()
+        omitted = len(tendencies) - len(data)
+        data = numeric(
+            data,
+            ["dropback_rate", "neutral_plays", "incomplete_context", "neutral_games"],
+        )
+        if not data.dropback_rate.between(0, 1).all():
+            raise ValueError("dropback_rate must be between zero and one")
+        data = data.sort_values(["dropback_rate", "team"])
+        data["team"] = data.team.astype(str).map(escape)
+        figure = px.scatter(
+            data,
+            x="dropback_rate",
+            y="team",
+            hover_data=["neutral_plays", "incomplete_context", "neutral_games"],
+            labels={
+                "dropback_rate": "Neutral dropback rate (includes sacks and scrambles)",
+                "team": "Team",
+            },
+        )
+        self._style(figure, "Neutral-situation team tendencies")
+        figure.update_xaxes(range=[0, 1], tickformat=".0%")
+        figure.update_yaxes(categoryorder="array", categoryarray=data.team.tolist())
+        if omitted:
+            figure.add_annotation(
+                text=f"{omitted} teams have no observed neutral plays; see table.",
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=1.1,
+                showarrow=False,
+            )
+        return figure
+
     def team_matchup(self, comparison, metric):
         """One metric per chart: offense produced versus defense allowed."""
         units = {

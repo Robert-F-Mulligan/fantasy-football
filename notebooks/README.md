@@ -16,6 +16,10 @@ This migrates the historical player-distribution use case of `Who-Should-I-Start
 
 [Team Matchups](current/Team-Matchups.ipynb) compares one offense and one defense using a shared play-by-play snapshot. It delegates dropback EPA, designed-rush EPA and sack rates to `TeamMatchups` and uses separate shared-library charts with explicit units and sample counts. Missing outcomes stay missing. Scrambles belong to dropbacks, not designed rushes. It does not reproduce the old mixed-provider fantasy-point rankings or claim to predict a game's score. The original notebook remains preserved.
 
+## Neutral tendencies migration
+
+[Neutral Tendencies](current/Neutral-Tendencies.ipynb) replaces the neutral passing-rate workflow. It uses an explicit filter (first/second downs, >120 half-seconds, offense WP 20-80%) and counts sacks/scrambles as dropbacks. Sample size and incomplete-context counts accompany the rate; a team without qualifying plays remains unknown. The notebook is descriptive, uses synthetic data by default, and runs with the other supported notebooks in CI.
+
 ## Historical inventory
 
 These 18 notebooks remain unchanged as research records. Their output counts describe saved cells, not proof of reproducibility. Some reference moved modules, old provider pages, hard-coded seasons, local paths or source-writing cells. Do not run all legacy cells as a setup step. Migrate a specific computation into the package, test it, then create a small notebook calling that API.
