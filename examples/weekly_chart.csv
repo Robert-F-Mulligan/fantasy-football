@@ -1,0 +1,9 @@
+player_id,player_name,pos,season,week,fantasy_points
+demo-rb,Example Runner,RB,2026,1,10
+demo-rb,Example Runner,RB,2026,2,15
+demo-rb,Example Runner,RB,2026,4,15
+demo-rb,Example Runner,RB,2026,5,-1
+demo-wr,Example Receiver,WR,2026,1,4
+demo-wr,Example Receiver,WR,2026,2,20
+demo-wr,Example Receiver,WR,2026,3,8
+demo-wr,Example Receiver,WR,2026,5,12

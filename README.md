@@ -87,7 +87,7 @@ facade.get_data('nflfastr_play_by_play', output_mode='csv', output_path='work/pb
 
 Frozen league/scoring objects hold configuration. `DraftApplication` orchestrates inputs and injected projection models. Separate strategies handle replacement, tiers and availability. Lazy factories load providers on demand. `BaseStrategy` owns ingestion lifecycle, cleanup and output. `PlotlyVisualizer` separates presentation from scraping and valuation.
 
-See [migration notes](docs/MIGRATION.md). Older notebook modules remain for migration and require the `legacy` extra; the supported new entry points are the CLI and application service. DBT models and existing datasets are preserved.
+See the [supported research notebook and historical inventory](notebooks/README.md), [chart contracts](docs/VISUALIZATION.md), and [migration notes](docs/MIGRATION.md). Older notebook modules remain for migration and require the `legacy` extra; the supported new entry points are the CLI and application service. DBT models and existing datasets are preserved.
 
 Implementation references: [Plotly HTML export](https://plotly.com/python/interactive-html-export/) and [SQLAlchemy transactions](https://docs.sqlalchemy.org/en/20/core/connections.html).
 

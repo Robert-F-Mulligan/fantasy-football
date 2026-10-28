@@ -1,6 +1,6 @@
 # Repository roadmap
 
-Updated October 27, 2026. This is a research and decision-support platform; it never submits lineup changes or transactions.
+Updated October 28, 2026. This is a research and decision-support platform; it never submits lineup changes or transactions.
 
 ## Working now
 
@@ -18,7 +18,7 @@ Updated October 27, 2026. This is a research and decision-support platform; it n
 3. **Idempotent storage and database CI.** Upsert on stable keys, apply corrections safely, and test dbt against an isolated PostgreSQL fixture in CI. Prior local PostgreSQL/dbt verification passed; the email workflow does not use PostgreSQL. Keyed correction imports and isolated PostgreSQL/dbt CI are implemented; see DATABASE_INGESTION.md. Legacy append remains opt-in compatible and can still duplicate rows. Existing production tables need an audited key migration before enabling upsert.
 4. **Weekly waiver planning.** Position/FLEX rankings and budget-capped FAAB guidelines are implemented, with Tuesday delivery. One-week add/drop what-if comparisons are implemented with protected starters and kickoff locks. Next-three-week schedule-only slot coverage is implemented. Sleeper-listed depth context now flags unknown/conflicting roles and backup QB listings without changing model outputs. Next: timestamped role verification, role-feature evaluation and multi-week player value. Preserve kickoff locks and provide incremental roster value rather than only standalone rankings.
 5. **Draft decision evaluation.** Build complete current draft pools, backtest season forecasts and compare realistic draft strategies. The season model previously lost to its baseline on the 2023 holdout. ADP survival is a heuristic, not an opponent simulator.
-6. **Reproducible notebook migration.** Move reusable notebook computations into package APIs, retain concise research notebooks, regenerate chosen visuals, then archive obsolete outputs. Refresh workflow action pins and add dependency locking as operational follow-up.
+6. **Reproducible notebook migration.** The historical player-distribution workflow now has an offline, CI-executed replacement in notebooks/current, using shared trend/distribution/export APIs. The 18 original notebooks are inventoried and preserved. Next: migrate team/usage transforms, regenerate chosen visuals, then archive verified obsolete outputs. Refresh workflow action pins and add dependency locking as operational follow-up.
 
 ## Cleanup status
 
@@ -28,4 +28,4 @@ The earlier inventory contained 714 figures (~81 MiB), 67 data files (~31 MiB), 
 
 ## Specialist validation limits
 
-Kicking scoring matched 68 available rostered kicker scores from this league's 2026 weeks 1?6. A small chronological weeks-5/6 check covered 57 forecasts: baseline MAE 4.27 points versus 4.31 for the recent league mean. This does not establish a predictive advantage. The baseline uses eight observed current-team games with four games of league-average shrinkage; it does not model weather, opponent, injury probability or rare offensive scoring by kickers.
+Kicking scoring matched 68 available rostered kicker scores from this league's 2026 weeks 1-6. A small chronological weeks-5/6 check covered 57 forecasts: baseline MAE 4.27 points versus 4.31 for the recent league mean. This does not establish a predictive advantage. The baseline uses eight observed current-team games with four games of league-average shrinkage; it does not model weather, opponent, injury probability or rare offensive scoring by kickers.
