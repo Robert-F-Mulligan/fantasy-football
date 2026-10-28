@@ -110,3 +110,37 @@ def test_weekly_missing_observations_are_gaps_not_zero():
     assert figure.layout.legend.title.text == "Player"
     assert figure.layout.xaxis.dtick == 1
     pd.testing.assert_frame_equal(weekly, before)
+
+
+def test_empirical_distribution_counts_ties_and_negative_points():
+    data = pd.DataFrame(
+        {
+            "player_id": ["a"] * 3,
+            "player_name": ["<unsafe>"] * 3,
+            "season": [2026] * 3,
+            "week": [1, 2, 4],
+            "fantasy_points": [-1, 10, 10],
+        }
+    )
+    figure = PlotlyVisualizer().weekly_distribution(data)
+    assert list(figure.data[0].x) == [-1, -1, 10]
+    assert list(figure.data[0].y) == [0, 1 / 3, 1]
+    assert figure.data[0].line.shape == "hv"
+    assert "<unsafe>" not in figure.data[0].name
+
+
+def test_weekly_export_is_deterministic_and_escaped(tmp_path):
+    data = pd.DataFrame(
+        {
+            "player_id": ["a", "a"],
+            "player_name": ["<script>"] * 2,
+            "week": [1, 3],
+            "fantasy_points": [5.0, 10.0],
+        }
+    )
+    chart = PlotlyVisualizer()
+    a = chart.write_weekly_report(data, tmp_path / "one.html").read_bytes()
+    b = chart.write_weekly_report(data.iloc[::-1], tmp_path / "two.html").read_bytes()
+    assert a == b
+    assert b"&lt;script&gt;" in a
+    assert b"Underlying observations" in a and b"not a forecast" in a

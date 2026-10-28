@@ -17,3 +17,7 @@ HTML exports embed one Plotly.js bundle for offline use, use stable chart IDs, d
 For chart changes, run `pytest tests/test_visualization.py`, verify ordering and missing-data semantics, and inspect a generated HTML report at desktop and narrow widths. Test mathematical/semantic properties rather than snapshots of the entire vendor bundle. Legacy exploratory notebooks are historical artifacts; new reusable plotting belongs in this adapter rather than copied notebook cells.
 
 References: [Plotly HTML export](https://plotly.com/python/interactive-html-export/), [W3C complex chart text alternatives](https://www.w3.org/WAI/tutorials/images/complex/).
+
+## Historical weekly research
+
+`weekly_distribution` draws an empirical cumulative frequency curve: tied scores share a jump, negative points are retained, and the vertical scale is 0-100%. It describes supplied observed games, not future outcome probabilities. `write_weekly_report` exports this and the trend chart with an escaped data table. The supported notebook in `notebooks/current` calls these APIs without embedding plotting or export logic.

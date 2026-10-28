@@ -120,7 +120,8 @@ class PlotlyVisualizer:
         figure.update_xaxes(rangemode="tozero")
         return figure
 
-    def weekly_trends(self, weekly):
+    @staticmethod
+    def _weekly(weekly):
         data = numeric(weekly, ["week", "fantasy_points"]).sort_values("week")
         if not {"player_id", "player_name"}.issubset(data):
             raise ValueError("Weekly data needs player_id and player_name")
@@ -135,6 +136,49 @@ class PlotlyVisualizer:
         data = data.copy()
         data["player_id"] = data.player_id.astype(str)
         data["player_name"] = data.player_name.astype(str)
+        if data.duplicated(["player_id", "week"]).any():
+            raise ValueError("Weekly data must have one row per player and week")
+        return data
+
+    def weekly_distribution(self, weekly):
+        """Empirical cumulative frequency of observed games, not a forecast."""
+        data = self._weekly(weekly)
+        rows = []
+        for pid, group in data.groupby("player_id", sort=True):
+            label = escape(str(group.player_name.iloc[0])) + " [" + escape(pid) + "]"
+            counts = group.fantasy_points.value_counts().sort_index()
+            total = len(group)
+            cumulative = 0
+            for points, count in counts.items():
+                if cumulative == 0:
+                    rows.append((label, points, 0.0, total))
+                cumulative += count
+                rows.append((label, points, cumulative / total, total))
+        plotted = pd.DataFrame(
+            rows, columns=["player", "fantasy_points", "fraction", "games"]
+        )
+        figure = px.line(
+            plotted,
+            x="fantasy_points",
+            y="fraction",
+            color="player",
+            line_dash="player",
+            line_shape="hv",
+            markers=True,
+            hover_data=["games"],
+            labels={
+                "fantasy_points": "Observed fantasy points",
+                "fraction": "Fraction of observed games at or below",
+                "player": "Player",
+            },
+        )
+        self._style(figure, "Historical game distribution (not a forecast)")
+        figure.update_yaxes(range=[0, 1], tickformat=".0%")
+        figure.update_layout(legend_title_text="Player")
+        return figure
+
+    def weekly_trends(self, weekly):
+        data = self._weekly(weekly)
         # Explicit missing weeks break lines; absence is not zero production.
         groups = []
         for _, group in data.groupby("player_id", sort=True):
@@ -172,6 +216,36 @@ class PlotlyVisualizer:
         figure.update_xaxes(dtick=1)
         figure.update_layout(legend_title_text="Player")
         return figure
+
+    def write_weekly_report(self, weekly, destination):
+        """Export observed weekly research with numeric text alternatives."""
+        data = self._weekly(weekly).sort_values(["player_id", "week"])
+        figures = [self.weekly_trends(data), self.weekly_distribution(data)]
+        descriptions = [
+            "Observed weekly points; missing weeks break the lines.",
+            "Fraction of observed games at or below each score. This is historical frequency, not a forecast or prediction interval.",
+        ]
+        document = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Historical weekly research</title></head><body><h1>Historical weekly research</h1>'
+        for index, (figure, description) in enumerate(zip(figures, descriptions)):
+            document += f'<section aria-labelledby="weekly-heading-{index}"><h2 id="weekly-heading-{index}">{escape(figure.layout.title.text)}</h2><p>{description} <a href="#observations">Read the observations</a>.</p>'
+            document += (
+                figure.to_html(
+                    full_html=False,
+                    include_plotlyjs=(index == 0),
+                    div_id=f"weekly-chart-{index}",
+                    config={"responsive": True, "displaylogo": False},
+                )
+                + "</section>"
+            )
+        document += (
+            '<h2 id="observations">Underlying observations</h2>'
+            + data.to_html(index=False, escape=True)
+            + "</body></html>"
+        )
+        path = Path(destination)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(document, encoding="utf-8")
+        return path
 
     def write_report(self, board, destination, title="Fantasy draft lab"):
         path = Path(destination)
