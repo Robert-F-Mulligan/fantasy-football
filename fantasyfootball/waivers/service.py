@@ -134,6 +134,17 @@ def write_waivers(
     context = planner.availability(
         pool, details, schedule, season=args.season, week=args.week, as_of=args.as_of
     )
+    from fantasyfootball.waivers.roles import SleeperRoleContext
+
+    context = SleeperRoleContext(details).annotate(context)
+    metadata["role_context"] = (
+        "Sleeper-listed depth at the captured snapshot, not a verified game lineup. Provider update time unknown; no point, ranking or FAAB adjustment."
+    )
+    metadata["role_coverage"] = (
+        context.loc[context.pos.isin(["QB", "RB", "WR", "TE"]), "role_status"]
+        .value_counts()
+        .to_dict()
+    )
     context.to_csv(args.output / "waiver-availability.csv", index=False)
     eligible = context.loc[
         context.availability.eq("eligible") & context.pos.isin(["QB", "RB", "WR", "TE"])
@@ -145,7 +156,17 @@ def write_waivers(
         ]
         board = ranges.apply(model.predict(fixtures=fixtures))
         board = board.merge(
-            eligible[["player_id", "sleeper_id", "warning", "kickoff"]],
+            eligible[
+                [
+                    "player_id",
+                    "sleeper_id",
+                    "warning",
+                    "kickoff",
+                    "role_status",
+                    "depth_order",
+                    "role_note",
+                ]
+            ],
             on="player_id",
             validate="one_to_one",
         )
@@ -172,9 +193,7 @@ def write_waivers(
                 )
                 - base,
             )
-        row["warning"] = (
-            row.get("warning") or ""
-        ) + " Current depth-chart role unverified."
+        row["warning"] = (row.get("warning") or "") + " " + row["role_note"]
         if row["history_games"] < 4:
             row["warning"] += " Fewer than four historical games; weak forecast."
         row["lineup_gain"] = gain

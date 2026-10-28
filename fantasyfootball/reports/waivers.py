@@ -35,6 +35,8 @@ def render_waivers(plan_dir):
         + " Supported offensive scoring only; omitted rules: "
         + omitted
         + ". Kicker estimates use a separate kicking-only baseline."
+        + " "
+        + meta.get("role_context", "")
     )
     html = [
         "<h2>Waiver wire by position</h2><p>"
