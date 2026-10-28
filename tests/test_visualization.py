@@ -144,3 +144,21 @@ def test_weekly_export_is_deterministic_and_escaped(tmp_path):
     assert a == b
     assert b"&lt;script&gt;" in a
     assert b"Underlying observations" in a and b"not a forecast" in a
+
+
+def test_usage_chart_retains_signed_shares_and_flags_missing_rows():
+    usage = pd.DataFrame(
+        {
+            "player_id": ["a", "b", "c"],
+            "player_name": ["<unsafe>", "B", "C"],
+            "team": ["X"] * 3,
+            "target_share": [0.3, 0.4, 0.3],
+            "air_yard_share": [-0.1, 1.1, float("nan")],
+            "targets": [3, 4, 3],
+            "games": [2, 2, 2],
+        }
+    )
+    figure = PlotlyVisualizer().receiver_usage(usage)
+    assert list(figure.data[0].y) == [-0.1, 1.1]
+    assert "1 player-team rows" in figure.layout.annotations[0].text
+    assert "&lt;unsafe&gt;" in figure.data[0].hovertext
