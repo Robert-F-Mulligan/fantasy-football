@@ -35,3 +35,7 @@ Provider semantics: [nflfastR field definitions](https://nflfastr.com/articles/f
 `TeamMatchups` computes dropback EPA (including sacks and scrambles), designed-rush EPA (excluding dropbacks), and sacks per dropback from one season/cutoff snapshot. Kneels, spikes, nullified plays, two-point attempts and postseason plays are excluded. Missing metric outcomes are excluded from their denominator; both observed and eligible play counts remain in the table and tooltip. Rates are play-weighted, not unweighted averages of game means.
 
 `team_matchup` draws one metric at a time so EPA and sack percentages never share an axis. EPA is from the offense perspective; defensive EPA represents EPA allowed. Sack labels distinguish conceded versus made. The chart includes zero and does not convert raw metrics into inverted league rankings. These comparisons are descriptive and not opponent-adjusted forecasts or defense fantasy scoring.
+
+## Neutral team tendencies
+
+`NeutralTendencies` defines neutral plays as first/second downs, more than 120 half-seconds remaining, and offense win probability in [0.2, 0.8]. The denominator comprises qualifying observed dropbacks and designed rushes. Scrambles count with dropbacks. Kneels, spikes, two-point attempts, postseason and nullified plays are excluded. Missing context is counted separately; no qualifying sample yields an unknown rate. The chart uses a fixed 0-100% scale and includes sample counts in hover. This historical filter is not a calibrated forecast feature or a significance threshold.
