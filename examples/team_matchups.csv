@@ -1,0 +1,7 @@
+game_id,play_id,season,week,season_type,posteam,defteam,play_type,two_point_attempt,qb_dropback,rush_attempt,qb_kneel,qb_spike,epa,sack
+g1,0,2026,1,REG,A,B,pass,0,1,0,0,0,1.0,0.0
+g1,1,2026,1,REG,A,B,pass,0,1,0,0,0,-2.0,1.0
+g1,2,2026,1,REG,A,B,run,0,0,1,0,0,0.5,0.0
+g1,3,2026,1,REG,A,B,run,0,1,1,0,0,0.2,0.0
+g2,4,2026,2,REG,A,B,pass,0,1,0,0,0,100.0,0.0
+g2,5,2026,2,REG,A,B,run,0,0,1,0,0,100.0,0.0
