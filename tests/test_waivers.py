@@ -154,3 +154,59 @@ def test_tuesday_and_wednesday_delivery_records_are_independent():
     assert deliver_once(*args, report_type="waivers") == "already_sent"
     assert mailer.send.call_count == 2
     assert sha256(b"a@example.com:123:2026:8").hexdigest() in ledger.records
+
+
+def test_email_has_one_defense_explanation_and_keeps_specific_flags(tmp_path):
+    rows = []
+    for name in ["A", "B"]:
+        rows.append(
+            dict(
+                category="DEF",
+                rank=None,
+                player_name=name,
+                pos="DEF",
+                opp="NE",
+                projected_points=None,
+                lineup_gain=None,
+                faab_low=None,
+                faab_high=None,
+                warning="Bye",
+            )
+        )
+    rows.append(
+        dict(
+            category="FLEX",
+            rank=1,
+            player_name="Receiver",
+            pos="WR",
+            opp="NYJ",
+            projected_points=8.0,
+            lineup_gain=1.0,
+            faab_low=1,
+            faab_high=2,
+            warning="Injury designation: Questionable; recheck before kickoff. Low volume; small sample; weak forecast.",
+        )
+    )
+    pd.DataFrame(rows).to_csv(tmp_path / "waivers.csv", index=False)
+    (tmp_path / "waiver-report.json").write_text(
+        json.dumps(
+            {
+                "categories": ["DEF", "FLEX"],
+                "limits": "Unrostered is not a guarantee of claim eligibility.",
+                "lineup_gain_note": "Repeated boilerplate",
+            }
+        )
+    )
+    html, plain = render_waivers(tmp_path)
+    for output in [html, plain]:
+        assert output.count("Defense points and FAAB not modeled") == 1
+        assert "Unrostered" not in output and "recheck before kickoff" not in output
+        for flag in [
+            "Bye",
+            "Questionable",
+            "Low volume",
+            "small sample",
+            "weak forecast",
+        ]:
+            assert flag in output
+    assert "Unranked /" not in html

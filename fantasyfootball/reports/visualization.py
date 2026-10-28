@@ -3,8 +3,12 @@
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
+from typing import ClassVar
+
+import pandas as pd
 import plotly.express as px
-from fantasyfootball.core.domain import numeric
+
+from fantasyfootball.core.domain import numeric, players
 
 
 @dataclass(frozen=True)
@@ -16,7 +20,7 @@ class ChartTheme:
 
 
 class PlotlyVisualizer:
-    COLORS = {
+    COLORS: ClassVar[dict[str, str]] = {
         "QB": "#b697ff",
         "RB": "#55ddbb",
         "WR": "#69baff",
@@ -34,21 +38,38 @@ class PlotlyVisualizer:
             template="plotly_dark",
             paper_bgcolor=self.theme.background,
             plot_bgcolor=self.theme.panel,
-            font=dict(color=self.theme.foreground, family="Arial"),
-            margin=dict(l=50, r=30, t=70, b=50),
+            font={"color": self.theme.foreground, "family": "Arial"},
+            margin={"l": 50, "r": 30, "t": 70, "b": 50},
             height=530,
             legend_title_text="Position",
         )
         return figure
 
+    def _board(self, board):
+        data = numeric(
+            players(board),
+            ["projected_points", "value_over_replacement", "value_rank", "tier"],
+        )
+        if data.player_id.duplicated().any():
+            raise ValueError("Draft charts require unique player_id values")
+        if "adp" not in data:
+            raise ValueError("Missing columns: adp")
+        present = data.adp.notna()
+        data.loc[present, "adp"] = numeric(data.loc[present], ["adp"]).adp
+        if (data.loc[present, "adp"] <= 0).any():
+            raise ValueError("adp must be positive when supplied")
+        return data.sort_values(["value_rank", "player_id"], kind="stable")
+
     def draft_value(self, board):
-        data = board.dropna(subset=["adp"]).copy()
+        data = self._board(board).dropna(subset=["adp"]).copy()
         data["player_name"] = data.player_name.map(escape)
         figure = px.scatter(
             data,
             x="adp",
             y="value_over_replacement",
             color="pos",
+            symbol="pos",
+            category_orders={"pos": list(self.COLORS)},
             hover_name="player_name",
             color_discrete_map=self.COLORS,
             hover_data=["projected_points", "tier", "value_rank"],
@@ -57,7 +78,7 @@ class PlotlyVisualizer:
                 "value_over_replacement": "Points above replacement",
             },
         )
-        figure.update_traces(marker=dict(size=10, opacity=0.85))
+        figure.update_traces(marker={"size": 10, "opacity": 0.85})
         figure.add_hline(y=0, line_dash="dot", line_color="#63758c")
         if data.empty:
             figure.add_annotation(
@@ -73,7 +94,7 @@ class PlotlyVisualizer:
     def tiers(self, board, top=40):
         if top < 1:
             raise ValueError("top must be positive")
-        data = board.head(top).iloc[::-1].copy()
+        data = self._board(board).head(top).iloc[::-1].copy()
         data["label"] = (
             data.player_name.map(escape)
             + " ("
@@ -95,6 +116,8 @@ class PlotlyVisualizer:
         )
         self._style(figure, "Top available players · labels show positional tier")
         figure.update_layout(height=max(500, len(data) * 27))
+        figure.update_yaxes(categoryorder="array", categoryarray=data.label.tolist())
+        figure.update_xaxes(rangemode="tozero")
         return figure
 
     def weekly_trends(self, weekly):
@@ -105,25 +128,60 @@ class PlotlyVisualizer:
             raise ValueError("Filter weekly trends to one season")
         if data.duplicated(["player_id", "week"]).any():
             raise ValueError("Weekly data must have one row per player and week")
+        if data.week.lt(1).any() or data.week.mod(1).ne(0).any():
+            raise ValueError("week must contain positive integers")
+        if data[["player_id", "player_name"]].isna().any().any():
+            raise ValueError("Player identifiers and names cannot be missing")
         data = data.copy()
+        data["player_id"] = data.player_id.astype(str)
+        data["player_name"] = data.player_name.astype(str)
+        # Explicit missing weeks break lines; absence is not zero production.
+        groups = []
+        for _, group in data.groupby("player_id", sort=True):
+            expanded = group.set_index("week").reindex(
+                range(int(group.week.min()), int(group.week.max()) + 1)
+            )
+            expanded["player_id"] = group.player_id.iloc[0]
+            expanded["player_name"] = group.player_name.iloc[0]
+            groups.append(expanded.rename_axis("week").reset_index())
+        if groups:
+            data = pd.concat(groups, ignore_index=True)
         data["player"] = (
             data.player_name.map(escape)
             + " ["
             + data.player_id.astype(str).map(escape)
             + "]"
         )
-        return self._style(
-            px.line(data, x="week", y="fantasy_points", color="player", markers=True),
+        figure = self._style(
+            px.line(
+                data,
+                x="week",
+                y="fantasy_points",
+                color="player",
+                line_dash="player",
+                markers=True,
+                labels={
+                    "week": "NFL week",
+                    "fantasy_points": "Fantasy points",
+                    "player": "Player",
+                },
+            ),
             "Weekly fantasy production",
         )
+        figure.update_traces(connectgaps=False)
+        figure.update_xaxes(dtick=1)
+        figure.update_layout(legend_title_text="Player")
+        return figure
 
     def write_report(self, board, destination, title="Fantasy draft lab"):
         path = Path(destination)
         path.parent.mkdir(parents=True, exist_ok=True)
+        board = self._board(board)
         figures = [self.draft_value(board), self.tiers(board)]
         fragments = [
             fig.to_html(
                 full_html=False,
+                div_id=f"draft-chart-{i}",
                 include_plotlyjs=(i == 0),
                 config={"responsive": True, "displaylogo": False},
             )
@@ -145,11 +203,16 @@ class PlotlyVisualizer:
             float_format=lambda n: f"{n:.2f}",
             na_rep="Unknown",
         )
-        content = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        content = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
         content += f"<title>{escape(title)}</title><style>body{{margin:0;background:#0b1220;color:#e6edf7;font:16px Arial}}main{{max-width:1300px;margin:auto;padding:32px}}h1{{font-size:36px}}p{{color:#a6b5ca;line-height:1.6}}.table{{overflow:auto}}table{{border-collapse:collapse;width:100%;font-size:14px}}td,th{{padding:12px;text-align:left;border-bottom:1px solid #26374d}}th{{color:#55ddbb}}</style></head><body><main>"
         content += f"<p>DRAFT RESEARCH / VALUE BOARD</p><h1>{escape(title)}</h1><p>{len(board)} available players · Hover to inspect, click legend positions to filter, drag to zoom. Rankings use points above league-specific replacement.</p>"
-        content += "".join(fragments)
-        content += "<h2>Available draft board</h2><p>Availability is a conditional normal-ADP heuristic (0–1), not a calibrated probability. Unknown means ADP or its dispersion is missing. Projections are estimates, not guarantees.</p>"
+        descriptions = [
+            "Market cost versus points above replacement. Symbols and colors identify positions. Players without ADP are omitted from this chart only.",
+            "Top players ordered by value rank, best at the top. Bar length shows projected season points; labels show positional tier.",
+        ]
+        for i, (fragment, description) in enumerate(zip(fragments, descriptions)):
+            content += f'<section aria-labelledby="chart-heading-{i}"><h2 id="chart-heading-{i}">{escape(figures[i].layout.title.text)}</h2><p>{description} <a href="#draft-data">Read the data table</a>.</p>{fragment}</section>'
+        content += "<h2 id='draft-data'>Available draft board</h2><p>Availability is a conditional normal-ADP heuristic (0–1), not a calibrated probability. Unknown means ADP or its dispersion is missing. Projections are estimates, not guarantees.</p>"
         content += '<div class="table">' + table + "</div></main></body></html>"
         path.write_text(content, encoding="utf-8")
         return path

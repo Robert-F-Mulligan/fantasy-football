@@ -19,7 +19,7 @@ class AddDropEvaluator:
     )
 
     def evaluate(self, roster, projections, available, candidates, slots):
-        """Only consider eligible, unassigned offensive bench players for removal.
+        """Only consider eligible, unassigned RB/WR/TE bench players for removal.
 
         All scenarios optimize the complete remaining offensive roster, retaining
         exact locked slots. Signed gains expose lost production as well as gains.
@@ -39,7 +39,7 @@ class AddDropEvaluator:
                 )
         bench = roster.loc[
             roster.availability.eq("eligible")
-            & roster.pos.isin(["QB", "RB", "WR", "TE"])
+            & roster.pos.isin(["RB", "WR", "TE"])
             & roster.starter_slot.fillna("").eq("")
             & roster.locked_slot.fillna("").eq("")
             & ~roster.is_reserve
@@ -54,7 +54,7 @@ class AddDropEvaluator:
             context = available.loc[available.player_id.eq(candidate["player_id"])]
             if len(context) != 1 or context.iloc[0].availability != "eligible":
                 continue
-            if context.iloc[0].pos not in {"QB", "RB", "WR", "TE"}:
+            if context.iloc[0].pos not in {"RB", "WR", "TE"}:
                 continue
             for drop in bench.to_dict("records"):
                 proposed = pd.concat(

@@ -129,7 +129,7 @@ def test_email_shows_signed_changes_and_escapes_names(tmp_path):
     result.to_csv(tmp_path / "waiver-add-drop.csv", index=False)
     html, plain = render_waivers(tmp_path)
     assert "&lt;unsafe&gt;" in html and "<unsafe>" not in html
-    assert "-3.0" in html and "+0.0" in plain and "One-week what-if" in plain
+    assert "-3.0" in html and "+0.0" in plain and "RB/WR/TE and FLEX" in plain
 
 
 def test_saved_csv_empty_locks_do_not_become_fixed_slots():
@@ -137,3 +137,29 @@ def test_saved_csv_empty_locks_do_not_become_fixed_slots():
     args[0]["locked_slot"] = float("nan")
     args[2]["locked_slot"] = float("nan")
     assert len(AddDropEvaluator().evaluate(*args)) == 2
+
+
+def test_qb_is_neither_an_add_nor_a_drop_but_stays_in_total():
+    roster, points, available, candidates, slots = fixture()
+    qb = roster.iloc[[1]].assign(
+        player_id="qb", player_name="My QB", pos="QB", starter_slot="QB1"
+    )
+    bench_qb = qb.assign(player_id="bench_qb", starter_slot="")
+    roster = pd.concat([roster, qb, bench_qb], ignore_index=True)
+    points = pd.concat(
+        [
+            points,
+            pd.DataFrame(
+                {"player_id": ["qb", "bench_qb"], "projected_points": [25.0, 5.0]}
+            ),
+        ]
+    )
+    incoming = candidates.assign(player_id="new_qb", pos="QB", projected_points=40.0)
+    available = pd.concat([available, available.assign(player_id="new_qb", pos="QB")])
+    candidates = pd.concat([candidates, incoming])
+    result = AddDropEvaluator().evaluate(
+        roster, points, available, candidates, {**slots, "QB1": ["QB"]}
+    )
+    assert set(result.add_pos) == {"WR"}
+    assert set(result.drop_pos) == {"WR", "TE"}
+    assert result.baseline_points.eq(47).all()

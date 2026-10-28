@@ -21,23 +21,7 @@ def render_waivers(plan_dir):
         if balance is not None
         else "FAAB balance unavailable; dollar recommendations withheld."
     )
-    audit_path = plan_dir / "plan-report.json"
-    audit = (
-        json.loads(audit_path.read_text(encoding="utf-8"))
-        if audit_path.exists()
-        else {}
-    )
-    omitted = ", ".join(audit.get("unsupported_scoring", {})) or "none recorded"
-    note = (
-        meta["limits"]
-        + " "
-        + meta["lineup_gain_note"]
-        + " Supported offensive scoring only; omitted rules: "
-        + omitted
-        + ". Kicker estimates use a separate kicking-only baseline."
-        + " "
-        + meta.get("role_context", "")
-    )
+    note = "Weekly lineup gain uses your league's supported offensive scoring."
     html = [
         "<h2>Waiver wire by position</h2><p>"
         + escape(intro)
@@ -61,6 +45,33 @@ def render_waivers(plan_dir):
         if data.empty:
             html.append("<p>No eligible modeled candidates.</p>")
             continue
+        if category == "DEF":
+            explanation = "Defense points and FAAB not modeled; available teams are listed alphabetically."
+            html.append("<p>" + explanation + "</p>")
+            plain.append("DEF: " + explanation)
+            html.append(
+                '<table border="1" cellpadding="6" cellspacing="0"><tr><th>Defense</th><th>Opponent</th><th>Watch</th></tr>'
+            )
+            for row in data.sort_values("player_name").to_dict("records"):
+                warning = (
+                    str(row.get("warning")) if pd.notna(row.get("warning")) else ""
+                )
+                warning = warning.replace(
+                    "Defense points and FAAB not modeled.", ""
+                ).strip()
+                values = [str(row["player_name"]), str(row["opp"]), warning]
+                html.append(
+                    "<tr>"
+                    + "".join("<td>" + escape(v) + "</td>" for v in values)
+                    + "</tr>"
+                )
+                plain.append("DEF | " + " | ".join(values))
+            html.append("</table>")
+            continue
+        if category == "K":
+            explanation = "Kicker points use a kicking-only baseline; prediction ranges unavailable."
+            html.append("<p>" + explanation + "</p>")
+            plain.append(explanation)
         html.append(
             '<table border="1" cellpadding="6" cellspacing="0"><tr><th>Rank / player</th><th>Pos / opponent</th><th>Points</th><th>Lineup gain</th><th>FAAB range</th><th>Watch</th></tr>'
         )
@@ -72,10 +83,7 @@ def render_waivers(plan_dir):
             )
             rank = str(int(row["rank"])) if pd.notna(row["rank"]) else "Unranked"
             watch = str(row.get("warning")) if pd.notna(row.get("warning")) else ""
-            if row["pos"] == "K":
-                watch += " Kicking-only baseline; no calibrated range."
-            if row["pos"] == "DEF":
-                watch += " Defense points and FAAB not modeled."
+            watch = watch.replace("; recheck before kickoff", "")
             values = [
                 rank + " / " + str(row["player_name"]),
                 str(row["pos"]) + " / " + str(row["opp"]),
@@ -91,9 +99,13 @@ def render_waivers(plan_dir):
         html.append("</table>")
     comparison_path = plan_dir / "waiver-add-drop.csv"
     if comparison_path.exists():
-        comparisons = pd.read_csv(comparison_path).head(10)
-        guidance = meta.get(
-            "add_drop_note", "One-week scenarios only; check drop eligibility."
+        comparisons = pd.read_csv(comparison_path)
+        comparisons = comparisons.loc[
+            comparisons.add_pos.isin(["RB", "WR", "TE"])
+            & comparisons.drop_pos.isin(["RB", "WR", "TE"])
+        ].head(10)
+        guidance = (
+            "RB/WR/TE and FLEX scenarios; net change includes the dropped player."
         )
         html.append(
             "<h2>Add/drop what-if comparisons</h2><p>" + escape(guidance) + "</p>"

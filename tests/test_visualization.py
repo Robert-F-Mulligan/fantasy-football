@@ -1,8 +1,9 @@
 import pandas as pd
-from fantasyfootball.reports.visualization import PlotlyVisualizer
+
 from fantasyfootball.cli import main
-from fantasyfootball.drafting.application import DraftApplication
 from fantasyfootball.core.domain import LeagueSettings
+from fantasyfootball.drafting.application import DraftApplication
+from fantasyfootball.reports.visualization import PlotlyVisualizer
 
 
 def sample():
@@ -49,3 +50,63 @@ def test_cli_csv_and_report(tmp_path):
     )
     assert len(pd.read_csv(tmp_path / "board.csv")) == 3
     assert (tmp_path / "report.html").is_file()
+
+
+def draft_board():
+    return DraftApplication(
+        LeagueSettings(teams=1, starters={"QB": 1}, flex=0)
+    ).prepare(sample())
+
+
+def test_rank_order_does_not_depend_on_input_order():
+    board = draft_board()
+    figure = PlotlyVisualizer().tiers(board.iloc[::-1], top=2)
+    labels = list(figure.layout.yaxis.categoryarray)
+    assert labels[-1].endswith("[a]")
+    assert labels[0].endswith("[b]")
+    assert figure.layout.xaxis.rangemode == "tozero"
+
+
+def test_report_export_is_deterministic_and_has_text_alternatives(tmp_path):
+    chart = PlotlyVisualizer()
+    a = chart.write_report(draft_board(), tmp_path / "a.html").read_bytes()
+    b = chart.write_report(draft_board().iloc[::-1], tmp_path / "b.html").read_bytes()
+    assert a == b
+    assert b'lang="en"' in a
+    assert b"Read the data table" in a
+    assert b'aria-labelledby="chart-heading-0"' in a
+    assert b'id="draft-chart-0"' in a
+
+
+def test_invalid_numbers_and_duplicate_players_are_rejected():
+    import pytest
+
+    board = draft_board()
+    for column in ["projected_points", "value_over_replacement", "adp"]:
+        invalid = board.copy()
+        invalid[column] = invalid[column].astype(float)
+        invalid.loc[0, column] = float("inf")
+        with pytest.raises(ValueError, match="finite"):
+            PlotlyVisualizer().tiers(invalid)
+    with pytest.raises(ValueError, match="unique"):
+        PlotlyVisualizer().draft_value(pd.concat([board, board]))
+
+
+def test_weekly_missing_observations_are_gaps_not_zero():
+    weekly = pd.DataFrame(
+        {
+            "player_id": [1, 1],
+            "player_name": ["A", "A"],
+            "week": [1, 3],
+            "fantasy_points": [10, 20],
+        }
+    )
+    before = weekly.copy(deep=True)
+    figure = PlotlyVisualizer().weekly_trends(weekly)
+    trace = figure.data[0]
+    assert list(trace.x) == [1, 2, 3]
+    assert pd.isna(trace.y[1])
+    assert trace.connectgaps is False
+    assert figure.layout.legend.title.text == "Player"
+    assert figure.layout.xaxis.dtick == 1
+    pd.testing.assert_frame_equal(weekly, before)
