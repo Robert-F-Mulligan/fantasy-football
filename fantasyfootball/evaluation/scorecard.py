@@ -151,7 +151,20 @@ def shadow_scores(forecast, board):
     ].copy()
     baseline = (sample.projected_points - sample.points).abs()
     candidate = (sample.candidate_points - sample.points).abs()
+    by_position = {}
+    if "pos" in sample:
+        for position, group in sample.groupby("pos"):
+            by_position[position] = {
+                "paired_rows": len(group),
+                "baseline_absolute_error_sum": float(
+                    (group.projected_points - group.points).abs().sum()
+                ),
+                "candidate_absolute_error_sum": float(
+                    (group.candidate_points - group.points).abs().sum()
+                ),
+            }
     return {
+        "by_position": by_position,
         "status": "scored" if len(sample) else "awaiting_outcomes",
         "candidate": "workload_momentum_v1",
         "protocol_window": forecast.manifest["season"] == 2026

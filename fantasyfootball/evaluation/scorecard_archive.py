@@ -8,8 +8,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import pandas as pd
 
-from fantasyfootball.core.domain import ScoringRules
 from fantasyfootball.archives.evidence import timestamp
+from fantasyfootball.core.domain import ScoringRules
 from fantasyfootball.evaluation.scorecard import (
     ArchivedForecast,
     WeeklyScorecard,
@@ -86,19 +86,29 @@ def build_private_scorecards(current_archive, checkout):
             metadata = json.loads(archive.read("evidence-manifest.json"))
             settings = json.loads(archive.read("league/import-report.json"))
             owner = (settings["league_id"], settings["roster_id"])
-        if owner != league:
+        if owner != league or timestamp(metadata["captured_at"]) > timestamp(
+            current.manifest["captured_at"]
+        ):
             continue
         period = (metadata["season"], metadata["week"])
         order = (timestamp(metadata["captured_at"]), path.name)
         if period not in chosen or order < chosen[period][0]:
             chosen[period] = (order, path)
     added = []
+    study_reports = []
     for _, path in chosen.values():
         previous = ArchivedForecast(path)
         outcomes = observed_outcomes(previous, current, schedule)
-        if outcomes is None:
+        in_study = (
+            previous.manifest["season"] == 2026 and 9 <= previous.manifest["week"] <= 17
+        )
+        if outcomes is None and not in_study:
             continue
         report, rows = WeeklyScorecard().evaluate(previous, outcomes)
+        if in_study:
+            study_reports.append(report)
+        if outcomes is None:
+            continue
         outcome_bytes = json.dumps(outcomes, sort_keys=True).encode()
         report["outcomes_sha256"] = hashlib.sha256(outcome_bytes).hexdigest()
         report["selection_policy"] = (
@@ -125,4 +135,24 @@ def build_private_scorecards(current_archive, checkout):
                 for file in sorted(output.iterdir()):
                     archive.write(file, file.name)
         added.append(relative.as_posix())
+    if current.manifest["season"] >= 2026:
+        from fantasyfootball.evaluation.prospective import MomentumStudy
+
+        summary = MomentumStudy().summarize(
+            study_reports,
+            current_season=current.manifest["season"],
+            current_week=current.manifest["week"],
+            outcome_archive_sha256=current.sha256,
+        )
+        scope = hashlib.sha256(json.dumps(league).encode()).hexdigest()[:16]
+        relative = (
+            Path("studies/workload_momentum_v1") / scope / (current.sha256 + ".json")
+        )
+        target = checkout / relative
+        if not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(
+                json.dumps(summary, indent=2, allow_nan=False), encoding="utf-8"
+            )
+            added.append(relative.as_posix())
     return added

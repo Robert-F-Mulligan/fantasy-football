@@ -62,12 +62,15 @@ def test_paired_shadow_scores_exclude_late_and_unresolved():
             "player_id": ["a", "b", "c"],
             "projected_points": [10.0, 10.0, 10.0],
             "points": [13.0, 13.0, None],
+            "pos": ["RB", "WR", "TE"],
             "scored": [True, False, False],
             "status": ["played", "played", "unresolved"],
         }
     )
     result = shadow_scores(forecast, board)
     assert result["paired_rows"] == 1 and result["mae_delta"] == -2
+    assert result["by_position"]["RB"]["paired_rows"] == 1
+    assert set(result["by_position"]) == {"RB"}
     assert result["protocol_window"]
     forecast.shadow.loc[0, "baseline_points"] = 99
     with pytest.raises(ValueError, match="baseline differs"):
