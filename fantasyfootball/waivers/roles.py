@@ -40,22 +40,19 @@ class SleeperRoleContext:
             return (
                 "unknown",
                 None,
-                "Sleeper depth role unknown or inconsistent; verify current role",
+                "Depth unavailable",
             )
-        team, pos, order = entry
+        _team, pos, order = entry
         if self.counts[entry] != 1:
             return (
                 "conflict",
                 None,
-                "Sleeper depth role conflicts with another active player; verify current role",
+                "Conflicting depth listings",
             )
-        note = f"Sleeper lists {team} {pos} depth {order}; not confirmed for this game"
+        note = f"Sleeper depth: {pos}{order}"
         if pos == "QB" and order > 1:
-            note += (
-                "; backup listing: historical points may overstate current opportunity"
-            )
-        elif order == 1:
-            note += "; first listing does not guarantee snaps or touches"
+            note += "; backup QB, weak opportunity forecast"
+
         return "listed", order, note
 
     def annotate(self, frame):
@@ -64,3 +61,29 @@ class SleeperRoleContext:
         for index, column in enumerate(["role_status", "depth_order", "role_note"]):
             result[column] = [value[index] for value in values]
         return result
+
+
+def workload_notes(history, season, week):
+    """Descriptive last-three-game flags, using only completed prior-season-week rows.
+
+    Five opportunities per game is a display threshold, not statistical evidence
+    or an adjustment to points/FAAB. Missing usage never becomes zero.
+    """
+    required = {"season", "week", "player_id", "pos", "rushing_att", "receiving_tgt"}
+    if not required.issubset(history):
+        return {}
+    recent = history.loc[history.season.eq(season) & history.week.lt(week)]
+    notes = {}
+    for pid, group in recent.sort_values("week").groupby("player_id"):
+        rows = group.tail(3)
+        if rows.iloc[-1].pos not in {"RB", "WR", "TE"}:
+            continue
+        usage = rows[["rushing_att", "receiving_tgt"]]
+        if usage.isna().any().any() or (usage < 0).any().any():
+            continue
+        average = usage.sum(axis=1).mean()
+        if average < 5:
+            notes[pid] = (
+                f"Low volume: {average:.1f} carries + targets/game over {len(rows)} recent games."
+            )
+    return notes

@@ -134,7 +134,7 @@ def write_waivers(
     context = planner.availability(
         pool, details, schedule, season=args.season, week=args.week, as_of=args.as_of
     )
-    from fantasyfootball.waivers.roles import SleeperRoleContext
+    from fantasyfootball.waivers.roles import SleeperRoleContext, workload_notes
 
     context = SleeperRoleContext(details).annotate(context)
     metadata["role_context"] = (
@@ -179,6 +179,7 @@ def write_waivers(
         metadata["lineup_comparison"] = (
             "Unavailable: current offensive lineup incomplete"
         )
+    usage_flags = workload_notes(history, args.season, args.week)
     records = []
     for row in board.to_dict("records"):
         gain = float("nan")
@@ -194,6 +195,8 @@ def write_waivers(
                 - base,
             )
         row["warning"] = (row.get("warning") or "") + " " + row["role_note"]
+        if row["player_id"] in usage_flags:
+            row["warning"] += " " + usage_flags[row["player_id"]]
         if row["history_games"] < 4:
             row["warning"] += " Fewer than four historical games; weak forecast."
         row["lineup_gain"] = gain

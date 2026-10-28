@@ -18,14 +18,14 @@ def player(**changes):
 def test_first_listing_never_claims_a_confirmed_starter():
     state, order, note = SleeperRoleContext({"1": player()}).describe("1", "QB")
     assert (state, order) == ("listed", 1)
-    assert "not confirmed" in note and "does not guarantee" in note
+    assert note == "Sleeper depth: QB1"
 
 
 def test_backup_qb_is_flagged_without_changing_projection():
     frame = pd.DataFrame([{"sleeper_id": "1", "pos": "QB", "projected_points": 22.5}])
     result = SleeperRoleContext({"1": player(depth_chart_order=2)}).annotate(frame)
     assert result.projected_points.tolist() == [22.5]
-    assert "historical points may overstate" in result.role_note.item()
+    assert "weak opportunity forecast" in result.role_note.item()
     assert "role_status" not in frame
 
 
@@ -60,3 +60,22 @@ def test_empty_frame_and_receiver_depth_not_treated_as_qb_backup():
     )
     assert "backup" not in context.describe("1", "WR")[2]
     assert context.annotate(pd.DataFrame(columns=["sleeper_id", "pos"])).empty
+
+
+def test_workload_flag_excludes_future_and_missing_usage():
+    from fantasyfootball.waivers.roles import workload_notes
+
+    history = pd.DataFrame(
+        {
+            "player_id": ["a"] * 4,
+            "pos": ["WR"] * 4,
+            "season": [2026] * 4,
+            "week": [1, 2, 3, 4],
+            "rushing_att": [0.0, 0.0, 0.0, 100.0],
+            "receiving_tgt": [1.0, 2.0, 3.0, 100.0],
+        }
+    )
+    assert "2.0 carries + targets/game over 3" in workload_notes(history, 2026, 4)["a"]
+    assert not workload_notes(history, 2026, 1)
+    history.loc[1, "receiving_tgt"] = float("nan")
+    assert not workload_notes(history, 2026, 4)
