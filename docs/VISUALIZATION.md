@@ -29,3 +29,9 @@ References: [Plotly HTML export](https://plotly.com/python/interactive-html-expo
 Signed air yards can yield negative shares or shares above 100%; the chart does not clip them. Any missing air yards among a team's identified targets, or a nonpositive team total, makes that team's air-yard shares unavailable. The table retains these rows while the scatter omits them with an annotation. This is descriptive research, not a model input or a prediction.
 
 Provider semantics: [nflfastR field definitions](https://nflfastr.com/articles/field_descriptions.html) and [play-type changes for two-point attempts](https://nflfastr.com/news/).
+
+## Team matchup context
+
+`TeamMatchups` computes dropback EPA (including sacks and scrambles), designed-rush EPA (excluding dropbacks), and sacks per dropback from one season/cutoff snapshot. Kneels, spikes, nullified plays, two-point attempts and postseason plays are excluded. Missing metric outcomes are excluded from their denominator; both observed and eligible play counts remain in the table and tooltip. Rates are play-weighted, not unweighted averages of game means.
+
+`team_matchup` draws one metric at a time so EPA and sack percentages never share an axis. EPA is from the offense perspective; defensive EPA represents EPA allowed. Sack labels distinguish conceded versus made. The chart includes zero and does not convert raw metrics into inverted league rankings. These comparisons are descriptive and not opponent-adjusted forecasts or defense fantasy scoring.

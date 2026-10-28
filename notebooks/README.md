@@ -10,7 +10,11 @@ This migrates the historical player-distribution use case of `Who-Should-I-Start
 
 ## Receiver usage migration
 
-[Receiver Usage](current/Receiver-Usage.ipynb) replaces the target-share/air-yard-share calculation from the weekly visualization notebook. It calls `ReceiverUsage.summarize` and the shared `receiver_usage` chart. Team stints remain separate, unknown air yards invalidate the team air-yard denominator, and unidentified pass plays are counted in an audit. Two-point attempts and nullified plays are excluded. The sample is synthetic; notebook cells run in CI. Team matchup and other play-by-play visualizations remain pending.
+[Receiver Usage](current/Receiver-Usage.ipynb) replaces the target-share/air-yard-share calculation from the weekly visualization notebook. It calls `ReceiverUsage.summarize` and the shared `receiver_usage` chart. Team stints remain separate, unknown air yards invalidate the team air-yard denominator, and unidentified pass plays are counted in an audit. Two-point attempts and nullified plays are excluded. The sample is synthetic; notebook cells run in CI. The play-by-play matchup workflow is also migrated below; other play-by-play visualizations remain pending.
+
+## Team matchup migration
+
+[Team Matchups](current/Team-Matchups.ipynb) compares one offense and one defense using a shared play-by-play snapshot. It delegates dropback EPA, designed-rush EPA and sack rates to `TeamMatchups` and uses separate shared-library charts with explicit units and sample counts. Missing outcomes stay missing. Scrambles belong to dropbacks, not designed rushes. It does not reproduce the old mixed-provider fantasy-point rankings or claim to predict a game's score. The original notebook remains preserved.
 
 ## Historical inventory
 
@@ -39,7 +43,7 @@ These 18 notebooks remain unchanged as research records. Their output counts des
 
 ## Next migrations
 
-- Team matchup/usage graphics in `NFL-Weekly-Vizzes.ipynb`: first isolate transforms and scoring contracts from live provider retrieval.
+- Remaining pace, efficiency and player graphics in `NFL-Weekly-Vizzes.ipynb`: isolate transforms and scoring contracts from live provider retrieval.
 - Target/carry-share studies: reuse canonical IDs and explicit team denominators; test missing data and player transfers before publishing charts.
 - Draft tier notebooks: use `DraftApplication` and the shared Plotly adapter rather than duplicating valuation or clustering code.
 

@@ -120,6 +120,60 @@ class PlotlyVisualizer:
         figure.update_xaxes(rangemode="tozero")
         return figure
 
+    def team_matchup(self, comparison, metric):
+        """One metric per chart: offense produced versus defense allowed."""
+        units = {
+            "Dropback EPA": "EPA per dropback",
+            "Rush EPA": "EPA per designed rush",
+            "Sack rate": "Sacks per dropback",
+        }
+        if metric not in units:
+            raise ValueError("Unknown matchup metric")
+        data = comparison.loc[comparison.metric.eq(metric)].copy()
+        if data.empty:
+            raise ValueError("No observations for requested metric")
+        if data.unit.duplicated().any():
+            raise ValueError("Expected one row per offense/defense unit")
+        data = numeric(data, ["observations", "eligible_plays", "games"])
+        missing = int(data.value.isna().sum())
+        data = numeric(data.dropna(subset=["value"]), ["value"])
+        data["label"] = (
+            data.team.astype(str).map(escape)
+            + " "
+            + data.unit.map({"Offense": "offense", "Defense": "defense allowed"})
+        )
+        if metric == "Sack rate":
+            data["label"] = (
+                data.team.astype(str).map(escape)
+                + " "
+                + data.unit.map({"Offense": "sacks conceded", "Defense": "sacks made"})
+            )
+        figure = px.bar(
+            data,
+            x="label",
+            y="value",
+            color="unit",
+            pattern_shape="unit",
+            hover_data=["observations", "eligible_plays", "games"],
+            labels={"label": "", "value": units[metric]},
+            color_discrete_map={"Offense": "#69baff", "Defense": "#ffc86b"},
+        )
+        self._style(figure, metric + " - historical matchup context")
+        figure.update_layout(showlegend=False)
+        figure.update_yaxes(
+            rangemode="tozero", tickformat=".0%" if metric == "Sack rate" else ".2f"
+        )
+        if missing:
+            figure.add_annotation(
+                text=f"{missing} unit has no observed values; see table.",
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=1.1,
+                showarrow=False,
+            )
+        return figure
+
     def receiver_usage(self, usage):
         """Plot supplied usage shares; incomplete air-yard denominators stay absent."""
         needed = {
