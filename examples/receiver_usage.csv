@@ -1,0 +1,6 @@
+game_id,play_id,season,week,season_type,play_type,two_point_attempt,posteam,receiver_player_id,receiver_player_name,air_yards
+g,1,2026,1,REG,pass,0,A,x,X,10.0
+g,2,2026,1,REG,pass,0,A,y,Y,30.0
+g,3,2026,2,REG,pass,0,B,x,X,5.0
+g,4,2026,2,REG,pass,0,B,,,
+g,5,2026,3,REG,pass,0,A,x,X,100.0

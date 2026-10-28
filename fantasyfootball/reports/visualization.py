@@ -120,6 +120,55 @@ class PlotlyVisualizer:
         figure.update_xaxes(rangemode="tozero")
         return figure
 
+    def receiver_usage(self, usage):
+        """Plot supplied usage shares; incomplete air-yard denominators stay absent."""
+        needed = {
+            "player_id",
+            "player_name",
+            "team",
+            "target_share",
+            "air_yard_share",
+            "targets",
+            "games",
+        }
+        if not needed.issubset(usage):
+            raise ValueError("Receiver usage chart needs " + ", ".join(sorted(needed)))
+        data = numeric(usage, ["target_share", "targets", "games"])
+        if not data.target_share.between(0, 1).all():
+            raise ValueError("target_share must be between zero and one")
+        omitted = int(data.air_yard_share.isna().sum())
+        data = numeric(data.dropna(subset=["air_yard_share"]), ["air_yard_share"])
+        data = data.sort_values(["team", "player_id"]).copy()
+        for column in ["player_name", "player_id", "team"]:
+            data[column] = data[column].astype(str).map(escape)
+        figure = px.scatter(
+            data,
+            x="target_share",
+            y="air_yard_share",
+            color="team",
+            symbol="team",
+            hover_name="player_name",
+            hover_data=["player_id", "targets", "games"],
+            labels={
+                "target_share": "Share of identified team targets",
+                "air_yard_share": "Share of signed team air yards",
+            },
+        )
+        self._style(figure, "Receiver usage by team stint")
+        figure.update_layout(legend_title_text="Team")
+        figure.update_xaxes(range=[0, 1], tickformat=".0%")
+        figure.update_yaxes(tickformat=".0%")
+        if omitted:
+            figure.add_annotation(
+                text=f"{omitted} player-team rows lack an air-yard share; see data table.",
+                xref="paper",
+                yref="paper",
+                x=0,
+                y=1.1,
+                showarrow=False,
+            )
+        return figure
+
     @staticmethod
     def _weekly(weekly):
         data = numeric(weekly, ["week", "fantasy_points"]).sort_values("week")

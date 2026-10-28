@@ -21,3 +21,11 @@ References: [Plotly HTML export](https://plotly.com/python/interactive-html-expo
 ## Historical weekly research
 
 `weekly_distribution` draws an empirical cumulative frequency curve: tied scores share a jump, negative points are retained, and the vertical scale is 0-100%. It describes supplied observed games, not future outcome probabilities. `write_weekly_report` exports this and the trend chart with an escaped data table. The supported notebook in `notebooks/current` calls these APIs without embedding plotting or export logic.
+
+## Receiver usage
+
+`ReceiverUsage.summarize` consumes the canonical nflverse receiver_player_id/receiver_player_name fields, explicit two_point_attempt flags and unique game_id/play_id keys. Select a season and through_week explicitly. The denominator is identified receiver targets, not all pass attempts. The audit counts unidentified pass plays (which may include sacks/throwaways); it does not guess how many are missing targets. Receiver-team stints remain distinct. Current LA/LAR and JAX/JAC aliases are normalized.
+
+Signed air yards can yield negative shares or shares above 100%; the chart does not clip them. Any missing air yards among a team's identified targets, or a nonpositive team total, makes that team's air-yard shares unavailable. The table retains these rows while the scatter omits them with an annotation. This is descriptive research, not a model input or a prediction.
+
+Provider semantics: [nflfastR field definitions](https://nflfastr.com/articles/field_descriptions.html) and [play-type changes for two-point attempts](https://nflfastr.com/news/).

@@ -8,6 +8,10 @@ The notebook delegates plotting/export to `PlotlyVisualizer`: weekly trends, emp
 
 This migrates the historical player-distribution use case of `Who-Should-I-Start.ipynb`. It deliberately replaces the old smoothed density graphic with observed cumulative frequency, correctly labeled and accompanied by sample counts. The legacy scraping and machine-specific CSV-rewrite cells are not carried forward.
 
+## Receiver usage migration
+
+[Receiver Usage](current/Receiver-Usage.ipynb) replaces the target-share/air-yard-share calculation from the weekly visualization notebook. It calls `ReceiverUsage.summarize` and the shared `receiver_usage` chart. Team stints remain separate, unknown air yards invalidate the team air-yard denominator, and unidentified pass plays are counted in an audit. Two-point attempts and nullified plays are excluded. The sample is synthetic; notebook cells run in CI. Team matchup and other play-by-play visualizations remain pending.
+
 ## Historical inventory
 
 These 18 notebooks remain unchanged as research records. Their output counts describe saved cells, not proof of reproducibility. Some reference moved modules, old provider pages, hard-coded seasons, local paths or source-writing cells. Do not run all legacy cells as a setup step. Migrate a specific computation into the package, test it, then create a small notebook calling that API.
