@@ -1,0 +1,26 @@
+{
+  "source_name": "play_by_play_2023.csv.gz",
+  "sha256": "4649804ee0f0a40b41e51ec75a1ce921949d7fab5459213488656b92f78560e8",
+  "season": 2023,
+  "through_week": 18,
+  "input_rows": 49665,
+  "receiver_team_rows": 488,
+  "receiver_teams": 32,
+  "receiver_audit": {
+    "unidentified_pass_plays": 2175,
+    "identified_targets": 17483,
+    "definition": "Shares of identified receiver targets; unidentified pass plays excluded. Team stints stay separate."
+  },
+  "unknown_air_yard_shares": 0,
+  "matchup_rows": 192,
+  "matchup_teams": 32,
+  "missing_metric_observations": 0,
+  "tendency_teams": 32,
+  "neutral_plays": 14674,
+  "incomplete_neutral_context": 0,
+  "charts_serialized": true,
+  "status": "passed",
+  "source_url": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2023.csv.gz",
+  "source_fetched_at": "2026-10-26T01:47:11.733631+00:00",
+  "validated_on": "2026-10-28"
+}
