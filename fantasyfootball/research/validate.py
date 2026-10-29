@@ -37,7 +37,7 @@ COLUMNS = {
 }
 
 
-def validate_snapshot(
+def analyze_snapshot(
     source, *, season, through_week, expected_sha256=None, charts=False
 ):
     source = Path(source)
@@ -85,7 +85,7 @@ def validate_snapshot(
         )
         for metric in TeamMatchups.METRICS:
             visualizer.team_matchup(comparison, metric).to_json()
-    return {
+    result = {
         "source_name": source.name,
         "sha256": digest,
         "season": season,
@@ -106,6 +106,21 @@ def validate_snapshot(
         "charts_serialized": charts,
         "status": "passed",
     }
+
+    return result, usage, matchups, tendencies
+
+
+def validate_snapshot(
+    source, *, season, through_week, expected_sha256=None, charts=False
+):
+    """Return validation metadata without exposing the research tables."""
+    return analyze_snapshot(
+        source,
+        season=season,
+        through_week=through_week,
+        expected_sha256=expected_sha256,
+        charts=charts,
+    )[0]
 
 
 def main(argv=None):

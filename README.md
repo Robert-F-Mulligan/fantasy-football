@@ -97,6 +97,10 @@ The new `forecast`, `evaluate-factors`, and `lineup` commands provide boosted-tr
 
 Run `python examples/verify_live.py` for bounded live checks. FantasyPros public projections expose a limited preview, not a complete draft pool. The scraper supports its current published JSON report payload without executing JavaScript. PFR may deny access with HTTP 403; no bypass is implemented. nflverse provides a verified alternative for play-by-play data.
 
+## Offline research dashboard
+
+Generate a single HTML report from a local nflverse play-by-play snapshot with receiver usage, a selected historical team matchup, neutral tendencies, and their data tables. See [research validation and report commands](docs/RESEARCH_VALIDATION.md#generate-an-offline-report). No notebook server or network access is needed once dependencies and the snapshot are available.
+
 ## Maintenance and next steps
 
 See the [repository audit and prioritized roadmap](docs/ROADMAP.md) for completed cleanup, retained legacy research, known data/model gaps, and the next draft and weekly-planning features.
