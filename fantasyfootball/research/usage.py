@@ -3,6 +3,11 @@
 import pandas as pd
 
 from fantasyfootball.core.domain import numeric
+from fantasyfootball.research.inputs import (
+    ResearchWindow,
+    normalize_teams,
+    require_binary_flags,
+)
 
 
 class ReceiverUsage:
@@ -26,31 +31,10 @@ class ReceiverUsage:
             "receiver_player_name",
             "air_yards",
         }
-        missing = required - set(plays)
-        if missing:
-            raise ValueError("Missing columns: " + ", ".join(sorted(missing)))
-        if (
-            not isinstance(through_week, int)
-            or isinstance(through_week, bool)
-            or not 1 <= through_week <= 18
-        ):
-            raise ValueError("through_week must be an integer from 1 to 18")
-        data = numeric(plays, ["season", "week"])
-        if (
-            data[["game_id", "play_id"]].isna().any().any()
-            or data.duplicated(["game_id", "play_id"]).any()
-        ):
-            raise ValueError("Unique game_id/play_id keys are required")
-        data = data.loc[
-            data.season.eq(season)
-            & data.week.le(through_week)
-            & data.season_type.eq("REG")
-            & data.play_type.eq("pass")
-        ].copy()
-        if not data.two_point_attempt.isin([0, 1]).all():
-            raise ValueError(
-                "Eligible pass plays require explicit two_point_attempt 0/1 flags"
-            )
+        data = ResearchWindow(season, through_week).select(
+            plays, required=required, play_types=("pass",)
+        )
+        require_binary_flags(data, ["two_point_attempt"])
         data = data.loc[data.two_point_attempt.eq(0)].copy()
         # nflverse represents nullified plays as no_play, not pass.
         identified = data.receiver_player_id.notna() & data.receiver_player_id.astype(
@@ -58,12 +42,7 @@ class ReceiverUsage:
         ).str.strip().ne("")
         omitted = int((~identified).sum())
         data = data.loc[identified].copy()
-        if (
-            data.posteam.isna().any()
-            or data.posteam.astype(str).str.strip().eq("").any()
-        ):
-            raise ValueError("Identified targets require posteam")
-        data["posteam"] = data.posteam.replace({"LAR": "LA", "JAC": "JAX"})
+        data = normalize_teams(data, ["posteam"])
         data["receiver_player_id"] = data.receiver_player_id.astype(str)
         data["air_yards"] = pd.to_numeric(data.air_yards, errors="raise")
         numeric(data.loc[data.air_yards.notna()], ["air_yards"])
