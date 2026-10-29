@@ -145,6 +145,10 @@ def test_report_escapes_source_text_and_discloses_limitations(tmp_path):
     assert "&lt;script&gt;" in html
     assert "+10.0 projected points" in html
     assert "st_ff" in html and "not modeled" in html
+    assert html.index("Recommended starters") < html.index(
+        "Prediction ranges unavailable"
+    )
+    assert "Waiver wire" not in html
     assert "Week 8" in subject
     assert "\u2014" in subject
     assert '<meta charset="utf-8">' in html
