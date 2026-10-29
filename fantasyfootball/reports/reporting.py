@@ -12,6 +12,8 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from fantasyfootball.reports.lineup import render_lineup_brief
+
 
 def render_ranges(board, selected, metadata):
     """Email-safe range plot using table cells, with numeric fallbacks and a shared axis."""
@@ -138,7 +140,12 @@ def render_report(plan_dir, team_name, season, week):
             ["player_id", "projected_points"]
             + [
                 c
-                for c in ["prediction_lower", "prediction_upper", "range_status"]
+                for c in [
+                    "prediction_lower",
+                    "prediction_upper",
+                    "range_status",
+                    "history_games",
+                ]
                 if c in projections
             ]
         ],
@@ -151,74 +158,23 @@ def render_report(plan_dir, team_name, season, week):
     )
     board = board.loc[~board.sleeper_id.astype(str).isin(specialist_ids)].copy()
     selected = set(lineup.player_id)
-    assigned = lineup.set_index("player_id").slot.to_dict()
-    rows = []
-    text_rows = []
-    for row in board.to_dict("records"):
-        name = row["player_name"] if pd.notna(row["player_name"]) else row["sleeper_id"]
-        decision = "START" if row["player_id"] in selected else "SIT"
-        if row["availability"] == "unsupported_position":
-            decision = "NOT MODELED"
-        points = row["projected_points"]
-        values = [
-            decision,
-            assigned.get(row["player_id"], ""),
-            name,
-            row.get("pos"),
-            row.get("opp"),
-            f"{points:.1f}" if pd.notna(points) else "\u2014",
-            row["availability"],
-            row.get("warning"),
-        ]
-        text_rows.append(" | ".join(str(v) if pd.notna(v) else "?" for v in values))
-        rows.append(
-            "<tr>"
-            + "".join(
-                "<td>" + escape(str(v) if pd.notna(v) else "\u2014") + "</td>"
-                for v in values
-            )
-            + "</tr>"
-        )
-    changes = []
-    for row in lineup.to_dict("records"):
-        incumbents = board.loc[board.starter_slot.eq(row["slot"])]
-        if len(incumbents) == 1 and incumbents.iloc[0].player_id != row["player_id"]:
-            old = incumbents.iloc[0]
-            # Equivalent slot shuffles among recommended starters are not start/sit changes.
-            if old.player_id in selected:
-                continue
-            gain = row["projected_points"] - old.projected_points
-            comparison = (
-                f" ({gain:+.1f} projected points)"
-                if pd.notna(gain)
-                else " (incumbent unavailable or unprojected)"
-            )
-            changes.append(
-                f"{row['slot']}: {row['player_name']} instead of {old.player_name}{comparison}"
-            )
-    from fantasyfootball.reports.waivers import render_waivers
-
-    waiver_html, waiver_text = render_waivers(plan_dir)
+    brief_html, brief_text = render_lineup_brief(board, lineup)
     range_visual = render_ranges(board, selected, audit.get("prediction_ranges", {}))
     title = f"{team_name} \u2014 Week {week} Start/Sit Report ({season})"
-    summary = (
-        "; ".join(changes)
-        if changes
-        else "No replacement of a current offensive starter is recommended; check slot assignments and availability below."
-    )
     omissions = ", ".join(audit["unsupported_scoring"]) or "none"
     html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{escape(title)}</title></head><body style="font-family:Arial,sans-serif;color:#182538">
-<h1>{escape(title)}</h1><p>{escape(summary)}</p>
+<h1>{escape(title)}</h1>
 <p>Data as of {escape(audit["as_of"])}. Training cutoff: {audit["history_cutoff"]}.</p>
+{brief_html}
+<p>Check injury and active status before kickoff. Locked players show preweek estimates, not remaining points.</p>
 {range_visual}
-<table border="1" cellpadding="7" cellspacing="0"><tr><th>Decision</th><th>Assigned slot</th><th>Player</th><th>Pos</th><th>Opponent</th><th>Projected points</th><th>Availability</th><th>Watch</th></tr>{"".join(rows)}</table>
-<p>Recommendations maximize projected offensive points subject to eligible slots and kickoff locks. Opponent context comes from historical positional points allowed; this is not a calibrated matchup difficulty grade. Small projected differences are not strong evidence.</p>
-<p>Wednesday reports are preliminary. Recheck injuries and active status before kickoff. Started players retain their imported slots; displayed values are preweek estimates, not remaining points.</p>
 {specialist_html}
-{waiver_html}
 <p>The main lineup and ranges cover offense. Kicker estimates, when available, are separate kicking-only baselines; team defense points are not modeled. Unsupported offensive scoring: {escape(omissions)}. Rookies and players with little history may have weak forecasts. No lineup changes were submitted.</p>
 <p>Sources: <a href="https://sleeper.com">Sleeper</a>, <a href="https://github.com/nflverse/nflverse-data">nflverse player data</a>, <a href="https://github.com/nflverse/nfldata">NFL schedule</a>.</p></body></html>"""
-    plain = title + "\n\n" + summary + "\n\n" + "\n".join(text_rows)
+    plain = title + "\n\n" + brief_text
+    plain += (
+        f"\n\nData as of {audit['as_of']}. Training cutoff: {audit['history_cutoff']}."
+    )
     plain += f"\n\nOffensive research only. Defense points not modeled; kicker baselines are separate. Unsupported scoring: {omissions}. Recheck injuries before kickoff. No lineup changes submitted."
     if "prediction_lower" in board:
         plain += "\n\nHistorical prediction ranges (nominal 80%, not guaranteed):"
@@ -226,7 +182,8 @@ def render_report(plan_dir, team_name, season, week):
             subset=["prediction_lower", "prediction_upper"]
         ).itertuples():
             plain += f"\n{row.player_name}: {row.prediction_lower:.1f} to {row.prediction_upper:.1f}"
-    plain += specialist_text + "\n" + waiver_text
+    plain += "\nLocked players show preweek estimates, not remaining points."
+    plain += specialist_text
     return title, plain, html
 
 

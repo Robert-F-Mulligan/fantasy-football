@@ -56,3 +56,11 @@ The October 26, 2026 post-organization run reached report preparation with the n
 ## Tuesday waiver email
 
 The workflow now has two schedules: Tuesday 10 a.m. Eastern for waiver rankings/FAAB and Wednesday 10 a.m. Eastern for start/sit. Manual dispatch selects `report_type` (`waivers` or `lineup`) and defaults to no email. See [waiver scope and spending rules](WAIVERS.md). These schedules become active when the workflow change reaches main. The existing lineup delivery keys are preserved; waiver delivery uses a separate namespace.
+
+### Reading the Wednesday lineup email
+
+The email leads with start/bench actions and any slot moves, followed by recommended starters (including FLEX) and the bench. Kickoffs use Eastern time with EST/EDT labels. Injury, bye/schedule, locked-player and limited-history notes stay beside the player. Fewer than four historical games triggers a descriptive limited-history note; it is not a statistical confidence threshold.
+
+A projected points gain is shown only when the current offensive lineup is complete, eligible and fully projected. Moving a retained starter into FLEX is a slot assignment, not a player replacement. For a single replacement with overlapping historical prediction ranges, a close-call note highlights uncertainty; overlap is not a significance test or a win probability. Multiple changes are summarized together without inventing pairwise comparisons. Locked players retain their preweek estimates.
+
+The range chart and separate kicker/defense section follow the lineup. Full waiver rankings remain in the Tuesday waiver email rather than being repeated on Wednesday. HTML and plain-text versions carry the same lineup actions and player notes.
