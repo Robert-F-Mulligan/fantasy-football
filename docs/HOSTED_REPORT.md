@@ -57,6 +57,15 @@ The October 26, 2026 post-organization run reached report preparation with the n
 
 The workflow now has two schedules: Tuesday 10 a.m. Eastern for waiver rankings/FAAB and Wednesday 10 a.m. Eastern for start/sit. Manual dispatch selects `report_type` (`waivers` or `lineup`) and defaults to no email. See [waiver scope and spending rules](WAIVERS.md). These schedules become active when the workflow change reaches main. The existing lineup delivery keys are preserved; waiver delivery uses a separate namespace.
 
+### Reading nested prediction ranges
+
+The lineup email shows a point marker, a thick 50% inner prediction range and a thin 80% outer prediction range on the same points scale. Both ranges also have numeric labels in HTML and plain text. They are separately estimated quantiles of position-level absolute forecast errors from chronological out-of-sample forecasts, not confidence intervals around a mean. The inner range is not a scaled version of the outer range. Their widths can coincide when calibration errors are tied.
+
+Both coverage rates are checked on later weeks excluded from calibration, and both are recorded in prospective scorecards when final outcomes arrive. Calibration excludes players with fewer than four prior games and requires sufficient position samples. Missing evidence produces no fabricated range; older forecasts can still show their outer range alone. DNP/injury risk is separate, and overlapping ranges are not a significance test or a probability of beating another player.
+
+
+The [saved-snapshot validation](validation/nested-prediction-ranges.json) checked weeks 6-7 of 2026 separately from calibration: inner coverage was 46-59% by position and outer coverage 78-88%. These are retrospective checks, not guarantees or prospective results.
+
 ### Reading the Wednesday lineup email
 
 The email leads with start/bench actions and any slot moves, followed by recommended starters (including FLEX) and the bench. Kickoffs use Eastern time with EST/EDT labels. Injury, bye/schedule, locked-player and limited-history notes stay beside the player. Fewer than four historical games triggers a descriptive limited-history note; it is not a statistical confidence threshold.

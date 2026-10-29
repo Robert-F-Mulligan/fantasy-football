@@ -21,13 +21,16 @@ class RollingErrorRanges:
         min_samples=30,
         min_history_games=4,
         model_factory=None,
+        inner_coverage=0.5,
     ):
         if (
-            not 0 < coverage < 1
+            not 0 < inner_coverage < coverage < 1
             or min(calibration_weeks, validation_weeks, min_samples, min_history_games)
             < 1
         ):
             raise ValueError("Invalid error-range configuration")
+        self.inner_coverage = inner_coverage
+        self.inner_widths = {}
         self.coverage = coverage
         self.calibration_weeks = calibration_weeks
         self.validation_weeks = validation_weeks
@@ -39,11 +42,13 @@ class RollingErrorRanges:
 
     def fit(self, history):
         self.widths = {}
+        self.inner_widths = {}
         periods = sorted(history.period.unique())
         required = self.calibration_weeks + self.validation_weeks
         self.cutoff = int(history.period.max())
         self.report = {
             "target_coverage": self.coverage,
+            "inner_target_coverage": self.inner_coverage,
             "method": "position-level rolling-origin absolute errors",
             "history_cutoff": self.cutoff,
             "positions": {},
@@ -92,10 +97,17 @@ class RollingErrorRanges:
             if rank > len(values):
                 continue
             width = float(np.sort(values)[rank - 1])
+            inner_rank = math.ceil((len(values) + 1) * self.inner_coverage)
+            inner_width = float(np.sort(values)[inner_rank - 1])
+            self.inner_widths[position] = inner_width
             check = validation.loc[validation.pos == position, "error"]
             self.widths[position] = width
             self.report["positions"][position] = {
                 "half_width": width,
+                "inner_half_width": inner_width,
+                "observed_inner_coverage": float(check.le(inner_width).mean())
+                if len(check)
+                else None,
                 "calibration_rows": len(values),
                 "validation_rows": len(check),
                 "observed_coverage": float(check.le(width).mean())
@@ -120,6 +132,10 @@ class RollingErrorRanges:
         width = width.where(enough)
         result["prediction_lower"] = result.projected_points - width
         result["prediction_upper"] = result.projected_points + width
+        inner_width = result.pos.map(self.inner_widths).where(enough)
+        result["prediction_inner_lower"] = result.projected_points - inner_width
+        result["prediction_inner_upper"] = result.projected_points + inner_width
+        result["range_inner_target_coverage"] = self.inner_coverage
         result["range_target_coverage"] = self.coverage
         result["range_status"] = np.where(
             width.notna(), "estimated", "insufficient_evidence"

@@ -7,6 +7,7 @@ import ssl
 from email.message import EmailMessage
 from hashlib import sha256
 from html import escape
+from math import isfinite
 from pathlib import Path
 
 import pandas as pd
@@ -21,6 +22,11 @@ def render_ranges(board, selected, metadata):
     if not needed.issubset(board):
         return "<p>Prediction ranges unavailable for this report.</p>"
     plotted = board.dropna(subset=list(needed)).copy()
+    plotted = plotted.loc[
+        plotted[list(needed)].apply(lambda column: column.map(isfinite)).all(axis=1)
+        & plotted.prediction_lower.le(plotted.projected_points)
+        & plotted.projected_points.le(plotted.prediction_upper)
+    ]
     if plotted.empty:
         return "<p>Prediction ranges unavailable: insufficient historical evidence.</p>"
     lower = min(0.0, float(plotted.prediction_lower.min()))
@@ -28,6 +34,9 @@ def render_ranges(board, selected, metadata):
     span = upper - lower
     width = 260
     rows = []
+    inner_target = metadata.get("inner_target_coverage", 0.5)
+    target = metadata.get("target_coverage", 0.8)
+    has_inner = False
     for row in plotted.sort_values(
         ["pos", "projected_points"], ascending=[True, False]
     ).to_dict("records"):
@@ -40,36 +49,71 @@ def render_ranges(board, selected, metadata):
         before = max(0, round((point - lo) / span * width))
         after = max(0, round((hi - point) / span * width))
         color = "#166c80" if row["player_id"] in selected else "#667085"
-        segments = [
-            (left, "#ffffff"),
-            (before, "#b6dce2"),
-            (4, color),
-            (after, "#b6dce2"),
-        ]
+        inner_lo = row.get("prediction_inner_lower", float("nan"))
+        inner_hi = row.get("prediction_inner_upper", float("nan"))
+        valid_inner = (
+            pd.notna(inner_lo)
+            and pd.notna(inner_hi)
+            and isfinite(inner_lo)
+            and isfinite(inner_hi)
+            and lo <= inner_lo <= point <= inner_hi <= hi
+        )
+        has_inner |= valid_inner
+        if valid_inner:
+            inner_left = max(0, round((inner_lo - lo) / span * width))
+            inner_before = max(0, before - inner_left)
+            inner_after = max(0, round((inner_hi - point) / span * width))
+            segments = [
+                (left, "#ffffff", 8),
+                (inner_left, "#b6dce2", 8),
+                (inner_before, "#68a9b5", 18),
+                (4, color, 24),
+                (inner_after, "#68a9b5", 18),
+                (max(0, after - inner_after), "#b6dce2", 8),
+            ]
+        else:
+            segments = [
+                (left, "#ffffff", 8),
+                (before, "#b6dce2", 8),
+                (4, color, 24),
+                (after, "#b6dce2", 8),
+            ]
         cells = "".join(
-            f'<td width="{n}" bgcolor="{c}" style="width:{n}px;height:12px;font-size:1px;line-height:12px">&nbsp;</td>'
-            for n, c in segments
+            f'<td width="{n}" valign="middle" style="width:{n}px;padding:0"><div style="background-color:{c};height:{height}px;line-height:{height}px;font-size:1px">&nbsp;</div></td>'
+            for n, c, height in segments
             if n
+        )
+        inner_label = (
+            f"{inner_target:.0%}: {inner_lo:.1f} to {inner_hi:.1f}<br>"
+            if valid_inner
+            else "Inner range unavailable<br>"
         )
         label = escape(str(row["player_name"]))
         decision = "START" if row["player_id"] in selected else "SIT"
         rows.append(
-            f'<tr><td style="padding:8px">{label}<br><small>{decision} / {escape(str(row["pos"]))}</small></td><td><table role="presentation" cellpadding="0" cellspacing="0"><tr>{cells}</tr></table></td><td style="padding:8px;white-space:nowrap">{lo:.1f} to {hi:.1f}<br><b>{point:.1f} projected</b></td></tr>'
+            f'<tr><td style="padding:8px">{label}<br><small>{decision} / {escape(str(row["pos"]))}</small></td><td><table role="presentation" cellpadding="0" cellspacing="0"><tr>{cells}</tr></table></td><td style="padding:8px;white-space:nowrap">{inner_label}{target:.0%}: {lo:.1f} to {hi:.1f}<br><b>{point:.1f} projected</b></td></tr>'
         )
     checks = []
     for position, info in metadata.get("positions", {}).items():
         coverage = info.get("observed_coverage")
         if coverage is not None:
-            checks.append(
-                f"{escape(position)}: {coverage:.0%} of {info['validation_rows']} later observations inside the range"
-            )
-    target = metadata.get("target_coverage", 0.8)
+            check = f"{escape(position)}: {coverage:.0%} of {info['validation_rows']} later observations inside the {target:.0%} range"
+            inner_coverage = info.get("observed_inner_coverage")
+            if inner_coverage is not None:
+                check += f"; {inner_coverage:.0%} inside the {inner_target:.0%} range"
+            checks.append(check)
+    range_title = f"{inner_target:.0%} / {target:.0%}" if has_inner else f"{target:.0%}"
+    legend = (
+        "Thick darker bar: inner prediction range. Thin pale bar: outer prediction range."
+        if has_inner
+        else "Thin pale bar: outer prediction range."
+    )
     return (
-        f'<h2>Projected points and {target:.0%} target ranges</h2><p>Dark marker: point estimate. Pale bar: historical error range. Shared scale: {lower:.0f} to {upper:.0f} points. START/SIT labels remain readable without color.</p><table cellpadding="0" cellspacing="0">'
+        f'<h2>Projected points and {range_title} target ranges</h2><p>Dark marker: point estimate. {legend} Shared scale: {lower:.0f} to {upper:.0f} points. START/SIT labels remain readable without color.</p><table cellpadding="0" cellspacing="0">'
         + "".join(rows)
         + "</table><p>"
         + ("; ".join(checks) or "Independent coverage check unavailable.")
-        + "</p><p>Ranges use past out-of-sample errors for each position. They are not confidence intervals, floor/ceiling guarantees, or an 80% chance of beating another player. DNP/injury risk is not included. Players without bars lack enough evidence or are outside the modeled scope. Overlapping ranges indicate that small ranking differences should be treated cautiously.</p>"
+        + "</p><p>Ranges use past out-of-sample errors for each position. They are not confidence intervals, floor/ceiling guarantees, or an 80% chance of beating another player. DNP/injury risk is not included. Players without bars lack enough evidence or are outside the modeled scope. Overlap is not a statistical significance test. Both ranges are estimated separately from historical errors; injury status is shown separately.</p>"
     )
 
 
@@ -143,6 +187,8 @@ def render_report(plan_dir, team_name, season, week):
                 for c in [
                     "prediction_lower",
                     "prediction_upper",
+                    "prediction_inner_lower",
+                    "prediction_inner_upper",
                     "range_status",
                     "history_games",
                 ]
@@ -177,11 +223,19 @@ def render_report(plan_dir, team_name, season, week):
     )
     plain += f"\n\nOffensive research only. Defense points not modeled; kicker baselines are separate. Unsupported scoring: {omissions}. Recheck injuries before kickoff. No lineup changes submitted."
     if "prediction_lower" in board:
-        plain += "\n\nHistorical prediction ranges (nominal 80%, not guaranteed):"
+        target = audit.get("prediction_ranges", {}).get("target_coverage", 0.8)
+        inner_target = audit.get("prediction_ranges", {}).get(
+            "inner_target_coverage", 0.5
+        )
+        plain += f"\n\nHistorical prediction ranges ({target:.0%} outer target, not guaranteed; excludes DNP/injury risk):"
         for row in board.dropna(
             subset=["prediction_lower", "prediction_upper"]
         ).itertuples():
-            plain += f"\n{row.player_name}: {row.prediction_lower:.1f} to {row.prediction_upper:.1f}"
+            plain += f"\n{row.player_name}: {target:.0%}: {row.prediction_lower:.1f} to {row.prediction_upper:.1f}"
+            inner_lo = getattr(row, "prediction_inner_lower", float("nan"))
+            inner_hi = getattr(row, "prediction_inner_upper", float("nan"))
+            if pd.notna(inner_lo) and pd.notna(inner_hi):
+                plain += f"; {inner_target:.0%}: {inner_lo:.1f} to {inner_hi:.1f}"
     plain += "\nLocked players show preweek estimates, not remaining points."
     plain += specialist_text
     return title, plain, html

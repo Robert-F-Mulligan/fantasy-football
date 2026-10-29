@@ -4,7 +4,6 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from fantasyfootball.forecasting.features import STATS
 from fantasyfootball.evaluation.scorecard import (
     ArchivedForecast,
     FinalOutcomes,
@@ -12,6 +11,7 @@ from fantasyfootball.evaluation.scorecard import (
     scoring_digest,
     write_scorecard,
 )
+from fantasyfootball.forecasting.features import STATS
 
 
 def forecast():
@@ -321,3 +321,18 @@ def test_private_scorecards_choose_earliest_capture_and_save_outputs(
         assert "scorecard.html" in archive.namelist()
         assert "outcomes.json" in archive.namelist()
     assert scorecard_archive.build_private_scorecards(current_path, checkout) == []
+
+
+def test_inner_and_outer_coverage_scored_separately_excluding_dnps():
+    data = forecast()
+    data.projections["prediction_inner_lower"] = [5.0, 11.0, 12.0]
+    data.projections["prediction_inner_upper"] = [7.0, 12.0, 14.0]
+    data.projections["range_inner_target_coverage"] = 0.5
+    final = outcomes()
+    final["players"][1].update(status="dnp", points=0)
+    report, _ = WeeklyScorecard().evaluate(data, final)
+    checks = {(r["position"], r["target"]): r for r in report["prediction_ranges"]}
+    assert len(checks) == 4
+    assert checks["TE", 0.8]["covered"] == 1
+    assert checks["TE", 0.5]["covered"] == 0
+    assert checks["RB", 0.5]["covered"] == 1

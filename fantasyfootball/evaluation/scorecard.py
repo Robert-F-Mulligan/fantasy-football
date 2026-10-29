@@ -195,6 +195,9 @@ class WeeklyScorecard:
                 "prediction_lower",
                 "prediction_upper",
                 "range_target_coverage",
+                "prediction_inner_lower",
+                "prediction_inner_upper",
+                "range_inner_target_coverage",
                 "range_status",
             ]
             if c in forecast.projections
@@ -248,42 +251,37 @@ class WeeklyScorecard:
                         }
                     )
         coverage = []
-        if {
-            "prediction_lower",
-            "prediction_upper",
-            "range_status",
-            "range_target_coverage",
-        }.issubset(board):
+        for lower_col, upper_col, target_col in [
+            ("prediction_lower", "prediction_upper", "range_target_coverage"),
+            (
+                "prediction_inner_lower",
+                "prediction_inner_upper",
+                "range_inner_target_coverage",
+            ),
+        ]:
+            if not {lower_col, upper_col, target_col, "range_status"}.issubset(board):
+                continue
             ranges = board.loc[
                 board.scored
                 & board.status.eq("played")
                 & board.range_status.eq("estimated")
             ].copy()
             ranges = ranges.loc[
-                np.isfinite(ranges.prediction_lower)
-                & np.isfinite(ranges.prediction_upper)
-                & ranges.prediction_lower.le(ranges.prediction_upper)
+                np.isfinite(ranges[lower_col])
+                & np.isfinite(ranges[upper_col])
+                & ranges[lower_col].le(ranges[upper_col])
             ]
-            for (position, target), group in ranges.groupby(
-                ["pos", "range_target_coverage"]
-            ):
+            for (position, target), group in ranges.groupby(["pos", target_col]):
+                inside = group.points.between(group[lower_col], group[upper_col])
                 coverage.append(
                     {
                         "position": position,
                         "target": float(target),
                         "n": len(group),
-                        "covered": int(
-                            group.points.between(
-                                group.prediction_lower, group.prediction_upper
-                            ).sum()
-                        ),
-                        "coverage": float(
-                            group.points.between(
-                                group.prediction_lower, group.prediction_upper
-                            ).mean()
-                        ),
+                        "covered": int(inside.sum()),
+                        "coverage": float(inside.mean()),
                         "mean_width": float(
-                            (group.prediction_upper - group.prediction_lower).mean()
+                            (group[upper_col] - group[lower_col]).mean()
                         ),
                     }
                 )
