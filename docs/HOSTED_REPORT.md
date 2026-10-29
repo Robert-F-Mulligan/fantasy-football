@@ -64,3 +64,9 @@ The email leads with start/bench actions and any slot moves, followed by recomme
 A projected points gain is shown only when the current offensive lineup is complete, eligible and fully projected. Moving a retained starter into FLEX is a slot assignment, not a player replacement. For a single replacement with overlapping historical prediction ranges, a close-call note highlights uncertainty; overlap is not a significance test or a win probability. Multiple changes are summarized together without inventing pairwise comparisons. Locked players retain their preweek estimates.
 
 The range chart and separate kicker/defense section follow the lineup. Full waiver rankings remain in the Tuesday waiver email rather than being repeated on Wednesday. HTML and plain-text versions carry the same lineup actions and player notes.
+
+### Injury backup plans
+
+Questionable recommended starters receive a one-player contingency when the plan includes exact offensive slot eligibility and a valid snapshot timestamp. The planner keeps every other recommended starter, considers unflagged eligible bench players with projections and known future kickoffs, and checks the entire assignment against league slots. Required FLEX moves are listed explicitly. Players already locked, or whose kickoff is at or before the decision deadline, stay in their assigned slots.
+
+The highest-projected feasible backup playing at or after the starter is preferred. If only an earlier option exists, the email labels the earlier deadline; it is not a last-minute replacement. These are independent scenarios for one absence, not a joint plan for multiple injuries. No claim about injury probability or adjusted fantasy points is made. Historical plan files without saved slot rules omit this section rather than guessing the league configuration.

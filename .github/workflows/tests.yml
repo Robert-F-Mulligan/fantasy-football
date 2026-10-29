@@ -83,4 +83,4 @@ jobs:
           import fantasyfootball.reports.hosted
           PY
       - name: Exercise report preparation and delivery boundaries offline
-        run: python -m pytest tests/test_hosted.py tests/test_lineup_email.py tests/test_waivers.py tests/test_waiver_comparisons.py tests/test_waiver_roles.py -q
+        run: python -m pytest tests/test_hosted.py tests/test_lineup_email.py tests/test_injury_contingencies.py tests/test_waivers.py tests/test_waiver_comparisons.py tests/test_waiver_roles.py -q
