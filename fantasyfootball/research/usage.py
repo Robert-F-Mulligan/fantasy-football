@@ -36,8 +36,6 @@ class ReceiverUsage:
         ):
             raise ValueError("through_week must be an integer from 1 to 18")
         data = numeric(plays, ["season", "week"])
-        if not data.two_point_attempt.isin([0, 1]).all():
-            raise ValueError("two_point_attempt must contain explicit 0/1 flags")
         if (
             data[["game_id", "play_id"]].isna().any().any()
             or data.duplicated(["game_id", "play_id"]).any()
@@ -48,8 +46,12 @@ class ReceiverUsage:
             & data.week.le(through_week)
             & data.season_type.eq("REG")
             & data.play_type.eq("pass")
-            & data.two_point_attempt.eq(0)
         ].copy()
+        if not data.two_point_attempt.isin([0, 1]).all():
+            raise ValueError(
+                "Eligible pass plays require explicit two_point_attempt 0/1 flags"
+            )
+        data = data.loc[data.two_point_attempt.eq(0)].copy()
         # nflverse represents nullified plays as no_play, not pass.
         identified = data.receiver_player_id.notna() & data.receiver_player_id.astype(
             str

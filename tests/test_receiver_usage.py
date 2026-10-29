@@ -65,3 +65,14 @@ def test_nullified_conversion_and_postseason_plays_are_excluded():
     source.loc[2, "season_type"] = "POST"
     result, audit = ReceiverUsage().summarize(source, season=2026, through_week=2)
     assert result.empty and audit["unidentified_pass_plays"] == 1
+
+
+def test_irrelevant_missing_flags_do_not_reject_snapshot():
+    source = fixture()
+    source.loc[4, "play_type"] = None
+    source.loc[4, "two_point_attempt"] = float("nan")
+    result, audit = ReceiverUsage().summarize(source, season=2026, through_week=3)
+    assert audit["identified_targets"] == 3 and len(result) == 3
+    source.loc[0, "two_point_attempt"] = float("nan")
+    with pytest.raises(ValueError, match="Eligible pass"):
+        ReceiverUsage().summarize(source, season=2026, through_week=3)

@@ -52,3 +52,7 @@ These 18 notebooks remain unchanged as research records. Their output counts des
 - Draft tier notebooks: use `DraftApplication` and the shared Plotly adapter rather than duplicating valuation or clustering code.
 
 Generated outputs belong under ignored `work/`. Keep current notebooks free of saved outputs and credentials. Historical figures/data are retained until their provenance and replacement have been verified; no bulk deletion is part of this migration.
+
+## Real-snapshot checks
+
+See [research validation](../docs/RESEARCH_VALIDATION.md) for the repeatable command, checksums and results from 2021-2024 public nflverse snapshots. Notebook examples remain synthetic so CI stays offline.
