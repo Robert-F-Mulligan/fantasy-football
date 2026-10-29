@@ -66,3 +66,5 @@ Tracked notebook source imports have been updated without changing saved outputs
 Historical data, figures, notebooks, and experiment result manifests are retained. Old manifests describe the source layout at their original commit and must not be rewritten. Generated local environments, caches, credentials, and work files remain ignored rather than being included in the package.
 
 Keep production forecasting independent of `legacy` and `experiments`. Hosted reporting orchestrates data, forecasting, lineup planning, and delivery; it must not make experimental features production defaults implicitly.
+
+Research transforms share `research.inputs.ResearchWindow`, binary-flag validation, and team normalization. This keeps period/key contracts aligned without coupling descriptive research to the forecasting models.

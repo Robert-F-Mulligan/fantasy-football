@@ -3,6 +3,11 @@
 import pandas as pd
 
 from fantasyfootball.core.domain import numeric
+from fantasyfootball.research.inputs import (
+    ResearchWindow,
+    normalize_teams,
+    require_binary_flags,
+)
 
 
 class TeamMatchups:
@@ -28,26 +33,9 @@ class TeamMatchups:
             "epa",
             "sack",
         }
-        if missing := required - set(plays):
-            raise ValueError("Missing columns: " + ", ".join(sorted(missing)))
-        if (
-            isinstance(through_week, bool)
-            or not isinstance(through_week, int)
-            or not 1 <= through_week <= 18
-        ):
-            raise ValueError("through_week must be an integer from 1 to 18")
-        data = numeric(plays, ["season", "week"])
-        if (
-            data[["game_id", "play_id"]].isna().any().any()
-            or data.duplicated(["game_id", "play_id"]).any()
-        ):
-            raise ValueError("Unique game_id/play_id keys are required")
-        data = data.loc[
-            data.season.eq(season)
-            & data.week.le(through_week)
-            & data.season_type.eq("REG")
-            & data.play_type.isin(["pass", "run"])
-        ].copy()
+        data = ResearchWindow(season, through_week).select(
+            plays, required=required, play_types=("pass", "run")
+        )
         flags = [
             "two_point_attempt",
             "qb_dropback",
@@ -55,19 +43,11 @@ class TeamMatchups:
             "qb_kneel",
             "qb_spike",
         ]
-        for flag in flags:
-            if not data[flag].isin([0, 1]).all():
-                raise ValueError(f"{flag} requires explicit zero/one flags")
+        require_binary_flags(data, flags)
         data = data.loc[
             data.two_point_attempt.eq(0) & data.qb_kneel.eq(0) & data.qb_spike.eq(0)
         ].copy()
-        for column in ["posteam", "defteam"]:
-            if (
-                data[column].isna().any()
-                or data[column].astype(str).str.strip().eq("").any()
-            ):
-                raise ValueError("Both teams are required for eligible plays")
-            data[column] = data[column].replace({"LAR": "LA", "JAC": "JAX"})
+        data = normalize_teams(data, ["posteam", "defteam"])
         for column in ["epa", "sack"]:
             data[column] = pd.to_numeric(data[column], errors="raise")
             numeric(data.loc[data[column].notna()], [column])

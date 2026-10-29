@@ -36,3 +36,9 @@ python -m fantasyfootball.reports.research work/opportunity-data/play_by_play_20
 The HTML embeds one Plotly bundle and works offline. It contains receiver usage across all teams, the selected historical offense/defense comparison, neutral tendencies, coverage notes, and complete underlying research tables. Unknown values remain visible in the tables. The source filename and checksum identify the input; season/week identify the observation window. It does not fetch data, send email or change forecasts.
 
 `ResearchReport.write` and snapshot validation share `analyze_snapshot`, so they use the same transforms and invariant checks. The writer constructs the report before replacing an existing output and rejects output paths that resolve to the input file. Keep personal or league-derived reports under ignored `work/` or the private archive.
+
+## Shared input contracts
+
+The receiver, matchup and tendency workflows use `ResearchWindow` for schema checks, regular-season selection and the explicit cutoff. Requested seasons and weeks must be integers; snapshot periods must be positive integers, regular-season weeks cannot exceed 18, and game/play keys must be nonblank and unique. Postseason weeks above 18 remain valid input but are excluded from research selections.
+
+Binary-flag checks run only after relevant play types and periods are selected. Team alias normalization is shared. Source frames are copied before filtering or normalization. Metric-specific missing-data rules remain in their respective transforms. After this consolidation, all recorded 2021-2024 validation results, including chart serialization, matched the saved baselines exactly.
