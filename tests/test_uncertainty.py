@@ -3,8 +3,8 @@ from typing import ClassVar
 import pandas as pd
 import pytest
 
-from fantasyfootball.reports.reporting import render_ranges
 from fantasyfootball.forecasting.uncertainty import RollingErrorRanges
+from fantasyfootball.reports.reporting import render_ranges
 
 
 def history():
@@ -120,3 +120,61 @@ def test_visual_is_email_safe_and_does_not_invent_certainty():
     assert "80% target" in html and "not confidence intervals" in html
     assert "<svg" not in html and "<img" not in html
     assert "unavailable" in render_ranges(board.iloc[:0], set(), {})
+
+
+def test_nested_ranges_use_separate_error_quantiles():
+    model = ranges()
+    # Calibration errors: [4,3,2,1, 3,2,1,0, 2,1,0,1].
+    # Finite-sample ranks ceil(13 * coverage): rank 7 = 2, rank 11 = 3.
+    assert model.inner_widths["RB"] == 2
+    assert model.widths["RB"] == 3
+    assert model.report["positions"]["RB"]["observed_inner_coverage"] == 0.875
+    assert model.report["positions"]["RB"]["observed_coverage"] == 1.0
+    changed = history()
+    changed.loc[changed.week >= 9, "fantasy_points"] = 10000
+    after = ranges(changed)
+    assert after.inner_widths == model.inner_widths
+    assert after.report["positions"]["RB"]["observed_inner_coverage"] == 0
+    frame = pd.DataFrame(
+        {
+            "pos": ["RB", "QB", "RB"],
+            "season": [2026] * 3,
+            "week": [11] * 3,
+            "history_games": [8, 8, 0],
+            "projected_points": [1.0] * 3,
+        }
+    )
+    result = model.apply(frame)
+    assert result.prediction_inner_lower.iloc[0] == -1
+    assert result.prediction_inner_upper.iloc[0] == 3
+    assert result.prediction_inner_lower.iloc[1:].isna().all()
+    assert result.range_inner_target_coverage.eq(0.5).all()
+
+
+def test_nested_chart_labels_and_invalid_inner_fallback():
+    board = pd.DataFrame(
+        {
+            "player_id": ["a"],
+            "player_name": ["A"],
+            "pos": ["RB"],
+            "projected_points": [10.0],
+            "prediction_lower": [-2.0],
+            "prediction_upper": [22.0],
+            "prediction_inner_lower": [5.0],
+            "prediction_inner_upper": [15.0],
+        }
+    )
+    html = render_ranges(
+        board, {"a"}, {"target_coverage": 0.8, "inner_target_coverage": 0.5}
+    )
+    assert "50% / 80% target" in html
+    assert "50%: 5.0 to 15.0" in html and "80%: -2.0 to 22.0" in html
+    assert "height:18px" in html and "height:8px" in html
+    assert "not a statistical significance test" in html
+    board.loc[0, "prediction_inner_upper"] = 30
+    assert "Inner range unavailable" in render_ranges(board, set(), {})
+
+
+def test_invalid_nested_coverage_rejected():
+    with pytest.raises(ValueError, match="configuration"):
+        RollingErrorRanges(inner_coverage=0.9, coverage=0.8)

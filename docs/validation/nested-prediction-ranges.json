@@ -1,0 +1,55 @@
+{
+  "target_coverage": 0.8,
+  "inner_target_coverage": 0.5,
+  "method": "position-level rolling-origin absolute errors",
+  "history_cutoff": 202607,
+  "positions": {
+    "QB": {
+      "half_width": 13.517062040146143,
+      "inner_half_width": 7.322386024649168,
+      "observed_inner_coverage": 0.5932203389830508,
+      "calibration_rows": 209,
+      "validation_rows": 59,
+      "observed_coverage": 0.8813559322033898
+    },
+    "RB": {
+      "half_width": 7.268070261556903,
+      "inner_half_width": 3.5568442924299455,
+      "observed_inner_coverage": 0.5337837837837838,
+      "calibration_rows": 477,
+      "validation_rows": 148,
+      "observed_coverage": 0.8175675675675675
+    },
+    "TE": {
+      "half_width": 6.173585615822306,
+      "inner_half_width": 2.818807600654808,
+      "observed_inner_coverage": 0.5153846153846153,
+      "calibration_rows": 410,
+      "validation_rows": 130,
+      "observed_coverage": 0.7846153846153846
+    },
+    "WR": {
+      "half_width": 7.407176095493271,
+      "inner_half_width": 3.218668368594821,
+      "observed_inner_coverage": 0.46311475409836067,
+      "calibration_rows": 762,
+      "validation_rows": 244,
+      "observed_coverage": 0.8483606557377049
+    }
+  },
+  "status": "estimated",
+  "limitations": "Observed player-games only; excludes DNPs. Temporal dependence and changing models mean coverage is not guaranteed.",
+  "calibration_periods": [
+    202518,
+    202601,
+    202602,
+    202603,
+    202604,
+    202605
+  ],
+  "validation_periods": [
+    202606,
+    202607
+  ],
+  "validation_context": "Saved October 27, 2026 snapshot; league-scored historical player-games. Validation weeks 2026 6-7; not prospective performance."
+}
