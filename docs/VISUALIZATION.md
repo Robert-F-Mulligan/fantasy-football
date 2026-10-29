@@ -39,3 +39,7 @@ Provider semantics: [nflfastR field definitions](https://nflfastr.com/articles/f
 ## Neutral team tendencies
 
 `NeutralTendencies` defines neutral plays as first/second downs, more than 120 half-seconds remaining, and offense win probability in [0.2, 0.8]. The denominator comprises qualifying observed dropbacks and designed rushes. Scrambles count with dropbacks. Kneels, spikes, two-point attempts, postseason and nullified plays are excluded. Missing context is counted separately; no qualifying sample yields an unknown rate. The chart uses a fixed 0-100% scale and includes sample counts in hover. This historical filter is not a calibrated forecast feature or a significance threshold.
+
+## Combined research report
+
+`ResearchReport` builds all five research charts and three data tables from one validated snapshot. It embeds Plotly once, uses stable figure IDs, escapes data/name labels, includes viewport/language metadata, and links each chart section to its data table. Scrollable table regions are keyboard-focusable. Plotly remains lazily imported so base ingestion and email installations do not need the visualization extra. Automated checks cover deterministic HTML, safe escaping, table links and source-file protection; they do not replace manual browser and assistive-technology review.

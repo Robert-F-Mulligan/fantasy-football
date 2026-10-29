@@ -24,3 +24,15 @@ Use the checksum for your chosen snapshot; a revised provider file should receiv
 ## Bug found and fixed
 
 The receiver transform originally validated two-point flags on every row before selecting pass plays. The 2024 snapshot contains 1,517 missing flags on end-of-play, no-play and kickoff rows, all irrelevant to target calculations. Validation now applies after the requested regular-season pass-play filter. Missing flags on eligible pass plays still raise. A regression test covers both behaviors.
+
+## Generate an offline report
+
+Install the `viz` extra, then choose the offense and opposing defense explicitly:
+
+```powershell
+python -m fantasyfootball.reports.research work/opportunity-data/play_by_play_2024.csv.gz --season 2024 --through-week 18 --offense NE --defense BUF --expected-sha256 23370d5d10f8104d80d46a1fc5e61f4f6f5a3263fe96fe2dd629913cfcb08c06 --output work/research-2024.html
+```
+
+The HTML embeds one Plotly bundle and works offline. It contains receiver usage across all teams, the selected historical offense/defense comparison, neutral tendencies, coverage notes, and complete underlying research tables. Unknown values remain visible in the tables. The source filename and checksum identify the input; season/week identify the observation window. It does not fetch data, send email or change forecasts.
+
+`ResearchReport.write` and snapshot validation share `analyze_snapshot`, so they use the same transforms and invariant checks. The writer constructs the report before replacing an existing output and rejects output paths that resolve to the input file. Keep personal or league-derived reports under ignored `work/` or the private archive.
