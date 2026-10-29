@@ -52,7 +52,7 @@ def _notes(row):
     return "; ".join(notes)
 
 
-def render_lineup_brief(board, lineup):
+def render_lineup_brief(board, lineup, *, slots=None, as_of=None):
     """Compare membership, not slot pairs: moving a starter into FLEX is not a swap."""
     selected = set(lineup.player_id)
     current = board.loc[
@@ -121,6 +121,11 @@ def render_lineup_brief(board, lineup):
         + "</ul>"
     )
     plain = "Your lineup actions\n" + "\n".join(actions)
+    contingency_html, contingency_text = render_contingencies(
+        board, lineup, slots, as_of
+    )
+    html += contingency_html
+    plain += contingency_text
     starts = lineup[["player_id", "slot"]].merge(
         board, on="player_id", validate="one_to_one"
     )
@@ -152,3 +157,45 @@ def render_lineup_brief(board, lineup):
             )
         html += "</table>"
     return html, plain
+
+
+def render_contingencies(board, lineup, slots, as_of):
+    from fantasyfootball.lineups.contingencies import injury_contingencies
+
+    scenarios = injury_contingencies(board, lineup, slots, as_of)
+    if not scenarios:
+        return "", ""
+    lines = []
+    for scenario in scenarios:
+        prefix = f"If {scenario['starter']} is ruled out: "
+        option = scenario["option"]
+        if option is None:
+            lines.append(
+                prefix
+                + "no unflagged, projected bench replacement with confirmed timing can fill the lineup."
+            )
+            continue
+        assignments = "; ".join(
+            f"{row['player_name']} to {row['slot']}"
+            + (f" (from {row['from_slot']})" if row["from_slot"] else "")
+            for row in option["assignments"]
+        )
+        timing = (
+            "Available at the starter's kickoff"
+            if option["later"]
+            else "Earlier decision required; do not wait for the starter's kickoff"
+        )
+        lines.append(
+            prefix
+            + assignments
+            + f". Backup projection: {option['projected_points']:.1f} points. {timing}. Act before {kickoff_label(option['deadline'])}."
+        )
+    note = "Each option assumes only that starter is out and the other starters remain available."
+    html = (
+        "<h2>Injury backup plan</h2><ul>"
+        + "".join("<li>" + escape(line) + "</li>" for line in lines)
+        + "</ul><p>"
+        + note
+        + "</p>"
+    )
+    return html, "\n\nInjury backup plan\n" + "\n".join(lines) + "\n" + note

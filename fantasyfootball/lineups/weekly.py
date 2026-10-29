@@ -93,6 +93,7 @@ class WeeklyLineupPlanner:
                 game_id=None,
                 availability="unknown",
                 warning="",
+                injury_status="",
                 locked_slot="",
             )
             if (
@@ -122,6 +123,7 @@ class WeeklyLineupPlanner:
                     slot = row.get("starter_slot")
                     slot = "" if pd.isna(slot) else str(slot)
                     injury = str(details.get("injury_status") or "").casefold()
+                    result["injury_status"] = injury
                     status = str(details.get("status") or "").casefold()
                     if kickoff <= now:
                         result["availability"] = (
@@ -253,6 +255,7 @@ def write_weekly_plan(args):
         "dropped_training_features": model.dropped_features,
         "prediction_ranges": ranges.report,
         "scope": "QB/RB/WR/TE only",
+        "offensive_slots": slots,
         "unsupported_scoring": report["unsupported_offensive_scoring"],
         "inputs": {
             "history": str(args.input),

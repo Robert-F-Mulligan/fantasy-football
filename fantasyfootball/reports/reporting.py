@@ -158,7 +158,9 @@ def render_report(plan_dir, team_name, season, week):
     )
     board = board.loc[~board.sleeper_id.astype(str).isin(specialist_ids)].copy()
     selected = set(lineup.player_id)
-    brief_html, brief_text = render_lineup_brief(board, lineup)
+    brief_html, brief_text = render_lineup_brief(
+        board, lineup, slots=audit.get("offensive_slots"), as_of=audit.get("as_of")
+    )
     range_visual = render_ranges(board, selected, audit.get("prediction_ranges", {}))
     title = f"{team_name} \u2014 Week {week} Start/Sit Report ({season})"
     omissions = ", ".join(audit["unsupported_scoring"]) or "none"

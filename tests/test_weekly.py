@@ -112,6 +112,7 @@ def test_injury_status_before_kickoff(status, expected):
     details["3"]["injury_status"] = status
     audit = available(roster, details, schedule)
     assert audit.availability.iloc[2] == expected
+    assert audit.injury_status.iloc[2] == status.casefold()
     assert audit.warning.iloc[2]
 
 
