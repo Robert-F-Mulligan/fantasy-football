@@ -1,13 +1,23 @@
 """Maximum projected-points assignment to explicit roster slots."""
 
 import numpy as np
+import pandas as pd
 from scipy.optimize import linear_sum_assignment
 
 from fantasyfootball.core.domain import numeric, players
 
 
 class LineupOptimizer:
-    def optimize(self, projections, slots, *, excluded=(), locked=(), fixed_slots=None):
+    def optimize(
+        self,
+        projections,
+        slots,
+        *,
+        excluded=(),
+        locked=(),
+        fixed_slots=None,
+        prefer_late_flex=False,
+    ):
         if not isinstance(slots, dict) or any(
             not isinstance(positions, (list, tuple))
             or not positions
@@ -65,4 +75,46 @@ class LineupOptimizer:
         if len(rows) != len(slots) or not locked.issubset(set(selected.player_id)):
             raise ValueError("No feasible lineup satisfies all locks and slots")
         selected.insert(0, "slot", [list(slots)[row] for row in rows])
-        return selected.reset_index(drop=True)
+        selected = selected.reset_index(drop=True)
+        if prefer_late_flex:
+            selected = self._assign_late_flex(selected, slots, fixed_slots)
+        return selected
+
+    @staticmethod
+    def _assign_late_flex(selected, slots, fixed_slots):
+        """Reassign selected players only; never trade projected points for timing.
+
+        Prefer later kickoffs in slots accepting more distinct positions. Among
+        equally flexible assignments, retain as many original slots as possible.
+        Missing kickoff information leaves the original assignment untouched.
+        """
+        if "kickoff" not in selected:
+            return selected
+        kickoff = pd.to_datetime(selected.kickoff, utc=True, errors="coerce")
+        if kickoff.isna().any():
+            return selected
+        breadth = np.array([len(set(positions)) - 1 for positions in slots.values()])
+        if not breadth.any():
+            return selected
+        rank = kickoff.rank(method="dense").to_numpy()
+        eligible = np.array(
+            [
+                [position in positions for position in selected.pos]
+                for positions in slots.values()
+            ]
+        )
+        for slot, player_id in fixed_slots.items():
+            row = list(slots).index(slot)
+            col = selected.index[selected.player_id.eq(player_id)][0]
+            eligible[row, :] = False
+            eligible[:, col] = False
+            eligible[row, col] = True
+        retained = np.array(
+            [[slot == original for original in selected.slot] for slot in slots]
+        )
+        # One unit of timing priority outweighs all slot-retention tie breaks.
+        scores = np.outer(breadth, rank) * (len(slots) + 1) + retained
+        rows, cols = linear_sum_assignment(np.where(eligible, -scores, np.inf))
+        result = selected.iloc[cols].copy()
+        result["slot"] = [list(slots)[row] for row in rows]
+        return result.reset_index(drop=True)
