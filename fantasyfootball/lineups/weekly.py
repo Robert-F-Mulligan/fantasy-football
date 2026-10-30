@@ -181,7 +181,9 @@ class WeeklyLineupPlanner:
         )
         if len(fixed) != board.locked_slot.ne("").sum():
             raise ValueError("Multiple players occupy the same locked slot")
-        return LineupOptimizer().optimize(board, slots, fixed_slots=fixed)
+        return LineupOptimizer().optimize(
+            board, slots, fixed_slots=fixed, prefer_late_flex=True
+        )
 
 
 def write_weekly_plan(args):
@@ -267,6 +269,7 @@ def write_weekly_plan(args):
             "Offensive research lineup; separate kicker baselines and defense context are recorded under specialists. Recheck injuries and schedule.",
             "Caller-supplied snapshots must be current at as_of; historical availability is not reconstructed.",
             "Started players retain their imported slots; their values are preweek predictions, not live remaining points.",
+            "After selecting starters by projected points, later kickoffs are preferred in broader eligible slots without changing starter membership.",
         ],
     }
     from fantasyfootball.forecasting.specialists import specialist_context
