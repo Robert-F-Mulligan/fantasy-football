@@ -160,7 +160,10 @@ def render_lineup_brief(board, lineup, *, slots=None, as_of=None):
 
 
 def render_contingencies(board, lineup, slots, as_of):
-    from fantasyfootball.lineups.contingencies import injury_contingencies
+    from fantasyfootball.lineups.contingencies import (
+        combined_injury_contingency,
+        injury_contingencies,
+    )
 
     scenarios = injury_contingencies(board, lineup, slots, as_of)
     if not scenarios:
@@ -190,7 +193,31 @@ def render_contingencies(board, lineup, slots, as_of):
             + assignments
             + f". Backup projection: {option['projected_points']:.1f} points. {timing}. Act before {kickoff_label(option['deadline'])}."
         )
-    note = "Each option assumes only that starter is out and the other starters remain available."
+    joint = combined_injury_contingency(board, lineup, slots, as_of)
+    if joint is not None:
+        prefix = "If all are ruled out (" + ", ".join(joint["starters"]) + "): "
+        if joint["status"] == "unavailable":
+            lines.append(
+                prefix
+                + "the unflagged, projected bench players with confirmed timing cannot fill every opening. The individual backup plans cannot all be used together."
+            )
+        else:
+            assignments = "; ".join(
+                f"{row['player_name']} to {row['slot']}"
+                + (f" (from {row['from_slot']})" if row["from_slot"] else "")
+                for row in joint["assignments"]
+            )
+            timing = "Earlier decision required. " if joint["earlier"] else ""
+            lines.append(
+                prefix
+                + assignments
+                + ". "
+                + timing
+                + f"Make this combined decision before {kickoff_label(joint['deadline'])}. Each backup is used once."
+            )
+    note = "Individual plans assume only that starter is out. The combined plan, when shown, assumes all listed starters are out; their status may not be confirmed before its deadline."
+    if joint is None:
+        note = "Each option assumes only that starter is out and the other starters remain available."
     html = (
         "<h2>Injury backup plan</h2><ul>"
         + "".join("<li>" + escape(line) + "</li>" for line in lines)

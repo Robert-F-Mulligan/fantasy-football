@@ -1,6 +1,6 @@
 # Repository roadmap
 
-Updated October 28, 2026. This is a research and decision-support platform; it never submits lineup changes or transactions.
+Updated October 29, 2026. This is a research and decision-support platform; it never submits lineup changes or transactions.
 
 ## Working now
 
@@ -8,6 +8,7 @@ Updated October 28, 2026. This is a research and decision-support platform; it n
 - Versioned nflverse snapshots with checksums and canonical player IDs; live Sleeper league/roster import for Bower Rangers.
 - Offensive weekly planning with RB/WR/TE FLEX eligibility, exact starter-slot kickoff locks, reserve/injury checks and chronological training.
 - HTML/plain-text email reports, offensive prediction ranges checked on later weeks, and GitHub-hosted Wednesday 10 a.m. Eastern delivery. Run 40201365106 sent the first hosted report; the user confirmed inbox receipt. The duplicate desktop schedule is paused.
+- Action-first lineup emails with separately calibrated 50%/80% prediction ranges, single and combined injury backup plans, and later-kickoff FLEX placement that preserves selected starters and projected points.
 - Clean-install Python 3.10/3.12 tests and wheel builds. Changes to main trigger email-free report preparation.
 - Specialist report section: league-scored kicking-only baselines, kicker/defense schedule and status context, explicit assigned offensive slots. Defense point forecasts remain unavailable.
 

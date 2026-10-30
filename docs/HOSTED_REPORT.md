@@ -78,8 +78,14 @@ The range chart and separate kicker/defense section follow the lineup. Full waiv
 
 Questionable recommended starters receive a one-player contingency when the plan includes exact offensive slot eligibility and a valid snapshot timestamp. The planner keeps every other recommended starter, considers unflagged eligible bench players with projections and known future kickoffs, and checks the entire assignment against league slots. Required FLEX moves are listed explicitly. Players already locked, or whose kickoff is at or before the decision deadline, stay in their assigned slots.
 
-The highest-projected feasible backup playing at or after the starter is preferred. If only an earlier option exists, the email labels the earlier deadline; it is not a last-minute replacement. These are independent scenarios for one absence, not a joint plan for multiple injuries. No claim about injury probability or adjusted fantasy points is made. Historical plan files without saved slot rules omit this section rather than guessing the league configuration.
+The highest-projected feasible backup playing at or after the starter is preferred. If only an earlier option exists, the email labels the earlier deadline; it is not a last-minute replacement. Individual scenarios assume one absence. When at least two recommended starters are questionable, a separate combined plan checks the case where all of them are ruled out, using each backup once. No claim about injury probability or adjusted fantasy points is made. Historical plan files without saved slot rules omit this section rather than guessing the league configuration.
 
 ### Preserve late-game FLEX options
 
 Weekly lineup selection still maximizes projected points. A second assignment pass keeps exactly those starters and the same projected total, preferring later kickoffs in slots accepting more distinct positions. It respects each league's actual eligibility, including superflex, rather than relying on the slot name. Locked players remain in their imported slots. Equal timing priorities retain as many original assignments as possible; missing kickoff times leave the original assignment unchanged. This preserves substitution options without claiming a scoring gain from a slot shuffle.
+
+### Multiple questionable starters
+
+The combined injury plan retains unaffected starters and checks a complete legal lineup using distinct unflagged, projected bench players. It first tries a decision before the earliest affected starter kicks off. If needed, it searches earlier bench kickoffs from latest to earliest and labels the earlier deadline. At a feasible deadline it maximizes projected points, while preserving locked slots and preferring later FLEX placement. It does not assume injury news will arrive before that deadline.
+
+If the roster cannot fill every opening under those conditions, the email says so even when each individual plan is feasible. This is an all-listed-starters-out scenario, not a probability estimate or an analysis of every injury subset. Missing league rules or timestamps suppress scenarios rather than inventing eligibility or timing.

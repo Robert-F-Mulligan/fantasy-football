@@ -140,3 +140,92 @@ def test_report_reads_saved_slot_rules(tmp_path):
         assert "Injury backup plan" in output
         assert "Backup to FLEX1" in output
         assert output.index("Injury backup plan") < output.index("Recommended starters")
+
+
+def multiple_injuries():
+    board, lineup = fixture()
+    board.loc[1, "injury_status"] = "questionable"
+    board.loc[2, "pos"] = "RB"
+    board.loc[3, "kickoff"] = "2026-11-02T01:00:00Z"
+    return board, lineup
+
+
+def test_combined_plan_uses_distinct_backups_for_each_opening():
+    from fantasyfootball.lineups.contingencies import combined_injury_contingency
+
+    board, lineup = multiple_injuries()
+    individual = injury_contingencies(board, lineup, SLOTS, NOW)
+    assert {r["option"]["player_id"] for r in individual} == {"early"}
+    joint = combined_injury_contingency(board, lineup, SLOTS, NOW)
+    assert joint["status"] == "ready"
+    assert {r["player_id"] for r in joint["backups"]} == {"b", "early"}
+    assert len(joint["assignments"]) == 2
+    assert not joint["earlier"]
+
+
+def test_individually_feasible_plans_do_not_imply_combined_coverage():
+    from fantasyfootball.lineups.contingencies import combined_injury_contingency
+
+    board, lineup = multiple_injuries()
+    board.loc[2, "availability"] = "reserve"
+    assert all(
+        r["option"] is not None for r in injury_contingencies(board, lineup, SLOTS, NOW)
+    )
+    assert (
+        combined_injury_contingency(board, lineup, SLOTS, NOW)["status"]
+        == "unavailable"
+    )
+    html, text = render_contingencies(board, lineup, SLOTS, NOW)
+    for output in [html, text]:
+        assert "cannot fill every opening" in output
+        assert "cannot all be used together" in output
+
+
+def test_combined_plan_requires_earlier_decision_when_a_backup_plays_early():
+    from fantasyfootball.lineups.contingencies import combined_injury_contingency
+
+    board, lineup = multiple_injuries()
+    board.loc[3, "kickoff"] = "2026-11-01T18:00:00Z"
+    joint = combined_injury_contingency(board, lineup, SLOTS, NOW)
+    assert joint["earlier"]
+    assert joint["deadline"] == pd.Timestamp("2026-11-01T18:00:00Z")
+    html, text = render_contingencies(board, lineup, SLOTS, NOW)
+    for output in [html, text]:
+        assert "Each backup is used once" in output
+        assert "status may not be confirmed before its deadline" in output
+
+
+def test_combined_plan_retains_locked_and_unaffected_starters():
+    from fantasyfootball.lineups.contingencies import combined_injury_contingency
+
+    board, lineup = multiple_injuries()
+    extra = board.iloc[[0]].copy()
+    extra["player_id"] = "locked"
+    extra["player_name"] = "Locked"
+    extra["injury_status"] = ""
+    extra["availability"] = "locked_starter"
+    extra["kickoff"] = "2026-10-27T18:00:00Z"
+    board = pd.concat([board, extra], ignore_index=True)
+    lineup = pd.concat(
+        [lineup, pd.DataFrame({"player_id": ["locked"], "slot": ["RB2"]})],
+        ignore_index=True,
+    )
+    slots = dict(SLOTS, RB2=["RB"])
+    joint = combined_injury_contingency(board, lineup, slots, NOW)
+    assert joint["status"] == "ready"
+    assert all(r["slot"] != "RB2" for r in joint["assignments"])
+    board.loc[2, "pos"] = "WR"
+    board.loc[3, "pos"] = "WR"
+    assert (
+        combined_injury_contingency(board, lineup, slots, NOW)["status"]
+        == "unavailable"
+    )
+
+
+def test_no_combined_plan_for_one_questionable_or_missing_snapshot():
+    from fantasyfootball.lineups.contingencies import combined_injury_contingency
+
+    board, lineup = fixture()
+    assert combined_injury_contingency(board, lineup, SLOTS, NOW) is None
+    board, lineup = multiple_injuries()
+    assert combined_injury_contingency(board, lineup, SLOTS, None) is None
