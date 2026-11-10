@@ -31,6 +31,13 @@ def render_waivers(plan_dir):
     ]
     plain = ["\nWaiver wire", intro, note]
 
+    def team_label(value):
+        return (
+            str(value).strip()
+            if pd.notna(value) and str(value).strip()
+            else "Team unavailable"
+        )
+
     def number(x):
         return f"{x:.1f}" if pd.notna(x) else "Unavailable"
 
@@ -73,7 +80,7 @@ def render_waivers(plan_dir):
             html.append("<p>" + explanation + "</p>")
             plain.append(explanation)
         html.append(
-            '<table border="1" cellpadding="6" cellspacing="0"><tr><th>Rank / player</th><th>Pos / opponent</th><th>Points</th><th>Lineup gain</th><th>FAAB range</th><th>Watch</th></tr>'
+            '<table border="1" cellpadding="6" cellspacing="0"><tr><th>Rank / player (team)</th><th>Pos / opponent</th><th>Points</th><th>Lineup gain</th><th>FAAB range</th><th>Watch</th></tr>'
         )
         for row in data.to_dict("records"):
             bid = (
@@ -85,7 +92,12 @@ def render_waivers(plan_dir):
             watch = str(row.get("warning")) if pd.notna(row.get("warning")) else ""
             watch = watch.replace("; recheck before kickoff", "")
             values = [
-                rank + " / " + str(row["player_name"]),
+                rank
+                + " / "
+                + str(row["player_name"])
+                + " ("
+                + team_label(row.get("team"))
+                + ")",
                 str(row["pos"]) + " / " + str(row["opp"]),
                 number(row["projected_points"]),
                 number(row["lineup_gain"]),
@@ -123,8 +135,18 @@ def render_waivers(plan_dir):
             )
             for row in comparisons.to_dict("records"):
                 values = [
-                    str(row["add_player_name"]) + " (" + str(row["add_pos"]) + ")",
-                    str(row["drop_player_name"]) + " (" + str(row["drop_pos"]) + ")",
+                    str(row["add_player_name"])
+                    + " ("
+                    + str(row["add_pos"])
+                    + " / "
+                    + team_label(row.get("add_team"))
+                    + ")",
+                    str(row["drop_player_name"])
+                    + " ("
+                    + str(row["drop_pos"])
+                    + " / "
+                    + team_label(row.get("drop_team"))
+                    + ")",
                     f"{row['net_gain']:+.1f}",
                     str(row.get("future_coverage", "Not recorded")),
                 ]

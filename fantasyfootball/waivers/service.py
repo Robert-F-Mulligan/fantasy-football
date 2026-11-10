@@ -155,11 +155,12 @@ def write_waivers(
             ["player_id", "player_name", "pos", "season", "week", "opp"]
         ]
         board = ranges.apply(model.predict(fixtures=fixtures))
-        board = board.merge(
+        board = board.drop(columns="team", errors="ignore").merge(
             eligible[
                 [
                     "player_id",
                     "sleeper_id",
+                    "team",
                     "warning",
                     "kickoff",
                     "role_status",
@@ -298,6 +299,7 @@ def write_waivers(
         "sleeper_id",
         "player_name",
         "pos",
+        "team",
         "opp",
         "projected_points",
         "lineup_gain",
