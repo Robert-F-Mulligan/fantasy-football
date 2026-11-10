@@ -178,6 +178,7 @@ def test_email_has_one_defense_explanation_and_keeps_specific_flags(tmp_path):
             category="FLEX",
             rank=1,
             player_name="Receiver",
+            team="LAR",
             pos="WR",
             opp="NYJ",
             projected_points=8.0,
@@ -199,6 +200,7 @@ def test_email_has_one_defense_explanation_and_keeps_specific_flags(tmp_path):
     )
     html, plain = render_waivers(tmp_path)
     for output in [html, plain]:
+        assert "Receiver (LAR)" in output
         assert output.count("Defense points and FAAB not modeled") == 1
         assert "Unrostered" not in output and "recheck before kickoff" not in output
         for flag in [

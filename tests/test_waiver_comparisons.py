@@ -163,3 +163,13 @@ def test_qb_is_neither_an_add_nor_a_drop_but_stays_in_total():
     assert set(result.add_pos) == {"WR"}
     assert set(result.drop_pos) == {"WR", "TE"}
     assert result.baseline_points.eq(47).all()
+
+
+def test_comparison_teams_use_current_availability():
+    roster, points, available, candidate, slots = fixture()
+    roster["team"] = "NE"
+    available["team"] = "BUF"
+    candidate["team"] = "OLD"
+    rows = AddDropEvaluator().evaluate(roster, points, available, candidate, slots)
+    assert rows.add_team.eq("BUF").all()
+    assert rows.drop_team.eq("NE").all()
