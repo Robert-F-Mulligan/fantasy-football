@@ -157,6 +157,13 @@ class TradeCalculator:
             if self.pick_inventory
             else None,
             "future_pick_value": None,
+            "pick_capital_index_net": (
+                sum(p["value_scenario"]["capital_index"] for p in gained_picks)
+                - sum(p["value_scenario"]["capital_index"] for p in sent_picks)
+            )
+            if (sent_picks or gained_picks)
+            and all("value_scenario" in p for p in sent_picks + gained_picks)
+            else None,
             "valuation_scope": "Current-season lineup effect only; future picks are unpriced",
             "give": list(give),
             "receive": list(receive),

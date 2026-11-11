@@ -3,7 +3,9 @@
 from datetime import datetime, timezone
 
 
-def fetch_pick_inventory(league_id, season, client=None, *, confirmed_rounds=None):
+def fetch_pick_inventory(
+    league_id, season, client=None, *, confirmed_rounds=None, order_rule="unknown"
+):
     from fantasyfootball.data.sleeper import SleeperClient
 
     client = client or SleeperClient()
@@ -99,7 +101,9 @@ def fetch_pick_inventory(league_id, season, client=None, *, confirmed_rounds=Non
         order_status="unassigned; full round range, not a probability interval",
         valuation_status="unpriced; keeper costs and next-year player pool not modeled",
     )
-    return inventory
+    from fantasyfootball.trading.pick_values import reprice_picks
+
+    return reprice_picks(inventory, rosters, order_rule=order_rule)
 
 
 def validate_pick_exchange(inventory, my_roster, partner_roster, give, receive):

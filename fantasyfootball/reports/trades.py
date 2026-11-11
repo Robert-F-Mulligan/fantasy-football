@@ -17,6 +17,11 @@ def render_trades(report, team_name):
         lines.append(text)
         sections.append("<p>" + escape(text) + "</p>")
 
+    if report.get("deadline"):
+        paragraph(report["deadline"]["description"])
+        paragraph(
+            f"Review period: {report['deadline']['review_days']} days. Trades accepted before the deadline can finish processing afterward."
+        )
     if report["status"] == "closed":
         paragraph(report["reason"])
     else:
@@ -110,6 +115,38 @@ def render_trades(report, team_name):
             if inventory["status"] == "provisional":
                 paragraph(
                     f"Provisional: assumes the {inventory['source_season']} draft's {inventory['rounds']} rounds; next-year draft and keeper costs are not configured. League draft_rounds setting: {inventory.get('round_setting')}."
+                )
+            valued = [p for p in mine if p.get("value_scenario") and p["round"] <= 3]
+            if valued:
+                paragraph(
+                    "Draft-capital scenarios, refreshed from current standings. Index uses 100 / sqrt(overall pick); it is a rank heuristic, not a fair trade price or fantasy points."
+                )
+                if inventory.get("draft_order_rule") == "unknown":
+                    paragraph(
+                        "Draft order rule is unconfirmed: the main index weights all slots equally. The standings column is conditional on reverse standings."
+                    )
+                rows = []
+                for pick in valued:
+                    value = pick["value_scenario"]
+                    conditional = value.get("reverse_standings_if_season_ended_today")
+                    scenario = (
+                        f"{conditional['capital_index']:.1f}"
+                        if conditional
+                        else "Unavailable"
+                    )
+                    label = (
+                        f"R{pick['round']} / original roster {pick['original_roster']}"
+                    )
+                    lines.append(
+                        f"{label}: index {value['capital_index']:.1f}; reverse-standings scenario {scenario}"
+                    )
+                    rows.append(
+                        f"<tr><td>{escape(label)}</td><td>{value['capital_index']:.1f}</td><td>{scenario}</td></tr>"
+                    )
+                sections.append(
+                    '<table cellpadding="8" border="1"><caption>First three rounds: draft-capital index</caption><tr><th scope="col">Pick</th><th scope="col">Index</th><th scope="col">Reverse standings today</th></tr>'
+                    + "".join(rows)
+                    + "</table>"
                 )
             paragraph(
                 "Pick IDs and full-round overall ranges are saved with the calculator. Include picks in a custom proposal to see the current lineup effect; future pick value remains unpriced. No fair-price pick recommendation is made yet."

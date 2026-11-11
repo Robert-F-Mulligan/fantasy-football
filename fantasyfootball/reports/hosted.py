@@ -79,6 +79,26 @@ def prepare(
     now = now or datetime.now(timezone.utc)
     context = sync_weekly_context(destination / "context")
     schedule = pd.read_csv(context / "games.csv")
+    if report_type == "trades":
+        from fantasyfootball.data.sleeper import SleeperClient
+        from fantasyfootball.trading.deadline import trade_window
+
+        live_league = SleeperClient().get(f"league/{league_id}")
+        if str(live_league.get("season")) != str(season):
+            raise ValueError("Trade league season does not match")
+        window = trade_window(live_league["settings"], schedule, season, now)
+        if not window["allow_email"]:
+            (destination / "delivery.json").write_text(
+                json.dumps(
+                    {
+                        "status": "trade_suppressed",
+                        "report_type": "trades",
+                        "deadline": window,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            return "trade_suppressed"
     week = target_week(schedule, season, now)
     if week is None:
         (destination / "delivery.json").write_text(
@@ -118,21 +138,27 @@ def prepare(
         json.dumps(runtime_provenance(), indent=2), encoding="utf-8"
     )
     if report_type == "trades":
-        from fantasyfootball.trading.application import build_trade_report
         from fantasyfootball.reports.trades import render_trades
-
+        from fantasyfootball.trading.application import build_trade_report
         from fantasyfootball.trading.picks import fetch_pick_inventory
 
         trade_report = build_trade_report(args)
         confirmed_rounds = None
+        order_rule = "unknown"
         rules_path = os.environ.get("FF_TRADE_RULES")
         if rules_path:
             rules = json.loads(Path(rules_path).read_text(encoding="utf-8"))
             confirmed_rounds = (
                 rules.get(str(league_id), {}).get(str(season + 1), {}).get("rounds")
             )
+        if rules_path:
+            order_rule = (
+                rules.get(str(league_id), {})
+                .get(str(season + 1), {})
+                .get("draft_order_rule", "unknown")
+            )
         inventory = fetch_pick_inventory(
-            league_id, season, confirmed_rounds=confirmed_rounds
+            league_id, season, confirmed_rounds=confirmed_rounds, order_rule=order_rule
         )
         trade_report["pick_inventory"] = inventory
         (args.output / "trade-picks.json").write_text(
@@ -188,13 +214,21 @@ def prepare(
 def send(destination):
     destination = Path(destination)
     metadata = json.loads((destination / "delivery.json").read_text())
-    if metadata["status"] == "offseason":
-        return "offseason"
+    if metadata["status"] in {"offseason", "trade_suppressed"}:
+        return metadata["status"]
     if metadata["status"] != "ready":
         raise ValueError("Report is not ready")
     age = datetime.now(timezone.utc) - datetime.fromisoformat(metadata["generated_at"])
     if not 0 <= age.total_seconds() <= 86400:
         raise ValueError("Report is stale or timestamp is in the future")
+    if metadata.get("report_type") == "trades":
+        from fantasyfootball.trading.deadline import live_trade_window
+
+        window = live_trade_window(
+            metadata["league_id"], metadata["season"], datetime.now(timezone.utc)
+        )
+        if not window["allow_email"]:
+            return "trade_suppressed"
     ledger = GitHubDeliveryLedger(
         os.environ["GITHUB_REPOSITORY"], os.environ["GH_TOKEN"]
     )

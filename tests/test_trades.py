@@ -127,7 +127,7 @@ def test_render_trade_units_escape_and_no_fabricated_confidence():
 def test_closed_deadline_does_not_train_or_offer_trades(tmp_path):
     (tmp_path / "import-report.json").write_text(
         json.dumps(
-            {"season": 2026, "roster_id": 1, "waiver_settings": {"trade_deadline": 7}}
+            {"season": 2026, "roster_id": 1, "waiver_settings": {"trade_deadline": 8}}
         )
     )
     pd.DataFrame(
@@ -146,7 +146,7 @@ def test_closed_deadline_does_not_train_or_offer_trades(tmp_path):
         schedule=tmp_path / "schedule.csv",
         season=2026,
         week=8,
-        as_of="2026-10-27T14:00:00Z",
+        as_of="2026-10-30T14:00:00Z",
         output=tmp_path,
     )
     report = build_trade_report(args)
@@ -168,7 +168,7 @@ def test_builder_uses_one_pregame_fit_and_separate_future_weeks(
     roster.to_csv(tmp_path / "rosters.csv", index=False)
     (tmp_path / "import-report.json").write_text(
         json.dumps(
-            {"season": 2026, "roster_id": 1, "waiver_settings": {"trade_deadline": 11}}
+            {"season": 2026, "roster_id": 1, "waiver_settings": {"trade_deadline": 0}}
         )
     )
     (tmp_path / "offensive-slots.json").write_text(

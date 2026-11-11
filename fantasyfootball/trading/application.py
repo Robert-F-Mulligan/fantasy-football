@@ -9,6 +9,7 @@ from fantasyfootball.drafting.application import league_from_dict
 from fantasyfootball.forecasting.features import prepare_weekly
 from fantasyfootball.forecasting.models import FactorModel
 from fantasyfootball.lineups.weekly import WeeklyLineupPlanner
+from fantasyfootball.trading.deadline import trade_window
 from fantasyfootball.trading.service import TradeCalculator
 
 
@@ -34,6 +35,9 @@ def build_trade_report(args, horizon=4):
     ).dt.tz_localize("America/New_York")
     start = args.week + int((kickoffs <= pd.Timestamp(args.as_of)).any())
     deadline = imported.get("waiver_settings", {}).get("trade_deadline", 0) or 0
+    window = trade_window(
+        imported.get("waiver_settings", {}), schedule, args.season, args.as_of
+    )
     report = {
         "season": args.season,
         "week": args.week,
@@ -41,10 +45,11 @@ def build_trade_report(args, horizon=4):
         "my_roster": int(imported["roster_id"]),
         "horizon": horizon,
         "trade_deadline": deadline,
+        "deadline": window,
         "opportunities": [],
         "unsupported_scoring": imported.get("unsupported_offensive_scoring", {}),
     }
-    if (deadline and start > int(deadline)) or start > 17:
+    if not window["allow_email"] or start > 17:
         report.update(
             status="closed",
             weeks=[],
