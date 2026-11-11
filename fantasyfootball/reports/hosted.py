@@ -124,7 +124,16 @@ def prepare(
         from fantasyfootball.trading.picks import fetch_pick_inventory
 
         trade_report = build_trade_report(args)
-        inventory = fetch_pick_inventory(league_id, season)
+        confirmed_rounds = None
+        rules_path = os.environ.get("FF_TRADE_RULES")
+        if rules_path:
+            rules = json.loads(Path(rules_path).read_text(encoding="utf-8"))
+            confirmed_rounds = (
+                rules.get(str(league_id), {}).get(str(season + 1), {}).get("rounds")
+            )
+        inventory = fetch_pick_inventory(
+            league_id, season, confirmed_rounds=confirmed_rounds
+        )
         trade_report["pick_inventory"] = inventory
         (args.output / "trade-picks.json").write_text(
             json.dumps(inventory, indent=2), encoding="utf-8"

@@ -103,6 +103,10 @@ def render_trades(report, team_name):
                 if mine
                 else "No next-year picks owned in this inventory."
             )
+            if inventory["status"] == "rounds_confirmed":
+                paragraph(
+                    f"{inventory['rounds']} rounds confirmed. Next-year draft order and keeper costs remain unspecified."
+                )
             if inventory["status"] == "provisional":
                 paragraph(
                     f"Provisional: assumes the {inventory['source_season']} draft's {inventory['rounds']} rounds; next-year draft and keeper costs are not configured. League draft_rounds setting: {inventory.get('round_setting')}."

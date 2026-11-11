@@ -108,3 +108,16 @@ def test_invalid_pick_proposals_are_rejected(give, receive):
         calculator().evaluate(
             1, 2, ["a"], ["c"], give_picks=give, receive_picks=receive
         )
+
+
+def test_confirmed_round_count_overrides_previous_draft_without_claiming_known_order():
+    inventory = fetch_pick_inventory("123", 2026, source(rounds=3), confirmed_rounds=15)
+    assert inventory["status"] == "rounds_confirmed" and len(inventory["picks"]) == 30
+    assert inventory["rounds"] == 15 and "unassigned" in inventory["order_status"]
+
+
+def test_confirmation_cannot_silently_override_configured_future_draft():
+    with pytest.raises(ValueError, match="conflict"):
+        fetch_pick_inventory(
+            "123", 2026, source(future=True, rounds=3), confirmed_rounds=15
+        )

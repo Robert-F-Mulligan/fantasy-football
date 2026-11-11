@@ -47,3 +47,5 @@ python -m fantasyfootball.trading --plan work/trade-digest/plan --partner 2 --gi
 Pick ownership and duplicates are checked. Player-for-pick and pick-only trades are supported. Picks do not consume roster slots, but receiving an extra player requires an explicit drop. Results report the current-season lineup-point change and keep future pick value **null/unpriced**, never zero. Pick-backed offers are not automatically ranked as fair deals until draft/keeper rules and a suitable future valuation model are available. No offers are submitted.
 
 Source: [Sleeper API draft and traded-pick documentation](https://docs.sleeper.com/).
+
+Confirmed league/year round counts live in `config/trade-rules.json`, selected by the hosted workflow's `FF_TRADE_RULES` path. The 2027 round count for this league is user-confirmed as 15; keeper rules are still unspecified. A later configured draft that conflicts with this count fails explicitly. Local preparation can set `$env:FF_TRADE_RULES='config/trade-rules.json'` to use the same confirmation. Confirmations never carry into a different league or year automatically.

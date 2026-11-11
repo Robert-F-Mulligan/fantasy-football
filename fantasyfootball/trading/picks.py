@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 
-def fetch_pick_inventory(league_id, season, client=None):
+def fetch_pick_inventory(league_id, season, client=None, *, confirmed_rounds=None):
     from fantasyfootball.data.sleeper import SleeperClient
 
     client = client or SleeperClient()
@@ -45,6 +45,18 @@ def fetch_pick_inventory(league_id, season, client=None):
         )
         return inventory
     rounds = int(draft.get("settings", {}).get("rounds", 0))
+    if confirmed_rounds is not None:
+        if (
+            isinstance(confirmed_rounds, bool)
+            or not isinstance(confirmed_rounds, int)
+            or not 1 <= confirmed_rounds <= 50
+        ):
+            raise ValueError("Confirmed draft rounds must be an integer from 1 to 50")
+        if future and rounds != confirmed_rounds:
+            raise ValueError(
+                "Confirmed rounds conflict with the configured next-year draft"
+            )
+        rounds = confirmed_rounds
     teams = int(draft.get("settings", {}).get("teams", 0))
     if not 1 <= rounds <= 50 or teams != len(owners):
         raise ValueError("Draft round/team configuration is incomplete")
@@ -74,7 +86,11 @@ def fetch_pick_inventory(league_id, season, client=None):
         assets[key]["owner_id"] = int(row["owner_id"])
         seen.add(key)
     inventory.update(
-        status="configured" if future else "provisional",
+        status="configured"
+        if future
+        else "rounds_confirmed"
+        if confirmed_rounds is not None
+        else "provisional",
         rounds=rounds,
         source_season=int(draft["season"]),
         draft_type=draft["type"],
@@ -89,7 +105,11 @@ def fetch_pick_inventory(league_id, season, client=None):
 def validate_pick_exchange(inventory, my_roster, partner_roster, give, receive):
     if not give and not receive:
         return [], []
-    if not inventory or inventory.get("status") not in {"configured", "provisional"}:
+    if not inventory or inventory.get("status") not in {
+        "configured",
+        "provisional",
+        "rounds_confirmed",
+    }:
         raise ValueError("A usable next-year pick inventory is required")
     if inventory.get("trades_disabled"):
         raise ValueError("League trades are disabled")

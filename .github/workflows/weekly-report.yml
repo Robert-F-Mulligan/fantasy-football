@@ -5,6 +5,7 @@ on:
     paths:
       - 'fantasyfootball/**'
       - 'pyproject.toml'
+      - 'config/trade-rules.json'
       - '.github/workflows/weekly-report.yml'
   schedule:
     - cron: '0 10 * * 2'
@@ -44,6 +45,7 @@ jobs:
       FF_LEAGUE_ID: ${{ vars.FF_LEAGUE_ID }}
       FF_TEAM_NAME: ${{ vars.FF_TEAM_NAME }}
       FF_SEASON: ${{ vars.FF_SEASON }}
+      FF_TRADE_RULES: config/trade-rules.json
       OMP_NUM_THREADS: '2'
       LOKY_MAX_CPU_COUNT: '2'
     steps:
