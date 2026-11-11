@@ -89,3 +89,7 @@ Weekly lineup selection still maximizes projected points. A second assignment pa
 The combined injury plan retains unaffected starters and checks a complete legal lineup using distinct unflagged, projected bench players. It first tries a decision before the earliest affected starter kicks off. If needed, it searches earlier bench kickoffs from latest to earliest and labels the earlier deadline. At a feasible deadline it maximizes projected points, while preserving locked slots and preferring later FLEX placement. It does not assume injury news will arrive before that deadline.
 
 If the roster cannot fill every opening under those conditions, the email says so even when each individual plan is feasible. This is an all-listed-starters-out scenario, not a probability estimate or an analysis of every injury subset. Missing league rules or timestamps suppress scenarios rather than inventing eligibility or timing.
+
+## Tuesday trade digest
+
+The workflow also prepares a [trade-opportunity digest](TRADES.md) on Tuesdays at 10 a.m. Eastern, independently of the waiver delivery. Choose `trades` for a manual dry run. Pushes to main validate lineup and trade preparation without sending email. Each report is archived privately and has an independent send reservation.

@@ -152,7 +152,9 @@ def test_tuesday_and_wednesday_delivery_records_are_independent():
     assert deliver_once(*args, report_type="waivers") == "sent"
     assert deliver_once(*args) == "sent"
     assert deliver_once(*args, report_type="waivers") == "already_sent"
-    assert mailer.send.call_count == 2
+    assert deliver_once(*args, report_type="trades") == "sent"
+    assert deliver_once(*args, report_type="trades") == "already_sent"
+    assert mailer.send.call_count == 3
     assert sha256(b"a@example.com:123:2026:8").hexdigest() in ledger.records
 
 

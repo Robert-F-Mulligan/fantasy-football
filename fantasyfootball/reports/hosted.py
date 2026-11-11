@@ -72,7 +72,7 @@ def prepare(
     archive_dir=None,
     report_type="lineup",
 ):
-    if report_type not in {"lineup", "waivers"}:
+    if report_type not in {"lineup", "waivers", "trades"}:
         raise ValueError("Unknown report type")
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=False)
@@ -117,7 +117,23 @@ def prepare(
     (args.output / "forecast-provenance.json").write_text(
         json.dumps(runtime_provenance(), indent=2), encoding="utf-8"
     )
-    if report_type == "waivers":
+    if report_type == "trades":
+        from fantasyfootball.trading.application import build_trade_report
+        from fantasyfootball.reports.trades import render_trades
+
+        from fantasyfootball.trading.picks import fetch_pick_inventory
+
+        trade_report = build_trade_report(args)
+        inventory = fetch_pick_inventory(league_id, season)
+        trade_report["pick_inventory"] = inventory
+        (args.output / "trade-picks.json").write_text(
+            json.dumps(inventory, indent=2), encoding="utf-8"
+        )
+        (args.output / "trade-report.json").write_text(
+            json.dumps(trade_report, indent=2), encoding="utf-8"
+        )
+        subject, plain, html = render_trades(trade_report, team_name)
+    elif report_type == "waivers":
         from html import escape
 
         from fantasyfootball.reports.waivers import render_waivers
@@ -193,7 +209,7 @@ def main():
     parser.add_argument("mode", choices=["prepare", "send"])
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
-        "--report-type", choices=["lineup", "waivers"], default="lineup"
+        "--report-type", choices=["lineup", "waivers", "trades"], default="lineup"
     )
     parser.add_argument(
         "--archive", type=Path, help="Private local evidence directory (prepare only)"

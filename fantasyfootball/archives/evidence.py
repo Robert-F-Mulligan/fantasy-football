@@ -134,6 +134,10 @@ def capture(report_dir, archive_dir):
     for name in [
         "specialists.csv",
         "forecast-provenance.json",
+        "trade-report.json",
+        "trade-picks.json",
+        "trade-rosters.csv",
+        "trade-projections.csv",
         "waivers.csv",
         "waiver-add-drop.csv",
         "waiver-coverage.csv",

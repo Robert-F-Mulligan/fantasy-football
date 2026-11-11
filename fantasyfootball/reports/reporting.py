@@ -346,12 +346,12 @@ def deliver_once(
     *,
     report_type="lineup",
 ):
-    if report_type not in {"lineup", "waivers"}:
+    if report_type not in {"lineup", "waivers", "trades"}:
         raise ValueError("Unknown report type")
     identity = f"{recipient.lower()}:{league_id}:{season}:{week}"
     # Preserve the original lineup key, so existing deliveries stay deduplicated.
-    if report_type == "waivers":
-        identity += ":waivers"
+    if report_type != "lineup":
+        identity += ":" + report_type
     key = sha256(identity.encode()).hexdigest()
     ledger.ensure_branch()
     existing, _ = ledger.get(key)
