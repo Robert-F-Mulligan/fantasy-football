@@ -27,15 +27,37 @@ def render_trades(report, team_name):
     else:
         weeks = report["weeks"]
         paragraph(
-            f"Weeks {weeks[0]}-{weeks[-1]}: projected change in best legal starting-lineup points, including FLEX and byes."
+            f"Weeks {weeks[0]}-{weeks[-1]}: expected remaining-season lineup-point change, including FLEX, byes, availability scenarios, and waiver alternatives."
         )
-        priorities = report.get("priority_positions", [])
-        if priorities:
+        if report.get("roster_strengths"):
+            sections.append("<h2>Your roster relative to the league</h2>")
             paragraph(
-                "Trade priority: improve "
-                + ", ".join(priorities)
-                + " starters while protecting positional depth and injury cover. Bye-week patches are excluded."
+                "Position strength is the expected remaining-season lineup value lost if those players were replaced from the waiver pool. FLEX and depth are included; position values overlap and should not be summed."
             )
+            rows = []
+            for strength in report["roster_strengths"]:
+                line = f"{strength['position']}: {strength['ros_value_above_replacement']:.1f} points above replacements; rank {strength['rank']}/{strength['teams_evaluated']}"
+                lines.append(line)
+                rows.append(
+                    f"<tr><td>{escape(strength['position'])}</td><td>{strength['ros_value_above_replacement']:.1f}</td><td>{strength['league_median']:.1f}</td><td>{strength['rank']}/{strength['teams_evaluated']}</td></tr>"
+                )
+            sections.append(
+                '<table cellpadding="8" border="1"><caption>ROS replacement premium; higher is stronger</caption><tr><th scope="col">Position</th><th scope="col">Your points</th><th scope="col">League median</th><th scope="col">Rank</th></tr>'
+                + "".join(rows)
+                + "</table>"
+            )
+        if report.get("asset_targets"):
+            sections.append("<h2>Highest-value acquisition targets</h2>")
+            paragraph(
+                "Gain if acquired with one roster slot freed. The acquisition price is not included; the displaced player is a roster-space comparison, not a fair trade offer."
+            )
+            for target in report["asset_targets"]:
+                player = report["players"][target["player_id"]]
+                displaced = report["players"][target["displaced_player_id"]]
+                paragraph(
+                    f"{player['name']} ({player['pos']}, {player['team']}): {target['marginal_ros_gain']:+.1f} expected ROS lineup points; compared with freeing {displaced['name']}'s slot."
+                )
+        sections.append("<h2>Trade packages</h2>")
         if report.get("unsupported_scoring"):
             paragraph(
                 "Scoring not modeled: " + ", ".join(report["unsupported_scoring"])
@@ -53,7 +75,7 @@ def render_trades(report, team_name):
             )
         if not report["opportunities"]:
             paragraph(
-                "No evaluated one-for-one trade met the roster-needs and depth checks while improving both teams. No forced recommendation."
+                "No evaluated one-for-one package improves both teams' expected remaining-season roster value. No forced recommendation."
             )
 
         def label(pid):
@@ -73,9 +95,9 @@ def render_trades(report, team_name):
                 f"Your lineup: {trade['my_gain']:+.1f} points total. Their lineup: {trade['partner_gain']:+.1f} points total."
             )
             assessment = trade.get("recommendation", {})
-            if priorities and assessment.get("position_impact"):
+            if "incoming_marginal_value" in assessment:
                 paragraph(
-                    f"{', '.join(priorities)} starting-point gain: {assessment['priority_gain']:+.1f} over this window. Priority-position starter and backup coverage preserved each week."
+                    f"Incoming benefit: {assessment['incoming_marginal_value']:+.1f} expected points. Outgoing opportunity cost: {assessment['outgoing_opportunity_cost']:.1f} points."
                 )
             rows = []
             for week in trade["weekly"]:
@@ -84,22 +106,22 @@ def render_trades(report, team_name):
                 rows.append(
                     f"<tr><td>{week['week']}</td><td>{week['my_gain']:+.1f}</td><td>{week['partner_gain']:+.1f}</td></tr>"
                 )
-                for side, caption in [("my_after", "Your"), ("partner_after", "Their")]:
-                    lineup = week[side]
-                    if lineup["filled"] < lineup["slots"]:
-                        paragraph(
-                            f"Week {week['week']}: {caption} roster fills {lineup['filled']}/{lineup['slots']} offensive slots after this trade."
-                        )
             sections.append(
                 '<table cellpadding="8" cellspacing="0" border="1"><caption>Projected weekly lineup-point change</caption><thead><tr><th scope="col">Week</th><th scope="col">You</th><th scope="col">Partner</th></tr></thead><tbody>'
                 + "".join(rows)
                 + "</tbody></table>"
             )
+            lowest = min(w["my_after"]["filled"] for w in trade["weekly"])
+            slot_count = trade["weekly"][0]["my_after"]["slots"]
+            if lowest < slot_count - 0.05:
+                paragraph(
+                    f"Availability scenarios can leave starters uncovered: lowest weekly average {lowest:.1f} of {slot_count} slots filled after this trade."
+                )
         paragraph(
-            "Current-role scenarios, not market prices or acceptance odds. Future roles and injury recoveries are held unchanged; multi-week gains do not have calibrated confidence intervals."
+            "Expected values use current-role forecasts and historical scoring-appearance rates as an availability proxy, not a calibrated injury model. Future roles and injury recoveries are held unchanged; multi-week gains do not have calibrated confidence intervals."
         )
         paragraph(
-            "Sorted by priority-position improvement, then total lineup gain; one proposal per partner. Priority-position depth is protected, but manager preferences and trade-review delays are not modeled. No trade offers are sent."
+            "Ranked by your expected ROS gain; one proposal per partner. Weekly streaming assumes access to current waiver alternatives; claim competition, FAAB, drop/reacquisition costs, and trade-review delays are not modeled. Future pick value stays separate. No trade offers are sent."
         )
     inventory = report.get("pick_inventory")
     if inventory:

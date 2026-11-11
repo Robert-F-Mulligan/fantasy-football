@@ -1,150 +1,192 @@
 import pandas as pd
+import pytest
 
 from fantasyfootball.trading.service import TradeCalculator
+from fantasyfootball.trading.value import RestOfSeasonValue, participation_estimates
 
 
-def make(rows, values, priorities=("RB",), slots=None, byes=()):
+def build(rows, scores, *, slots=None, probability=None, waivers=(), byes=()):
+    slots = slots or {"RB1": ["RB"], "WR1": ["WR"]}
     roster = pd.DataFrame(
         [
             {"player_id": pid, "roster_id": owner, "pos": pos, "tradable": True}
             for pid, owner, pos in rows
         ]
     )
-    projections = pd.DataFrame(
-        [
-            {
-                "player_id": pid,
-                "week": week,
-                "projected_points": value,
-                "status": "bye" if (pid, week) in byes else "projected",
-            }
-            for week in [10, 11]
-            for pid, value in values.items()
-        ]
+    pool = pd.DataFrame(waivers, columns=["player_id", "pos"])
+
+    def forecast(ids):
+        return pd.DataFrame(
+            [
+                {
+                    "player_id": pid,
+                    "week": week,
+                    "status": "bye" if (pid, week) in byes else "projected",
+                    "projected_points": scores[pid],
+                }
+                for week in [10, 11]
+                for pid in ids
+            ],
+            columns=["player_id", "week", "status", "projected_points"],
+        )
+
+    projections, alternatives = forecast(roster.player_id), forecast(pool.player_id)
+    players = list(roster.player_id) + list(pool.player_id)
+    rates = pd.DataFrame(
+        {
+            "player_id": players,
+            "probability": [(probability or {}).get(p, 1) for p in players],
+        }
+    )
+    model = RestOfSeasonValue(
+        roster, projections, pool, alternatives, rates, slots, [10, 11], samples=256
     )
     return TradeCalculator(
-        roster,
-        projections,
-        slots or {"RB1": ["RB"], "WR1": ["WR"]},
-        [10, 11],
-        priority_positions=priorities,
+        roster, projections, slots, [10, 11], value_model=model
+    ), model
+
+
+@pytest.mark.parametrize("own_rb,own_wr,expected", [(20, 5, "WR"), (5, 20, "RB")])
+def test_relative_strength_and_targets_change_with_roster_not_a_fixed_priority(
+    own_rb, own_wr, expected
+):
+    c, model = build(
+        [("r", 1, "RB"), ("w", 1, "WR"), ("r2", 2, "RB"), ("w2", 2, "WR")],
+        {"r": own_rb, "w": own_wr, "r2": 15, "w2": 15},
     )
+    targets = model.targets(c.roster, 1)
+    assert c.players.loc[targets[0]["player_id"], "pos"] == expected
+    strengths = {r["position"]: r for r in model.strengths(c.roster, 1)}
+    assert strengths[expected]["rank"] == 2
 
 
-def test_rb_surplus_by_count_does_not_make_rbs_expendable_when_rb_is_priority():
-    c = make(
-        [
-            ("r1", 1, "RB"),
-            ("r2", 1, "RB"),
-            ("r3", 1, "RB"),
-            ("w", 1, "WR"),
-            ("x", 2, "WR"),
-            ("y", 2, "WR"),
-            ("z", 2, "RB"),
-        ],
-        {"r1": 12, "r2": 11, "r3": 10, "w": 4, "x": 20, "y": 18, "z": 2},
-    )
-    result = c.evaluate(1, 2, ["r3"], ["y"])
-    assert result["my_gain"] > 0 and result["partner_gain"] > 0
-    assert not result["recommendation"]["eligible"]
-    assert "Reduces RB roster depth" in result["recommendation"]["reasons"]
-    assert c.opportunities(1) == []
-
-
-def test_real_rb_upgrade_from_surplus_wr_is_recommended():
-    c = make(
-        [
-            ("r", 1, "RB"),
-            ("rb", 1, "RB"),
-            ("w", 1, "WR"),
-            ("wb", 1, "WR"),
-            ("x", 2, "RB"),
-            ("xb", 2, "RB"),
-            ("y", 2, "WR"),
-        ],
-        {"r": 5, "rb": 3, "w": 20, "wb": 18, "x": 20, "xb": 18, "y": 5},
-    )
-    recommendations = c.opportunities(1)
-    assert recommendations
-    best = recommendations[0]
-    assert c.players.loc[best["receive"][0], "pos"] == "RB"
-    assert c.players.loc[best["give"][0], "pos"] == "WR"
-    assert best["recommendation"]["priority_gain"] > 0
-    assert all(
-        row["after"]["available"] >= row["before"]["available"]
-        for row in best["recommendation"]["position_impact"]
-    )
-
-
-def test_bye_week_qb_patch_is_not_a_trade_recommendation_even_without_priority():
-    c = make(
-        [
-            ("q", 1, "QB"),
-            ("r", 1, "RB"),
-            ("rb", 1, "RB"),
-            ("x", 2, "QB"),
-            ("xb", 2, "QB"),
-            ("y", 2, "RB"),
-        ],
-        {"q": 25, "r": 20, "rb": 15, "x": 20, "xb": 19, "y": 5},
-        priorities=(),
+def test_bye_qb_is_priced_above_real_waiver_alternative_not_zero():
+    rows = [
+        ("q", 1, "QB"),
+        ("r", 1, "RB"),
+        ("rb", 1, "RB"),
+        ("q2", 2, "QB"),
+        ("q2b", 2, "QB"),
+        ("r2", 2, "RB"),
+    ]
+    scores = {
+        "q": 25,
+        "r": 20,
+        "rb": 15,
+        "q2": 24,
+        "q2b": 23,
+        "r2": 5,
+        "wq": 20,
+        "wr": 2,
+    }
+    c, _ = build(
+        rows,
+        scores,
         slots={"QB1": ["QB"], "RB1": ["RB"]},
+        waivers=[("wq", "QB"), ("wr", "RB")],
         byes=[("q", 11)],
     )
-    result = c.evaluate(1, 2, ["rb"], ["x"])
-    assert result["my_gain"] == 20 and result["partner_gain"] > 0
-    assert not result["recommendation"]["eligible"]
-    assert any("bye-week patch" in text for text in result["recommendation"]["reasons"])
-    assert c.opportunities(1) == []
+    assert c.evaluate(1, 2, ["rb"], ["q2"])["my_gain"] == 4
+    risky, _ = build(
+        rows,
+        scores,
+        slots={"QB1": ["QB"], "RB1": ["RB"]},
+        waivers=[("wq", "QB"), ("wr", "RB")],
+        byes=[("q", 11)],
+        probability={"r": 0.5},
+    )
+    assert risky.evaluate(1, 2, ["rb"], ["q2"])["my_gain"] < 0
 
 
-def test_rb_trade_cannot_create_a_new_bye_week_depth_hole():
-    c = make(
+def test_bench_depth_has_value_when_starter_may_be_absent():
+    _c, model = build(
+        [("r", 1, "RB"), ("b", 1, "RB"), ("x", 2, "RB")],
+        {"r": 20, "b": 10, "x": 15, "w": 2},
+        slots={"RB1": ["RB"]},
+        waivers=[("w", "RB")],
+        probability={"r": 0.5},
+    )
+    assert model.total({"r", "b"}) - model.total({"r"}) > 6
+    assert model.total({"r", "b"}) == model.total({"b", "r"})
+
+
+def test_other_positions_can_be_best_and_package_accounting_reconciles():
+    c, _ = build(
         [
             ("r", 1, "RB"),
             ("rb", 1, "RB"),
-            ("w", 1, "WR"),
-            ("x", 2, "RB"),
-            ("xb", 2, "RB"),
-            ("y", 2, "WR"),
+            ("t", 1, "TE"),
+            ("t2", 2, "TE"),
+            ("t2b", 2, "TE"),
+            ("r2", 2, "RB"),
         ],
-        {"r": 10, "rb": 8, "w": 20, "x": 25, "xb": 20, "y": 5},
-        byes=[("x", 11)],
+        {"r": 20, "rb": 18, "t": 5, "t2": 20, "t2b": 18, "r2": 5},
+        slots={"RB1": ["RB"], "TE1": ["TE"]},
     )
-    result = c.evaluate(1, 2, ["r"], ["x"])
-    assert not result["recommendation"]["eligible"]
-    assert any("week 11" in text for text in result["recommendation"]["reasons"])
+    trades = c.opportunities(1)
+    assert trades and c.players.loc[trades[0]["receive"][0], "pos"] == "TE"
+    trade = trades[0]
+    assessment = trade["recommendation"]
+    assert assessment["incoming_marginal_value"] - assessment[
+        "outgoing_opportunity_cost"
+    ] == pytest.approx(trade["my_gain"])
 
 
-def test_multi_player_custom_trade_exposes_rb_depth_warning():
-    c = make(
-        [
-            ("r", 1, "RB"),
-            ("rb", 1, "RB"),
-            ("w", 1, "WR"),
-            ("x", 2, "RB"),
-            ("xb", 2, "RB"),
-            ("y", 2, "WR"),
-        ],
-        {"r": 10, "rb": 8, "w": 20, "x": 25, "xb": 20, "y": 5},
+def test_known_owned_player_cannot_be_used_as_a_free_replacement():
+    with pytest.raises(ValueError, match="owned"):
+        build([("r", 1, "RB")], {"r": 10}, slots={"RB1": ["RB"]}, waivers=[("r", "RB")])
+
+
+def test_participation_proxy_uses_only_past_scheduled_team_opportunities():
+    players = pd.DataFrame(
+        {"player_id": ["a", "b"], "team": ["NE", "NE"], "pos": ["RB", "RB"]}
     )
-    result = c.evaluate(1, 2, ["r", "rb"], ["x"], partner_drops=["xb"])
-    assert "Reduces RB roster depth" in result["recommendation"]["reasons"]
+    history = pd.DataFrame(
+        {
+            "player_id": ["a"] * 3,
+            "team": ["NE"] * 3,
+            "season": [2026] * 3,
+            "week": [7, 9, 11],
+        }
+    )
+    schedule = pd.DataFrame(
+        {
+            "season": [2026] * 5,
+            "week": [7, 8, 9, 10, 11],
+            "game_type": ["REG"] * 5,
+            "home_team": ["NE"] * 5,
+            "away_team": ["BUF"] * 5,
+        }
+    )
+    rates = participation_estimates(players, history, schedule, 2026, 10).set_index(
+        "player_id"
+    )
+    assert rates.loc["a", "probability"] == pytest.approx(3 / 5)
+    assert rates.loc["a", "opportunities"] == 3
+    assert "fallback" in rates.loc["b", "source"]
 
 
-def test_email_explains_priority_and_empty_result_without_fallback_qb_offers():
+def test_email_explains_roster_relative_value_without_an_rb_rule():
     from fantasyfootball.reports.trades import render_trades
 
-    report = {
+    r = {
         "week": 10,
         "season": 2026,
         "as_of": "2026-11-10T15:00:00Z",
         "status": "estimated",
-        "weeks": [10, 11],
-        "priority_positions": ["RB"],
+        "weeks": [10, 11, 12, 13, 14, 15, 16, 17],
         "opportunities": [],
+        "roster_strengths": [
+            {
+                "position": "TE",
+                "ros_value_above_replacement": 10,
+                "league_median": 20,
+                "rank": 9,
+                "teams_evaluated": 12,
+            }
+        ],
     }
-    _, text, html = render_trades(report, "Team")
-    assert "Trade priority: improve RB starters" in text
-    assert "No evaluated one-for-one trade met the roster-needs" in text
-    assert "Bye-week patches are excluded" in html
+    _, text, html = render_trades(r, "Team")
+    assert "rank 9/12" in text and "Trade priority" not in text
+    assert "No evaluated one-for-one package" in text
+    assert "Your roster relative to the league" in html

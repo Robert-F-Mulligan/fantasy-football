@@ -18,9 +18,10 @@ class TradeCalculator:
         slots,
         weeks,
         pick_inventory=None,
-        priority_positions=(),
+        value_model=None,
     ):
-        self.needs_policy = RosterNeedsPolicy(tuple(priority_positions))
+        self.needs_policy = RosterNeedsPolicy()
+        self.value_model = value_model
         self.pick_inventory = pick_inventory
         self.roster = roster.copy()
         self.roster["player_id"] = self.roster.player_id.astype(str)
@@ -58,6 +59,8 @@ class TradeCalculator:
         self._lineup = lru_cache(maxsize=20000)(self._lineup)
 
     def _lineup(self, ids, week):
+        if self.value_model is not None:
+            return self.value_model.weekly(ids, week)
         available = []
         for pid in ids:
             if (pid, week) not in self.projections.index:
@@ -200,8 +203,6 @@ class TradeCalculator:
         others = self.roster.loc[
             ~self.roster.roster_id.eq(my_roster) & self.roster.tradable
         ]
-        if self.needs_policy.priority_positions:
-            others = others.loc[others.pos.isin(self.needs_policy.priority_positions)]
         results = []
         for a in mine.itertuples():
             for b in others.itertuples():
@@ -217,7 +218,6 @@ class TradeCalculator:
                     results.append(result)
         results.sort(
             key=lambda r: (
-                -r["recommendation"]["priority_gain"],
                 -r["my_gain"],
                 -r["partner_gain"],
                 r["give"],
