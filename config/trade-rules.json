@@ -3,7 +3,16 @@
     "2027": {
       "rounds": 15,
       "confirmed_on": "2026-11-11",
-      "keeper_rules": null,
+      "keeper_rules": {
+        "round_penalty": 2,
+        "max_consecutive_keeps": 2,
+        "confirmed_on": "2026-11-11",
+        "cost_basis": null,
+        "cost_follows_trade": null,
+        "keep_count_follows_trade": null,
+        "before_round_one_policy": null,
+        "status": "partially_confirmed"
+      },
       "draft_order_rule": "reverse_standings"
     }
   }
