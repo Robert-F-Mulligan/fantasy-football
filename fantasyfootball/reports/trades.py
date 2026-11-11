@@ -144,7 +144,7 @@ def render_trades(report, team_name):
             )
             if inventory["status"] == "rounds_confirmed":
                 paragraph(
-                    f"{inventory['rounds']} rounds confirmed. Next-year draft order and keeper costs remain unspecified."
+                    f"{inventory['rounds']} rounds confirmed. Final draft order and keeper costs remain unspecified."
                 )
             if inventory["status"] == "provisional":
                 paragraph(
@@ -157,28 +157,37 @@ def render_trades(report, team_name):
                 )
                 if inventory.get("draft_order_rule") == "unknown":
                     paragraph(
-                        "Draft order rule is unconfirmed: the main index weights all slots equally. The standings column is conditional on reverse standings."
+                        "Draft order rule is unconfirmed: the main index weights all slots equally. Selections remain full-round ranges until an order rule is supplied."
+                    )
+                if inventory.get("draft_order_rule") == "reverse_standings":
+                    paragraph(
+                        "Projected snake order if the season ended today: lowest winning percentage picks first, then lower points scored. Even rounds reverse. Exact ties remain ranges; playoffs and future results can change the order."
                     )
                 rows = []
                 for pick in valued:
                     value = pick["value_scenario"]
-                    conditional = value.get("reverse_standings_if_season_ended_today")
-                    scenario = (
-                        f"{conditional['capital_index']:.1f}"
-                        if conditional
-                        else "Unavailable"
+                    selection = value.get("selection", "Unassigned")
+                    positions = value.get("projected_overall_picks", [])
+                    overall = (
+                        str(positions[0])
+                        if len(positions) == 1
+                        else (
+                            f"{min(positions)}-{max(positions)}"
+                            if positions
+                            else "Unassigned"
+                        )
                     )
                     label = (
                         f"R{pick['round']} / original roster {pick['original_roster']}"
                     )
                     lines.append(
-                        f"{label}: index {value['capital_index']:.1f}; reverse-standings scenario {scenario}"
+                        f"{label}: projected {selection}, overall {overall}; index {value['capital_index']:.1f}"
                     )
                     rows.append(
-                        f"<tr><td>{escape(label)}</td><td>{value['capital_index']:.1f}</td><td>{scenario}</td></tr>"
+                        f"<tr><td>{escape(label)}</td><td>{escape(selection)}</td><td>{overall}</td><td>{value['capital_index']:.1f}</td></tr>"
                     )
                 sections.append(
-                    '<table cellpadding="8" border="1"><caption>First three rounds: draft-capital index</caption><tr><th scope="col">Pick</th><th scope="col">Index</th><th scope="col">Reverse standings today</th></tr>'
+                    '<table cellpadding="8" border="1"><caption>First three rounds: projected selections</caption><tr><th scope="col">Pick</th><th scope="col">Selection</th><th scope="col">Overall</th><th scope="col">Index</th></tr>'
                     + "".join(rows)
                     + "</table>"
                 )

@@ -75,3 +75,62 @@ def test_missing_and_tied_standings_do_not_invent_a_slot():
         missing["picks"][0]["value_scenario"]["reverse_standings_if_season_ended_today"]
         is None
     )
+
+
+def test_twelve_team_snake_projection_reverses_even_round_and_follows_original_owner():
+    data = [
+        {
+            "roster_id": i,
+            "settings": {"wins": i - 1, "losses": 12 - i, "ties": 0, "fpts": i * 100},
+        }
+        for i in range(1, 13)
+    ]
+    assets = {
+        "draft_type": "snake",
+        "picks": [
+            {
+                "round": r,
+                "original_roster": 7,
+                "owner_id": 1,
+                "overall_earliest": (r - 1) * 12 + 1,
+                "overall_latest": r * 12,
+            }
+            for r in [1, 2, 3]
+        ],
+    }
+    result = reprice_picks(assets, data, order_rule="reverse_standings")
+    assert [p["value_scenario"]["selection"] for p in result["picks"]] == [
+        "1.07",
+        "2.06",
+        "3.07",
+    ]
+    assert [
+        p["value_scenario"]["projected_overall_picks"] for p in result["picks"]
+    ] == [[7], [18], [31]]
+
+
+def test_exact_ties_show_selection_range_not_a_fictional_fractional_pick():
+    result = reprice_picks(inventory(), rosters([5, 5]), order_rule="reverse_standings")
+    assert result["picks"][0]["value_scenario"]["selection"] == "1.01-1.02"
+    assert result["picks"][1]["value_scenario"]["projected_overall_picks"] == [3, 4]
+
+
+def test_pick_email_shows_projected_selection_and_overall_number():
+    from fantasyfootball.reports.trades import render_trades
+
+    picks = reprice_picks(inventory(), rosters([2, 8]), order_rule="reverse_standings")
+    picks.update(status="rounds_confirmed", rounds=15, season=2027)
+    report = {
+        "season": 2026,
+        "week": 10,
+        "as_of": "2026-11-11T12:00:00Z",
+        "status": "estimated",
+        "weeks": [10, 17],
+        "opportunities": [],
+        "my_roster": 2,
+        "pick_inventory": picks,
+    }
+    _, text, html = render_trades(report, "Team")
+    assert "projected 1.01, overall 1" in text
+    assert "projected 2.02, overall 4" in text
+    assert "if the season ended today" in html

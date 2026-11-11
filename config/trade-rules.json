@@ -4,7 +4,7 @@
       "rounds": 15,
       "confirmed_on": "2026-11-11",
       "keeper_rules": null,
-      "draft_order_rule": "unknown"
+      "draft_order_rule": "reverse_standings"
     }
   }
 }
