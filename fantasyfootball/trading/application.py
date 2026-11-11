@@ -196,8 +196,16 @@ def build_trade_report(args, horizon=None):
             slots,
             weeks,
         )
+        from fantasyfootball.trading.market import FairnessAssessment, FantasyCalcMarket
+
+        market = FantasyCalcMarket().fetch(imported, roster)
         calculator = TradeCalculator(
-            roster, projections, slots, weeks, value_model=value_model
+            roster,
+            projections,
+            slots,
+            weeks,
+            value_model=value_model,
+            fairness=FairnessAssessment(market),
         )
         opportunities = calculator.opportunities(report["my_roster"])
         report.update(
@@ -206,6 +214,7 @@ def build_trade_report(args, horizon=None):
             history_cutoff=int(model.cutoff),
             opportunities=opportunities,
             roster_strengths=value_model.strengths(roster, report["my_roster"]),
+            market_reference={k: v for k, v in market.items() if k != "quotes"},
             asset_targets=value_model.targets(roster, report["my_roster"]),
             valuation_method="Expected remaining-season lineup points under current-role and historical participation assumptions; waiver alternatives included",
             participation_method="Laplace-smoothed last-eight-team-game scoring-appearance proxy; not a calibrated injury model",
@@ -223,6 +232,9 @@ def build_trade_report(args, horizon=None):
                 }
                 for row in roster.itertuples()
             },
+        )
+        (args.output / "trade-market.json").write_text(
+            json.dumps(market, indent=2), encoding="utf-8"
         )
         replacements.to_csv(args.output / "trade-replacements.csv", index=False)
         replacement_projections.to_csv(
@@ -277,6 +289,14 @@ def load_calculator(plan):
             report["weeks"],
             samples=report["scenario_samples"],
         )
+    from fantasyfootball.trading.market import FairnessAssessment
+
+    market_path = plan / "trade-market.json"
+    fairness = (
+        FairnessAssessment(json.loads(market_path.read_text(encoding="utf-8")))
+        if market_path.exists()
+        else None
+    )
     return TradeCalculator(
         roster,
         projections,
@@ -284,4 +304,5 @@ def load_calculator(plan):
         report["weeks"],
         pick_inventory=picks,
         value_model=value_model,
+        fairness=fairness,
     ), report

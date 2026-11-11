@@ -19,9 +19,11 @@ class TradeCalculator:
         weeks,
         pick_inventory=None,
         value_model=None,
+        fairness=None,
     ):
         self.needs_policy = RosterNeedsPolicy()
         self.value_model = value_model
+        self.fairness = fairness
         self.pick_inventory = pick_inventory
         self.roster = roster.copy()
         self.roster["player_id"] = self.roster.player_id.astype(str)
@@ -191,6 +193,16 @@ class TradeCalculator:
 
         result["recommendation"] = self.needs_policy.assess(
             self, mine, after_mine, result
+        )
+        result["fairness"] = (
+            self.fairness.assess(list(give), list(receive), sent_picks, gained_picks)
+            if self.fairness
+            else {
+                "verdict": "not_established",
+                "status": "unavailable",
+                "reason": "No market snapshot supplied",
+                "player_market_comparison": None,
+            }
         )
         return result
 

@@ -58,6 +58,21 @@ def render_trades(report, team_name):
                     f"{player['name']} ({player['pos']}, {player['team']}): {target['marginal_ros_gain']:+.1f} expected ROS lineup points; compared with freeing {displaced['name']}'s slot."
                 )
         sections.append("<h2>Trade packages</h2>")
+        market = report.get("market_reference")
+        if market:
+            paragraph(
+                "Market reference: "
+                + market.get("source", "Unavailable")
+                + "; fetched "
+                + market.get("fetched_at", "unknown")
+            )
+            sections.append(
+                '<p><a href="https://fantasycalc.com/frequently-asked-questions">FantasyCalc market methodology</a></p>'
+            )
+            if market.get("league_type") in {1, 2}:
+                paragraph(
+                    "Fairness is provisional: these redraft market prices exclude your keeper rights and next-year picks. Custom scoring is only partially matched."
+                )
         if report.get("unsupported_scoring"):
             paragraph(
                 "Scoring not modeled: " + ", ".join(report["unsupported_scoring"])
@@ -94,6 +109,17 @@ def render_trades(report, team_name):
             paragraph(
                 f"Your lineup: {trade['my_gain']:+.1f} points total. Their lineup: {trade['partner_gain']:+.1f} points total."
             )
+            fairness = trade.get("fairness", {})
+            comparison = fairness.get("player_market_comparison")
+            if comparison:
+                paragraph(
+                    f"Player market reference: give {comparison['give_total']:,.0f}; receive {comparison['receive_total']:,.0f}. {comparison['direction'].capitalize()}. These are market units, not fantasy points; overall fairness is not established."
+                )
+            elif fairness:
+                paragraph(
+                    "Fairness not established: "
+                    + fairness.get("reason", "Comparable prices unavailable")
+                )
             assessment = trade.get("recommendation", {})
             if "incoming_marginal_value" in assessment:
                 paragraph(

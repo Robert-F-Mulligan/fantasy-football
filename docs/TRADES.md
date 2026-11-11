@@ -51,3 +51,13 @@ Tuesday waiver/trade jobs run sequentially and use separate delivery keys. Merge
 Tests cover roster-dependent position targets, replacement-adjusted bye value, useful bench depth, FLEX uniqueness, ownership, full remaining-season forecasting without leakage, deterministic shared scenarios, proposal accounting, pick transfers, and deadline suppression. The scenario engine is validated for mechanics, not empirical trade performance. Season-long role forecasting, availability calibration, acquisition friction, multi-player automatic proposal search, and future pick fair pricing remain open work.
 
 Sources: [Sleeper API](https://docs.sleeper.com/), [trade deadline rules](https://support.sleeper.com/en/articles/2435411-when-is-my-trade-deadline).
+
+## Market evidence and offer fairness
+
+Each digest also fetches FantasyCalc's current redraft market values for the supported league size, QB count, and PPR setting. Quotes join by exact Sleeper IDs and matching position, never fuzzy player names. The private `trade-market.json` captures retrieval time, source, format, coverage, and limitations. Network/format failures leave fairness unavailable without disabling the roster-value report. Saved quotes older than 24 hours or dated in the future cannot support a comparison.
+
+For a fully priced player-only package, the calculator reports values sent, values received, the signed gap, and the symmetric percentage difference. It does **not** invent an arbitrary fair/unfair threshold, statistical confidence, or acceptance probability. Raw sums do not account for consolidation premiums, custom scoring is only partially matched, and keeper rights are excluded. In this keeper league the overall assessment remains `keeper_unresolved`, even when both teams gain ROS points or market totals are equal.
+
+If any future pick is involved, whole-package market comparison remains unavailable. A 2027 all-player keeper-draft selection is not a dynasty rookie pick, and the rank-based pick index is not interchangeable with player market units. Missing assets never become zero-valued assets. A defensible player-for-pick fairness forecast still requires keeper eligibility, next-year round costs, whether costs follow traded players, and compatible keeper/pick valuation evidence. The current example involving a first-round pick must not be read as a fair-offer recommendation.
+
+Market methodology: [FantasyCalc's real-trade value explanation](https://fantasycalc.com/frequently-asked-questions). Market reference and roster fit are different evidence; neither establishes what a specific manager will accept.
