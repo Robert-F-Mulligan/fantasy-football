@@ -29,10 +29,14 @@ def test_separate_tuesday_waivers_and_wednesday_lineups():
     )
     assert (
         "github.event.schedule == '0 10 * * 2'"
-        in workflow["jobs"]["report"]["env"]["REPORT_TYPE"]
+        in workflow["jobs"]["report"]["strategy"]["matrix"]["report_type"]
     )
     assert '--report-type "$REPORT_TYPE"' in next(
         s["run"]
         for s in workflow["jobs"]["report"]["steps"]
         if s.get("name") == "Refresh data and prepare report"
     )
+
+    assert workflow["jobs"]["report"]["strategy"]["max-parallel"] == "1"
+    assert '["waivers","trades"]' in workflow["jobs"]["report"]["strategy"]["matrix"]["report_type"]
+    assert "trades" in workflow["on"]["workflow_dispatch"]["inputs"]["report_type"]["options"]

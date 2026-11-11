@@ -11,7 +11,7 @@ The GitHub Actions workflow runs on GitHub's Ubuntu runner. Your PC and desktop 
 5. After the dry run succeeds, pause the desktop automation `bower-rangers-wednesday-start-sit-report` to avoid two independent senders. Then set repository variable `REPORT_EMAIL_ENABLED=true` and manually run with `send_email=true` for the first hosted delivery. Confirm the email arrived and the job reports `sent`. Do not leave both schedules active.
 6. Subsequent Wednesday runs send once per recipient, league, season and week. Update the season and league ID for a future league rather than silently following another league.
 
-Variables and secrets can also be entered under repository Settings → Secrets and variables → Actions. Never put the app password in an issue, PR, workflow YAML or shell command argument. Gmail secrets are available only to the report job; the CI test workflow receives none. The report job only runs on main in the original repository and is never triggered by PR contents.
+Variables and secrets can also be entered under repository Settings â†’ Secrets and variables â†’ Actions. Never put the app password in an issue, PR, workflow YAML or shell command argument. Gmail secrets are available only to the report job; the CI test workflow receives none. The report job only runs on main in the original repository and is never triggered by PR contents.
 
 ## Delivery semantics and recovery
 
@@ -50,7 +50,7 @@ References: [nflverse player statistics](https://nflreadr.nflverse.com/articles/
 
 A manual or merge-triggered dry run can fail with `Previous week schedule is incomplete; refusing a stale forecast` while the last game of the previous week is still in progress or the provider has not posted its final score. A second guard checks that prior-week player statistics cover every scheduled team. Do not remove either guard or substitute older statistics to make a dry run pass.
 
-The October 26, 2026 post-organization run reached report preparation with the new module paths, then stopped before archive upload or email. A live local reproduction found Week 8 was the target and Week 7 Dallas–Philadelphia was missing final scores. This verifies the readiness safeguard, not a completed hosted report. Retry the email-free workflow after final scores and player statistics have arrived; the Wednesday schedule remains enabled.
+The October 26, 2026 post-organization run reached report preparation with the new module paths, then stopped before archive upload or email. A live local reproduction found Week 8 was the target and Week 7 Dallasâ€“Philadelphia was missing final scores. This verifies the readiness safeguard, not a completed hosted report. Retry the email-free workflow after final scores and player statistics have arrived; the Wednesday schedule remains enabled.
 
 
 ## Tuesday waiver email
@@ -89,3 +89,9 @@ Weekly lineup selection still maximizes projected points. A second assignment pa
 The combined injury plan retains unaffected starters and checks a complete legal lineup using distinct unflagged, projected bench players. It first tries a decision before the earliest affected starter kicks off. If needed, it searches earlier bench kickoffs from latest to earliest and labels the earlier deadline. At a feasible deadline it maximizes projected points, while preserving locked slots and preferring later FLEX placement. It does not assume injury news will arrive before that deadline.
 
 If the roster cannot fill every opening under those conditions, the email says so even when each individual plan is feasible. This is an all-listed-starters-out scenario, not a probability estimate or an analysis of every injury subset. Missing league rules or timestamps suppress scenarios rather than inventing eligibility or timing.
+
+## Tuesday trade digest
+
+The workflow also prepares a [trade-opportunity digest](TRADES.md) on Tuesdays at 10 a.m. Eastern, independently of the waiver delivery. Choose `trades` for a manual dry run. Pushes to main validate lineup and trade preparation without sending email. Each report is archived privately and has an independent send reservation.
+
+Trade reports now include the deadline date and review period. They stop before the final deadline game's kickoff (a conservative email cutoff; league trading remains open until the game ends). Preparation and sending independently check live rules. Suppressed runs do not reserve a delivery key, send SMTP, or archive an empty report. Pick scenarios refresh from standings on each preparation and remain separate from lineup-point gains.

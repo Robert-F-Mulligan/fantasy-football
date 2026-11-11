@@ -179,8 +179,8 @@ def main():
     parser.add_argument("--report", type=Path, required=True)
     args = parser.parse_args()
     delivery = json.loads((args.report / "delivery.json").read_text(encoding="utf-8"))
-    if delivery["status"] == "offseason":
-        status = "offseason"
+    if delivery["status"] in {"offseason", "trade_suppressed"}:
+        status = delivery["status"]
     else:
         if delivery["status"] != "ready":
             raise ValueError("Only ready reports may be archived")

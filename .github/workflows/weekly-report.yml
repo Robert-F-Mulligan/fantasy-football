@@ -1,10 +1,11 @@
-name: Fantasy waiver and lineup reports
+name: Fantasy weekly reports
 on:
   push:
     branches: [main]
     paths:
       - 'fantasyfootball/**'
       - 'pyproject.toml'
+      - 'config/trade-rules.json'
       - '.github/workflows/weekly-report.yml'
   schedule:
     - cron: '0 10 * * 2'
@@ -16,7 +17,7 @@ on:
       report_type:
         description: Report to prepare
         type: choice
-        options: [lineup, waivers]
+        options: [lineup, waivers, trades]
         default: lineup
       send_email:
         description: Send email after successful preparation (false is a dry run)
@@ -30,15 +31,21 @@ concurrency:
 jobs:
   report:
     if: github.repository == 'Robert-F-Mulligan/fantasy-football' && github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        report_type: ${{ fromJSON(github.event_name == 'push' && '["lineup","trades"]' || github.event.schedule == '0 10 * * 2' && '["waivers","trades"]' || inputs.report_type == 'trades' && '["trades"]' || inputs.report_type == 'waivers' && '["waivers"]' || '["lineup"]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
       contents: write # Durable send reservations on report-delivery-state only.
     env:
-      REPORT_TYPE: ${{ github.event.schedule == '0 10 * * 2' && 'waivers' || inputs.report_type || 'lineup' }}
+      REPORT_TYPE: ${{ matrix.report_type }}
       FF_LEAGUE_ID: ${{ vars.FF_LEAGUE_ID }}
       FF_TEAM_NAME: ${{ vars.FF_TEAM_NAME }}
       FF_SEASON: ${{ vars.FF_SEASON }}
+      FF_TRADE_RULES: config/trade-rules.json
       OMP_NUM_THREADS: '2'
       LOKY_MAX_CPU_COUNT: '2'
     steps:
