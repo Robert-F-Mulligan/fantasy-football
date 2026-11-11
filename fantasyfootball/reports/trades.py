@@ -29,6 +29,13 @@ def render_trades(report, team_name):
         paragraph(
             f"Weeks {weeks[0]}-{weeks[-1]}: projected change in best legal starting-lineup points, including FLEX and byes."
         )
+        priorities = report.get("priority_positions", [])
+        if priorities:
+            paragraph(
+                "Trade priority: improve "
+                + ", ".join(priorities)
+                + " starters while protecting positional depth and injury cover. Bye-week patches are excluded."
+            )
         if report.get("unsupported_scoring"):
             paragraph(
                 "Scoring not modeled: " + ", ".join(report["unsupported_scoring"])
@@ -46,7 +53,7 @@ def render_trades(report, team_name):
             )
         if not report["opportunities"]:
             paragraph(
-                "No fully evaluated one-for-one trade improved both teams' projected lineups in this window."
+                "No evaluated one-for-one trade met the roster-needs and depth checks while improving both teams. No forced recommendation."
             )
 
         def label(pid):
@@ -65,6 +72,11 @@ def render_trades(report, team_name):
             paragraph(
                 f"Your lineup: {trade['my_gain']:+.1f} points total. Their lineup: {trade['partner_gain']:+.1f} points total."
             )
+            assessment = trade.get("recommendation", {})
+            if priorities and assessment.get("position_impact"):
+                paragraph(
+                    f"{', '.join(priorities)} starting-point gain: {assessment['priority_gain']:+.1f} over this window. Priority-position starter and backup coverage preserved each week."
+                )
             rows = []
             for week in trade["weekly"]:
                 summary = f"Week {week['week']}: you {week['my_gain']:+.1f}; them {week['partner_gain']:+.1f}"
@@ -87,7 +99,7 @@ def render_trades(report, team_name):
             "Current-role scenarios, not market prices or acceptance odds. Future roles and injury recoveries are held unchanged; multi-week gains do not have calibrated confidence intervals."
         )
         paragraph(
-            "Sorted by your projected gain; one proposal per partner. Bench insurance, manager preferences, and trade-review delays are not valued. No trade offers are sent."
+            "Sorted by priority-position improvement, then total lineup gain; one proposal per partner. Priority-position depth is protected, but manager preferences and trade-review delays are not modeled. No trade offers are sent."
         )
     inventory = report.get("pick_inventory")
     if inventory:

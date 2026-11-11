@@ -141,13 +141,17 @@ def build_trade_report(args, horizon=4):
             )
         )
         slots = read("offensive-slots.json")
-        calculator = TradeCalculator(roster, projections, slots, weeks)
+        priorities = tuple(getattr(args, "trade_priority_positions", ()))
+        calculator = TradeCalculator(
+            roster, projections, slots, weeks, priority_positions=priorities
+        )
         opportunities = calculator.opportunities(report["my_roster"])
         report.update(
             status="estimated",
             weeks=weeks,
             history_cutoff=int(model.cutoff),
             opportunities=opportunities,
+            priority_positions=list(priorities),
             slots=slots,
             unknown_player_weeks=int(projections.status.eq("unknown").sum()),
             unavailable_player_weeks=int(projections.status.eq("unavailable").sum()),
@@ -182,5 +186,10 @@ def load_calculator(plan):
         else None
     )
     return TradeCalculator(
-        roster, projections, report["slots"], report["weeks"], pick_inventory=picks
+        roster,
+        projections,
+        report["slots"],
+        report["weeks"],
+        pick_inventory=picks,
+        priority_positions=report.get("priority_positions", ()),
     ), report

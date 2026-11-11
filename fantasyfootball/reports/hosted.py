@@ -142,7 +142,6 @@ def prepare(
         from fantasyfootball.trading.application import build_trade_report
         from fantasyfootball.trading.picks import fetch_pick_inventory
 
-        trade_report = build_trade_report(args)
         confirmed_rounds = None
         order_rule = "unknown"
         rules_path = os.environ.get("FF_TRADE_RULES")
@@ -157,6 +156,14 @@ def prepare(
                 .get(str(season + 1), {})
                 .get("draft_order_rule", "unknown")
             )
+        args.trade_priority_positions = (
+            rules.get(str(league_id), {})
+            .get(str(season), {})
+            .get("priority_positions", [])
+            if rules_path
+            else []
+        )
+        trade_report = build_trade_report(args)
         inventory = fetch_pick_inventory(
             league_id, season, confirmed_rounds=confirmed_rounds, order_rule=order_rule
         )

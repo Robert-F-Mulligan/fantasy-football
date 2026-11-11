@@ -5,6 +5,11 @@
       "confirmed_on": "2026-11-11",
       "keeper_rules": null,
       "draft_order_rule": "unknown"
+    },
+    "2026": {
+      "priority_positions": [
+        "RB"
+      ]
     }
   }
 }

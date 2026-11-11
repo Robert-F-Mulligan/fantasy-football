@@ -6,11 +6,21 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import linear_sum_assignment
 
+from fantasyfootball.trading.needs import RosterNeedsPolicy
 from fantasyfootball.trading.picks import validate_pick_exchange
 
 
 class TradeCalculator:
-    def __init__(self, roster, projections, slots, weeks, pick_inventory=None):
+    def __init__(
+        self,
+        roster,
+        projections,
+        slots,
+        weeks,
+        pick_inventory=None,
+        priority_positions=(),
+    ):
+        self.needs_policy = RosterNeedsPolicy(tuple(priority_positions))
         self.pick_inventory = pick_inventory
         self.roster = roster.copy()
         self.roster["player_id"] = self.roster.player_id.astype(str)
@@ -148,7 +158,7 @@ class TradeCalculator:
                 }
             )
         complete = all(r["status"] == "estimated" for r in weekly)
-        return {
+        result = {
             "status": "estimated" if complete else "incomplete",
             "partner_roster": partner_roster,
             "give_picks": sent_picks,
@@ -176,6 +186,11 @@ class TradeCalculator:
             else None,
         }
 
+        result["recommendation"] = self.needs_policy.assess(
+            self, mine, after_mine, result
+        )
+        return result
+
     def opportunities(self, my_roster, limit=5):
         if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
             raise ValueError("Opportunity limit must be a positive integer")
@@ -185,6 +200,8 @@ class TradeCalculator:
         others = self.roster.loc[
             ~self.roster.roster_id.eq(my_roster) & self.roster.tradable
         ]
+        if self.needs_policy.priority_positions:
+            others = others.loc[others.pos.isin(self.needs_policy.priority_positions)]
         results = []
         for a in mine.itertuples():
             for b in others.itertuples():
@@ -193,12 +210,19 @@ class TradeCalculator:
                 )
                 if (
                     result["status"] == "estimated"
+                    and result["recommendation"]["eligible"]
                     and round(result["my_gain"], 1) > 0
                     and round(result["partner_gain"], 1) > 0
                 ):
                     results.append(result)
         results.sort(
-            key=lambda r: (-r["my_gain"], -r["partner_gain"], r["give"], r["receive"])
+            key=lambda r: (
+                -r["recommendation"]["priority_gain"],
+                -r["my_gain"],
+                -r["partner_gain"],
+                r["give"],
+                r["receive"],
+            )
         )
         # Avoid presenting five variations involving the same trade partner.
         selected, partners = [], set()

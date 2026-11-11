@@ -65,3 +65,11 @@ The optional comparison index is `100 / sqrt(overall_pick)`, averaged over the s
 Set the year-specific `draft_order_rule` in `config/trade-rules.json` only after confirming league rules. The current league is marked `unknown` pending that confirmation. Keeper rules and costs are still needed to develop a defensible future-value model; a changing rank index alone does not establish that an offer is fair.
 
 Deadline source: [Sleeper trade deadline and review-period rules](https://support.sleeper.com/en/articles/2435411-when-is-my-trade-deadline).
+
+## Roster needs before point totals
+
+The season-specific `priority_positions` setting in `config/trade-rules.json` records manager priorities; this league's 2026 priority is **RB**. The digest must acquire an RB and improve projected RB starting points. It cannot reduce RB roster count, worsen RB starting-point totals in any modeled week, weaken the top starters-plus-one-backup point total, or reduce available starter/backup coverage below its existing level (capped at required starters plus one). This is a conservative constraint on forecast scenarios, not an injury probability model.
+
+Both teams must still gain projected lineup points, and neither may acquire a new weekly lineup vacancy. A gain confined to a single week with an existing vacancy is treated as a waiver/bye-week patch and excluded from automatic trade suggestions. Recommendations sort by priority-position improvement before total lineup gain. If nothing passes, the email says so rather than substituting QB/TE offers. Other positions may still lose depth in an RB-upgrade trade; only the declared priority receives the stronger backup-quality protection.
+
+The custom calculator still evaluates proposals that violate these preferences, but returns `recommendation.eligible=false` with reasons and weekly positional before/after metrics. It does not mistake a mathematical lineup gain for a recommended trade. Priorities apply only to the configured season and do not silently carry into next year's league.
