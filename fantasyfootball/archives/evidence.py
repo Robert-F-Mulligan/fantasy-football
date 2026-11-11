@@ -137,6 +137,7 @@ def capture(report_dir, archive_dir):
         "trade-report.json",
         "trade-picks.json",
         "trade-market.json",
+        "trade-fairness.json",
         "trade-replacements.csv",
         "trade-replacement-projections.csv",
         "trade-participation.csv",

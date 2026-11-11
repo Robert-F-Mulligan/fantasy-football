@@ -156,10 +156,14 @@ def prepare(
                 .get(str(season + 1), {})
                 .get("draft_order_rule", "unknown")
             )
-        trade_report = build_trade_report(args)
         inventory = fetch_pick_inventory(
             league_id, season, confirmed_rounds=confirmed_rounds, order_rule=order_rule
         )
+        args.pick_inventory = inventory
+        args.trade_rules = (
+            rules.get(str(league_id), {}).get(str(season + 1), {}) if rules_path else {}
+        )
+        trade_report = build_trade_report(args)
         trade_report["pick_inventory"] = inventory
         (args.output / "trade-picks.json").write_text(
             json.dumps(inventory, indent=2), encoding="utf-8"

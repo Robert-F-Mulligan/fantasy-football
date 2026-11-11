@@ -113,13 +113,32 @@ def render_trades(report, team_name):
             comparison = fairness.get("player_market_comparison")
             if comparison:
                 paragraph(
-                    f"Player market reference: give {comparison['give_total']:,.0f}; receive {comparison['receive_total']:,.0f}. {comparison['direction'].capitalize()}. These are market units, not fantasy points; overall fairness is not established."
+                    f"Player market reference: give {comparison['give_total']:,.0f}; receive {comparison['receive_total']:,.0f}. {comparison['direction'].capitalize()}. These are market units, not fantasy points; keeper and draft-pick value are assessed separately."
                 )
             elif fairness:
                 paragraph(
-                    "Fairness not established: "
+                    "Market comparison unavailable: "
                     + fairness.get("reason", "Comparable prices unavailable")
                 )
+            estimate = trade.get("offer_estimate", {})
+            if estimate.get("status") == "conditional_estimate":
+                verdicts = {
+                    "both_benefit_in_modeled_scenarios": "Both teams benefit in modeled scenarios",
+                    "favors_you_in_modeled_scenarios": "Favors you in modeled scenarios",
+                    "favors_partner_in_modeled_scenarios": "Favors your partner in modeled scenarios",
+                    "both_lose_in_modeled_scenarios": "Both teams lose in modeled scenarios",
+                    "depends_on_assumptions": "Fairness depends on keeper and draft assumptions",
+                }
+                paragraph("Offer estimate: " + verdicts[estimate["verdict"]])
+                me, them = estimate["my_total_change"], estimate["partner_total_change"]
+                paragraph(
+                    f"Two-season value change: you {me['low']:+.1f} to {me['high']:+.1f}; "
+                    f"partner {them['low']:+.1f} to {them['high']:+.1f} point-equivalents. "
+                    "Includes current lineup points, next-year draft capital, and keeper surplus. "
+                    "Sensitivity range, not a confidence interval or acceptance probability."
+                )
+            elif estimate:
+                paragraph("Offer estimate unavailable: " + estimate["reason"])
             assessment = trade.get("recommendation", {})
             if "incoming_marginal_value" in assessment:
                 paragraph(
@@ -148,6 +167,14 @@ def render_trades(report, team_name):
         )
         paragraph(
             "Ranked by your expected ROS gain; one proposal per partner. Weekly streaming assumes access to current waiver alternatives; claim competition, FAAB, drop/reacquisition costs, and trade-review delays are not modeled. Future pick value stays separate. No trade offers are sent."
+        )
+    if report.get("fairness_assumptions"):
+        sections.append("<h2>How offer value is estimated</h2>")
+        paragraph(
+            "Next season carries forward current performance and participation, with historical performance used for currently unavailable players. "
+            "Keeper scenarios test eligibility, round costs, the two-keeper limit, and the picks needed to pay those costs. "
+            "Draft selections follow current standings, with keeper-related rank shifts; next-season surplus points receive weights of 0.75 and 1.0. "
+            "These sensitivity choices are not fitted probabilities and do not forecast rookies or offseason changes."
         )
     inventory = report.get("pick_inventory")
     if inventory:
@@ -218,7 +245,7 @@ def render_trades(report, team_name):
                     + "</table>"
                 )
             paragraph(
-                "Pick IDs and full-round overall ranges are saved with the calculator. Include picks in a custom proposal to see the current lineup effect; future pick value remains unpriced. No fair-price pick recommendation is made yet."
+                "Pick IDs and full-round overall ranges are saved with the calculator. Include picks in a custom proposal to see the current lineup effect; future pick effects are estimated conditionally when saved fairness evidence is available."
             )
     html = (
         '<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;color:#182230;max-width:760px;margin:auto;padding:16px">'

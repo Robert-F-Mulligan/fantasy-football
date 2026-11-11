@@ -196,8 +196,30 @@ def build_trade_report(args, horizon=None):
             slots,
             weeks,
         )
+        from fantasyfootball.trading.fairness import OfferFairness, fetch_draft_costs
         from fantasyfootball.trading.market import FairnessAssessment, FantasyCalcMarket
 
+        inventory = getattr(args, "pick_inventory", None)
+        rules = getattr(args, "trade_rules", {}).get("keeper_rules") or {}
+        costs = (
+            fetch_draft_costs(imported["league_id"], args.season, roster)
+            if inventory and imported.get("league_id")
+            else {}
+        )
+        offer_fairness = OfferFairness.build(
+            roster,
+            projections,
+            replacements,
+            replacement_projections,
+            participation,
+            season=args.season,
+            weeks=weeks,
+            inventory=inventory,
+            rules=rules,
+            keeper_limit=imported.get("waiver_settings", {}).get("max_keepers", 0),
+            draft_costs=costs,
+            history=history,
+        )
         market = FantasyCalcMarket().fetch(imported, roster)
         calculator = TradeCalculator(
             roster,
@@ -206,6 +228,8 @@ def build_trade_report(args, horizon=None):
             weeks,
             value_model=value_model,
             fairness=FairnessAssessment(market),
+            offer_fairness=offer_fairness,
+            pick_inventory=inventory,
         )
         opportunities = calculator.opportunities(report["my_roster"])
         report.update(
@@ -215,6 +239,7 @@ def build_trade_report(args, horizon=None):
             opportunities=opportunities,
             roster_strengths=value_model.strengths(roster, report["my_roster"]),
             market_reference={k: v for k, v in market.items() if k != "quotes"},
+            fairness_assumptions=offer_fairness.evidence["assumptions"],
             asset_targets=value_model.targets(roster, report["my_roster"]),
             valuation_method="Expected remaining-season lineup points under current-role and historical participation assumptions; waiver alternatives included",
             participation_method="Laplace-smoothed last-eight-team-game scoring-appearance proxy; not a calibrated injury model",
@@ -232,6 +257,9 @@ def build_trade_report(args, horizon=None):
                 }
                 for row in roster.itertuples()
             },
+        )
+        (args.output / "trade-fairness.json").write_text(
+            json.dumps(offer_fairness.evidence, indent=2), encoding="utf-8"
         )
         (args.output / "trade-market.json").write_text(
             json.dumps(market, indent=2), encoding="utf-8"
@@ -297,6 +325,14 @@ def load_calculator(plan):
         if market_path.exists()
         else None
     )
+    from fantasyfootball.trading.fairness import OfferFairness
+
+    estimate_path = plan / "trade-fairness.json"
+    offer_fairness = (
+        OfferFairness(json.loads(estimate_path.read_text(encoding="utf-8")))
+        if estimate_path.exists()
+        else None
+    )
     return TradeCalculator(
         roster,
         projections,
@@ -305,4 +341,5 @@ def load_calculator(plan):
         pick_inventory=picks,
         value_model=value_model,
         fairness=fairness,
+        offer_fairness=offer_fairness,
     ), report

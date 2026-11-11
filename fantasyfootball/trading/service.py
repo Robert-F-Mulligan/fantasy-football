@@ -20,10 +20,12 @@ class TradeCalculator:
         pick_inventory=None,
         value_model=None,
         fairness=None,
+        offer_fairness=None,
     ):
         self.needs_policy = RosterNeedsPolicy()
         self.value_model = value_model
         self.fairness = fairness
+        self.offer_fairness = offer_fairness
         self.pick_inventory = pick_inventory
         self.roster = roster.copy()
         self.roster["player_id"] = self.roster.player_id.astype(str)
@@ -204,6 +206,15 @@ class TradeCalculator:
                 "player_market_comparison": None,
             }
         )
+        if self.offer_fairness is not None:
+            result["offer_estimate"] = self.offer_fairness.assess(
+                self, my_roster, partner_roster, result
+            )
+            if result["offer_estimate"]["status"] == "conditional_estimate":
+                result["valuation_scope"] = (
+                    "Current lineup effect plus conditional two-season utility; market fairness and acceptance are not calibrated"
+                )
+
         return result
 
     def opportunities(self, my_roster, limit=5):

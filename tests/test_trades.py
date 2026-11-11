@@ -200,7 +200,7 @@ def test_builder_uses_one_pregame_fit_and_separate_future_weeks(
         assert frame.week.tolist() == [
             7
         ]  # Current week cannot enter training, even after kickoff.
-        return frame
+        return frame.assign(player_id="a", fantasy_points=20.0)
 
     monkeypatch.setattr(app, "prepare_weekly", prepare)
     model = Mock(cutoff=202607)
