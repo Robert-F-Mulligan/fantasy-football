@@ -135,6 +135,8 @@ def capture(report_dir, archive_dir):
         "specialists.csv",
         "forecast-provenance.json",
         "trade-report.json",
+        "trade-prospective.json",
+        "trade-details.html",
         "trade-picks.json",
         "trade-market.json",
         "trade-fairness.json",

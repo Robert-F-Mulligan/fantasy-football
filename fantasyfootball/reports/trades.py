@@ -4,6 +4,14 @@ from html import escape
 
 
 def render_trades(report, team_name):
+    if report.get("model_audit"):
+        from fantasyfootball.reports.trade_brief import render_trade_brief
+
+        return render_trade_brief(report, team_name)
+    return render_trade_details(report, team_name)
+
+
+def render_trade_details(report, team_name):
     subject = (
         f"{team_name} - Week {report['week']} Trade Opportunities ({report['season']})"
     )
@@ -17,6 +25,10 @@ def render_trades(report, team_name):
         lines.append(text)
         sections.append("<p>" + escape(text) + "</p>")
 
+    if report.get("model_audit"):
+        paragraph(
+            "Research detail: combined two-season totals mix current lineup value with an unvalidated future-surplus proxy. They are not established fair prices; use the brief to compare the components separately."
+        )
     if report.get("deadline"):
         paragraph(report["deadline"]["description"])
         paragraph(

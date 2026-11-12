@@ -302,6 +302,15 @@ def build_trade_report(args, horizon=None):
             report["my_roster"],
             [t["player_id"] for t in report["asset_targets"]],
         )
+        from fantasyfootball.evaluation.trades import seal_trade_forecasts
+        from fantasyfootball.trading.audit import audit_trade_model
+
+        report["model_audit"] = audit_trade_model(offer_fairness.evidence, report)
+        prospective = seal_trade_forecasts(calculator, report, history, schedule)
+        (args.output / "trade-prospective.json").write_text(
+            json.dumps(prospective, indent=2, allow_nan=False), encoding="utf-8"
+        )
+        report["prospective_forecasts_recorded"] = len(prospective["forecasts"])
         (args.output / "trade-fairness.json").write_text(
             json.dumps(offer_fairness.evidence, indent=2), encoding="utf-8"
         )
@@ -315,6 +324,12 @@ def build_trade_report(args, horizon=None):
         participation.to_csv(args.output / "trade-participation.csv", index=False)
         roster.to_csv(args.output / "trade-rosters.csv", index=False)
         projections.to_csv(args.output / "trade-projections.csv", index=False)
+    from fantasyfootball.reports.trades import render_trade_details
+
+    _, _, detail_html = render_trade_details(
+        report, imported.get("team_name", "Your team")
+    )
+    (args.output / "trade-details.html").write_text(detail_html, encoding="utf-8")
     (args.output / "trade-report.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
     )

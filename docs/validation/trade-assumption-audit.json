@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "status": "research_only_for_future_price",
+  "price_guidance_enabled": false,
+  "confirmed_keeper_rules": {
+    "round_penalty": 2,
+    "max_consecutive_keeps": 2
+  },
+  "unresolved_keeper_rules": [
+    "Original versus latest keeper round",
+    "Whether round cost follows a traded player",
+    "Whether consecutive keep count follows a traded player",
+    "Treatment of costs earlier than Round 1"
+  ],
+  "findings": [
+    {
+      "code": "mixed_value_scales",
+      "severity": "high",
+      "finding": "Current lineup points and next-year standalone surplus are different utility measures; their sum is not a validated fair price",
+      "action": "Show current gain and future-cost proxy separately in the main email"
+    },
+    {
+      "code": "future_curve_unvalidated",
+      "severity": "high",
+      "finding": "The current-player draft curve does not forecast next year's rookies, roles, or draft demand",
+      "action": "Keep pick pricing conditional; do not publish a fair-price ceiling"
+    },
+    {
+      "code": "sensitivity_not_probability",
+      "severity": "medium",
+      "finding": "Keeper modes, rank shifts and future weights are chosen scenarios, not learned probabilities",
+      "action": "Do not average scenario counts into acceptance or fairness odds"
+    },
+    {
+      "code": "prospective_validation_pending",
+      "severity": "high",
+      "finding": "Synthetic historical coverage does not establish an edge on archived live offers",
+      "action": "Seal fixed plans and baselines before kickoff; score only settled, resolved horizons"
+    }
+  ],
+  "historical_interval_check": "unavailable"
+}
