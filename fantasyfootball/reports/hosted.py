@@ -105,7 +105,9 @@ def prepare(
             json.dumps({"status": "offseason"}), encoding="utf-8"
         )
         return "offseason"
-    seasons = list(range(season - 2, season + (week > 1)))
+    seasons = list(
+        range(season - (4 if report_type == "trades" else 2), season + (week > 1))
+    )
     snapshot, _ = DataSyncService().sync(seasons, season, destination / "data")
     history = pd.read_csv(snapshot / "weekly.csv")
     require_recent_coverage(schedule, history, season, week)
@@ -142,7 +144,6 @@ def prepare(
         from fantasyfootball.trading.application import build_trade_report
         from fantasyfootball.trading.picks import fetch_pick_inventory
 
-        trade_report = build_trade_report(args)
         confirmed_rounds = None
         order_rule = "unknown"
         rules_path = os.environ.get("FF_TRADE_RULES")
@@ -160,6 +161,12 @@ def prepare(
         inventory = fetch_pick_inventory(
             league_id, season, confirmed_rounds=confirmed_rounds, order_rule=order_rule
         )
+        args.trade_uncertainty = True
+        args.pick_inventory = inventory
+        args.trade_rules = (
+            rules.get(str(league_id), {}).get(str(season + 1), {}) if rules_path else {}
+        )
+        trade_report = build_trade_report(args)
         trade_report["pick_inventory"] = inventory
         (args.output / "trade-picks.json").write_text(
             json.dumps(inventory, indent=2), encoding="utf-8"

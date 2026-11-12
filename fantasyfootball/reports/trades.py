@@ -4,6 +4,14 @@ from html import escape
 
 
 def render_trades(report, team_name):
+    if report.get("model_audit"):
+        from fantasyfootball.reports.trade_brief import render_trade_brief
+
+        return render_trade_brief(report, team_name)
+    return render_trade_details(report, team_name)
+
+
+def render_trade_details(report, team_name):
     subject = (
         f"{team_name} - Week {report['week']} Trade Opportunities ({report['season']})"
     )
@@ -17,6 +25,10 @@ def render_trades(report, team_name):
         lines.append(text)
         sections.append("<p>" + escape(text) + "</p>")
 
+    if report.get("model_audit"):
+        paragraph(
+            "Research detail: combined two-season totals mix current lineup value with an unvalidated future-surplus proxy. They are not established fair prices; use the brief to compare the components separately."
+        )
     if report.get("deadline"):
         paragraph(report["deadline"]["description"])
         paragraph(
@@ -27,8 +39,62 @@ def render_trades(report, team_name):
     else:
         weeks = report["weeks"]
         paragraph(
-            f"Weeks {weeks[0]}-{weeks[-1]}: projected change in best legal starting-lineup points, including FLEX and byes."
+            f"Weeks {weeks[0]}-{weeks[-1]}: expected remaining-season lineup-point change, including FLEX, byes, availability scenarios, and waiver alternatives."
         )
+        if report.get("roster_strengths"):
+            sections.append("<h2>Your roster relative to the league</h2>")
+            paragraph(
+                "Position strength is the expected remaining-season lineup value lost if those players were replaced from the waiver pool. FLEX and depth are included; position values overlap and should not be summed."
+            )
+            modeled = report["roster_strengths"][0]["teams_evaluated"]
+            league_size = report.get("league_team_count") or report["roster_strengths"][
+                0
+            ].get("league_teams", modeled)
+            paragraph(
+                f"{league_size}-team league. Complete roster forecasts: {modeled} of {league_size} teams. Ranks below compare those {modeled} modeled teams."
+            )
+            rows = []
+            for strength in report["roster_strengths"]:
+                line = f"{strength['position']}: {strength['ros_value_above_replacement']:.1f} points above replacements; rank {strength['rank']} among {strength['teams_evaluated']} modeled teams"
+                lines.append(line)
+                rows.append(
+                    f"<tr><td>{escape(strength['position'])}</td><td>{strength['ros_value_above_replacement']:.1f}</td><td>{strength['league_median']:.1f}</td><td>{strength['rank']}/{strength['teams_evaluated']}</td></tr>"
+                )
+            sections.append(
+                '<table cellpadding="8" border="1"><caption>ROS replacement premium; higher is stronger</caption><tr><th scope="col">Position</th><th scope="col">Your points</th><th scope="col">Modeled median</th><th scope="col">Rank among modeled teams</th></tr>'
+                + "".join(rows)
+                + "</table>"
+            )
+        pick_html, pick_plain = _render_pick_scenarios(report)
+        sections.extend(pick_html)
+        lines.extend(pick_plain)
+        if report.get("asset_targets"):
+            sections.append("<h2>Highest-value acquisition targets</h2>")
+            paragraph(
+                "Gain if acquired with one roster slot freed. The acquisition price is not included; the displaced player is a roster-space comparison, not a fair trade offer."
+            )
+            for target in report["asset_targets"]:
+                player = report["players"][target["player_id"]]
+                displaced = report["players"][target["displaced_player_id"]]
+                paragraph(
+                    f"{player['name']} ({player['pos']}, {player['team']}): {target['marginal_ros_gain']:+.1f} expected ROS lineup points; compared with freeing {displaced['name']}'s slot."
+                )
+        sections.append("<h2>Trade packages</h2>")
+        market = report.get("market_reference")
+        if market:
+            paragraph(
+                "Market reference: "
+                + market.get("source", "Unavailable")
+                + "; fetched "
+                + market.get("fetched_at", "unknown")
+            )
+            sections.append(
+                '<p><a href="https://fantasycalc.com/frequently-asked-questions">FantasyCalc market methodology</a></p>'
+            )
+            if market.get("league_type") in {1, 2}:
+                paragraph(
+                    "Fairness is provisional: these redraft market prices exclude your keeper rights and next-year picks. Custom scoring is only partially matched."
+                )
         if report.get("unsupported_scoring"):
             paragraph(
                 "Scoring not modeled: " + ", ".join(report["unsupported_scoring"])
@@ -46,7 +112,7 @@ def render_trades(report, team_name):
             )
         if not report["opportunities"]:
             paragraph(
-                "No fully evaluated one-for-one trade improved both teams' projected lineups in this window."
+                "No evaluated one-for-one package improves both teams' expected remaining-season roster value. No forced recommendation."
             )
 
         def label(pid):
@@ -65,6 +131,65 @@ def render_trades(report, team_name):
             paragraph(
                 f"Your lineup: {trade['my_gain']:+.1f} points total. Their lineup: {trade['partner_gain']:+.1f} points total."
             )
+            uncertainty = trade.get("uncertainty", {})
+            interval = uncertainty.get("you", {})
+            if interval.get("status") == "estimated":
+                paragraph(
+                    f"Forecast-selected lineup gain: {interval['expected_gain']:+.1f} points. "
+                    f"Nominal 80% prediction interval: {interval['prediction_lower']:+.1f} to {interval['prediction_upper']:+.1f}."
+                )
+                probability = interval.get("probability_positive")
+                if probability is not None:
+                    paragraph(
+                        f"Estimated chance of a positive gain under this lineup plan: {probability:.0%}."
+                    )
+            elif interval.get("status") == "unchanged_lineups":
+                paragraph(
+                    "The fixed starter plan is unchanged; its projected scoring difference is zero."
+                )
+            elif uncertainty:
+                paragraph(
+                    "Prediction interval unavailable: "
+                    + (
+                        uncertainty.get("reason")
+                        or "Insufficient matching validation evidence"
+                    )
+                )
+            fairness = trade.get("fairness", {})
+            comparison = fairness.get("player_market_comparison")
+            if comparison:
+                paragraph(
+                    f"Player market reference: give {comparison['give_total']:,.0f}; receive {comparison['receive_total']:,.0f}. {comparison['direction'].capitalize()}. These are market units, not fantasy points; keeper and draft-pick value are assessed separately."
+                )
+            elif fairness:
+                paragraph(
+                    "Market comparison unavailable: "
+                    + fairness.get("reason", "Comparable prices unavailable")
+                )
+            estimate = trade.get("offer_estimate", {})
+            if estimate.get("status") == "conditional_estimate":
+                verdicts = {
+                    "both_benefit_in_modeled_scenarios": "Both teams benefit in modeled scenarios",
+                    "favors_you_in_modeled_scenarios": "Favors you in modeled scenarios",
+                    "favors_partner_in_modeled_scenarios": "Favors your partner in modeled scenarios",
+                    "both_lose_in_modeled_scenarios": "Both teams lose in modeled scenarios",
+                    "depends_on_assumptions": "Fairness depends on keeper and draft assumptions",
+                }
+                paragraph("Offer estimate: " + verdicts[estimate["verdict"]])
+                me, them = estimate["my_total_change"], estimate["partner_total_change"]
+                paragraph(
+                    f"Two-season value change: you {me['low']:+.1f} to {me['high']:+.1f}; "
+                    f"partner {them['low']:+.1f} to {them['high']:+.1f} point-equivalents. "
+                    "Includes current lineup points, next-year draft capital, and keeper surplus. "
+                    "Sensitivity range, not a confidence interval or acceptance probability."
+                )
+            elif estimate:
+                paragraph("Offer estimate unavailable: " + estimate["reason"])
+            assessment = trade.get("recommendation", {})
+            if "incoming_marginal_value" in assessment:
+                paragraph(
+                    f"Incoming benefit: {assessment['incoming_marginal_value']:+.1f} expected points. Outgoing opportunity cost: {assessment['outgoing_opportunity_cost']:.1f} points."
+                )
             rows = []
             for week in trade["weekly"]:
                 summary = f"Week {week['week']}: you {week['my_gain']:+.1f}; them {week['partner_gain']:+.1f}"
@@ -72,22 +197,38 @@ def render_trades(report, team_name):
                 rows.append(
                     f"<tr><td>{week['week']}</td><td>{week['my_gain']:+.1f}</td><td>{week['partner_gain']:+.1f}</td></tr>"
                 )
-                for side, caption in [("my_after", "Your"), ("partner_after", "Their")]:
-                    lineup = week[side]
-                    if lineup["filled"] < lineup["slots"]:
-                        paragraph(
-                            f"Week {week['week']}: {caption} roster fills {lineup['filled']}/{lineup['slots']} offensive slots after this trade."
-                        )
             sections.append(
                 '<table cellpadding="8" cellspacing="0" border="1"><caption>Projected weekly lineup-point change</caption><thead><tr><th scope="col">Week</th><th scope="col">You</th><th scope="col">Partner</th></tr></thead><tbody>'
                 + "".join(rows)
                 + "</tbody></table>"
             )
+            lowest = min(w["my_after"]["filled"] for w in trade["weekly"])
+            slot_count = trade["weekly"][0]["my_after"]["slots"]
+            if lowest < slot_count - 0.05:
+                paragraph(
+                    f"Availability scenarios can leave starters uncovered: lowest weekly average {lowest:.1f} of {slot_count} slots filled after this trade."
+                )
         paragraph(
-            "Current-role scenarios, not market prices or acceptance odds. Future roles and injury recoveries are held unchanged; multi-week gains do not have calibrated confidence intervals."
+            "Expected values use current-role forecasts and historical scoring-appearance rates as an availability proxy, not a calibrated injury model. Future roles and injury recoveries are held unchanged; multi-week gains do not have calibrated confidence intervals."
         )
         paragraph(
-            "Sorted by your projected gain; one proposal per partner. Bench insurance, manager preferences, and trade-review delays are not valued. No trade offers are sent."
+            "Ranked by your expected ROS gain; one proposal per partner. Weekly streaming assumes access to current waiver alternatives; claim competition, FAAB, drop/reacquisition costs, and trade-review delays are not modeled. Future pick value stays separate. No trade offers are sent."
+        )
+    validation = report.get("uncertainty_validation", {})
+    if validation.get("status") == "estimated":
+        paragraph(
+            f"Interval check: {validation['observed_coverage']:.0%} observed coverage against an 80% target "
+            f"on {validation['validation_rows']} synthetic trade-side outcomes across {validation['validation_origins']} overlapping historical forecast windows. "
+            "This range fixes weekly starters using today's forecasts; future lineup adjustments can change the result. "
+            "It is a prediction interval for scoring outcomes, not a confidence interval or a range for keeper/pick value. Historical coverage is not guaranteed future coverage."
+        )
+    if report.get("fairness_assumptions"):
+        sections.append("<h2>How offer value is estimated</h2>")
+        paragraph(
+            "Next season carries forward current performance and participation, with historical performance used for currently unavailable players. "
+            "Keeper scenarios test eligibility, round costs, the two-keeper limit, and the picks needed to pay those costs. "
+            "Draft selections follow current standings, with keeper-related rank shifts; next-season surplus points receive weights of 0.75 and 1.0. "
+            "These sensitivity choices are not fitted probabilities and do not forecast rookies or offseason changes."
         )
     inventory = report.get("pick_inventory")
     if inventory:
@@ -110,7 +251,7 @@ def render_trades(report, team_name):
             )
             if inventory["status"] == "rounds_confirmed":
                 paragraph(
-                    f"{inventory['rounds']} rounds confirmed. Next-year draft order and keeper costs remain unspecified."
+                    f"{inventory['rounds']} rounds confirmed. Final draft order and keeper costs remain unspecified."
                 )
             if inventory["status"] == "provisional":
                 paragraph(
@@ -123,33 +264,42 @@ def render_trades(report, team_name):
                 )
                 if inventory.get("draft_order_rule") == "unknown":
                     paragraph(
-                        "Draft order rule is unconfirmed: the main index weights all slots equally. The standings column is conditional on reverse standings."
+                        "Draft order rule is unconfirmed: the main index weights all slots equally. Selections remain full-round ranges until an order rule is supplied."
+                    )
+                if inventory.get("draft_order_rule") == "reverse_standings":
+                    paragraph(
+                        "Projected snake order if the season ended today: lowest winning percentage picks first, then lower points scored. Even rounds reverse. Exact ties remain ranges; playoffs and future results can change the order."
                     )
                 rows = []
                 for pick in valued:
                     value = pick["value_scenario"]
-                    conditional = value.get("reverse_standings_if_season_ended_today")
-                    scenario = (
-                        f"{conditional['capital_index']:.1f}"
-                        if conditional
-                        else "Unavailable"
+                    selection = value.get("selection", "Unassigned")
+                    positions = value.get("projected_overall_picks", [])
+                    overall = (
+                        str(positions[0])
+                        if len(positions) == 1
+                        else (
+                            f"{min(positions)}-{max(positions)}"
+                            if positions
+                            else "Unassigned"
+                        )
                     )
                     label = (
                         f"R{pick['round']} / original roster {pick['original_roster']}"
                     )
                     lines.append(
-                        f"{label}: index {value['capital_index']:.1f}; reverse-standings scenario {scenario}"
+                        f"{label}: projected {selection}, overall {overall}; index {value['capital_index']:.1f}"
                     )
                     rows.append(
-                        f"<tr><td>{escape(label)}</td><td>{value['capital_index']:.1f}</td><td>{scenario}</td></tr>"
+                        f"<tr><td>{escape(label)}</td><td>{escape(selection)}</td><td>{overall}</td><td>{value['capital_index']:.1f}</td></tr>"
                     )
                 sections.append(
-                    '<table cellpadding="8" border="1"><caption>First three rounds: draft-capital index</caption><tr><th scope="col">Pick</th><th scope="col">Index</th><th scope="col">Reverse standings today</th></tr>'
+                    '<table cellpadding="8" border="1"><caption>First three rounds: projected selections</caption><tr><th scope="col">Pick</th><th scope="col">Selection</th><th scope="col">Overall</th><th scope="col">Index</th></tr>'
                     + "".join(rows)
                     + "</table>"
                 )
             paragraph(
-                "Pick IDs and full-round overall ranges are saved with the calculator. Include picks in a custom proposal to see the current lineup effect; future pick value remains unpriced. No fair-price pick recommendation is made yet."
+                "Pick IDs and full-round overall ranges are saved with the calculator. Include picks in a custom proposal to see the current lineup effect; future pick effects are estimated conditionally when saved fairness evidence is available."
             )
     html = (
         '<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;color:#182230;max-width:760px;margin:auto;padding:16px">'
@@ -157,3 +307,102 @@ def render_trades(report, team_name):
         + "</body></html>"
     )
     return subject, "\n\n".join(lines), html
+
+
+def _render_pick_scenarios(report):
+    sections, lines = [], []
+
+    def paragraph(text):
+        lines.append(text)
+        sections.append("<p>" + escape(text) + "</p>")
+
+    pick_scenarios = report.get("pick_trade_scenarios", {})
+    if pick_scenarios.get("offers"):
+        sections.append("<h2>Players for next-year picks</h2>")
+        paragraph(
+            "Concrete offers using picks you own. The roster drop is included. Current gain is projected lineup points; two-season ranges also include keeper value and the draft pick given up. These are scenario ranges, not prediction intervals or acceptance odds."
+        )
+        labels = {
+            "too_expensive": "Cost exceeds your modeled benefit",
+            "seller_loses": "Helps you; seller loses in all modeled scenarios",
+            "both_benefit": "Both benefit in modeled scenarios",
+            "positive_for_you": "Positive for you; seller depends on assumptions",
+            "conditional": "Depends on keeper/draft assumptions",
+            "unpriced": "Insufficient future-value evidence",
+        }
+        target_ids = list(
+            dict.fromkeys(o["target_id"] for o in pick_scenarios["offers"])
+        )
+        for target_id in target_ids:
+            player = report["players"][target_id]
+            sections.append(
+                "<h3>"
+                + escape(
+                    f"Acquire {player['name']} ({player['pos']}, {player['team']})"
+                )
+                + "</h3>"
+            )
+            lines.append("Acquire " + player["name"])
+            rows = []
+            for offer in [
+                o for o in pick_scenarios["offers"] if o["target_id"] == target_id
+            ]:
+                pick = offer["pick"]
+                selection = pick.get("value_scenario", {}).get(
+                    "selection", f"Round {pick['round']}"
+                )
+                pick_label = f"{pick['season']} {selection} (original roster {pick['original_roster']})"
+                if offer["status"] != "estimated":
+                    paragraph(pick_label + ": " + offer["reason"])
+                    continue
+                trade = offer["trade"]
+                drop = ", ".join(
+                    report["players"][pid]["name"] for pid in trade["my_drops"]
+                )
+                estimate = trade.get("offer_estimate", {})
+
+                def span(key, estimate=estimate):
+                    value = estimate.get(key)
+                    return (
+                        f"{value['low']:+.1f} to {value['high']:+.1f}"
+                        if value
+                        else "Unavailable"
+                    )
+
+                my_range, partner_range = (
+                    span("my_total_change"),
+                    span("partner_total_change"),
+                )
+                reference = offer.get("reference")
+                reference_text = (
+                    f"{reference['my_total_change']:+.1f}"
+                    if reference
+                    else "Unavailable"
+                )
+                decision = labels[offer["decision"]]
+                line = f"Give {pick_label}; drop {drop}. Your ROS gain {trade['my_gain']:+.1f}; your two-season reference {reference_text}, range {my_range}; seller range {partner_range}. {decision}."
+                lines.append(line)
+                rows.append(
+                    "<tr>"
+                    + "".join(
+                        "<td>" + escape(x).replace("\n", "<br>") + "</td>"
+                        for x in [
+                            pick_label + "\nDrop: " + drop,
+                            f"You: {trade['my_gain']:+.1f}\nSeller: {trade['partner_gain']:+.1f}",
+                            f"Your reference: {reference_text}\nYour range: {my_range}\nSeller range: {partner_range}",
+                            decision,
+                        ]
+                    )
+                    + "</tr>"
+                )
+            sections.append(
+                '<table cellpadding="7" border="1"><caption>Pick cost versus roster benefit (point-equivalents)</caption><tr><th scope="col">Offer / roster move</th><th scope="col">Current-season gain</th><th scope="col">Two-season net value</th><th scope="col">Assessment</th></tr>'
+                + "".join(rows)
+                + "</table>"
+            )
+        paragraph(
+            "Reference scenario: "
+            + pick_scenarios["reference_assumption"]
+            + ". The reference is an assumption, not a measured fair market price."
+        )
+    return sections, lines

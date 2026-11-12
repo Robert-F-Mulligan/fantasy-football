@@ -34,6 +34,11 @@ def reprice_picks(inventory, rosters, *, order_rule="unknown"):
             i + 1 for i, row in enumerate(ordered) if row[1:] == (pct, points)
         ]
     inventory["draft_order_rule"] = order_rule
+    inventory["order_status"] = (
+        "projected from current reverse standings; final order unassigned"
+        if order_rule == "reverse_standings" and standings
+        else "unassigned; full round range, not a probability interval"
+    )
     inventory["standings_snapshot"] = [
         {"roster_id": owner, "win_fraction": pct, "points_for": points}
         for owner, pct, points in ordered
@@ -55,10 +60,16 @@ def reprice_picks(inventory, rosters, *, order_rule="unknown"):
             )
             return (round_number - 1) * count + within
 
-        def summarize(selected):
-            positions = [overall(slot) for slot in selected]
+        def summarize(selected, round_number=rnd):
+            positions = sorted(overall(slot) for slot in selected)
+            within = [p - (round_number - 1) * count for p in positions]
+            selection = f"{round_number}.{min(within):02d}"
+            if min(within) != max(within):
+                selection += f"-{round_number}.{max(within):02d}"
             return {
                 "estimated_overall": sum(positions) / len(positions),
+                "projected_overall_picks": positions,
+                "selection": selection,
                 "capital_index": sum(100 / math.sqrt(p) for p in positions)
                 / len(positions),
             }

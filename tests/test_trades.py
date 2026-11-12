@@ -200,7 +200,7 @@ def test_builder_uses_one_pregame_fit_and_separate_future_weeks(
         assert frame.week.tolist() == [
             7
         ]  # Current week cannot enter training, even after kickoff.
-        return frame
+        return frame.assign(player_id="a", fantasy_points=20.0)
 
     monkeypatch.setattr(app, "prepare_weekly", prepare)
     model = Mock(cutoff=202607)
@@ -231,6 +231,17 @@ def test_builder_uses_one_pregame_fit_and_separate_future_weeks(
 
     planner.availability.side_effect = available
     monkeypatch.setattr(app, "WeeklyLineupPlanner", lambda: planner)
+    monkeypatch.setattr(
+        "fantasyfootball.trading.replacements.replacement_pool",
+        lambda *args: roster.iloc[:0].copy(),
+    )
+    monkeypatch.setattr(
+        "fantasyfootball.trading.value.participation_estimates",
+        lambda players, *args: pd.DataFrame(
+            {"player_id": players.player_id, "probability": 1.0}
+        ),
+    )
+
     args = SimpleNamespace(
         league_dir=tmp_path,
         schedule=tmp_path / "schedule.csv",
@@ -242,9 +253,9 @@ def test_builder_uses_one_pregame_fit_and_separate_future_weeks(
         as_of="2026-10-30T14:00:00Z" if started else "2026-10-27T14:00:00Z",
     )
     report = build_trade_report(args)
-    assert report["weeks"] == list(range(expected_start, expected_start + 4))
+    assert report["weeks"] == list(range(expected_start, 18))
     model.fit.assert_called_once()
-    assert model.predict.call_count == 4
-    assert report["opportunities"][0]["my_gain"] == 60
+    assert model.predict.call_count == 18 - expected_start
+    assert report["opportunities"][0]["my_gain"] == 15 * (18 - expected_start)
     loaded, _saved = app.load_calculator(tmp_path)
-    assert loaded.evaluate(1, 2, ["b"], ["e"])["my_gain"] == 52
+    assert loaded.evaluate(1, 2, ["b"], ["e"])["my_gain"] == 13 * (18 - expected_start)

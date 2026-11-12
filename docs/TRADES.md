@@ -1,67 +1,106 @@
-# In-season trade calculator and digest
+# Roster-relative rest-of-season trade value
 
-The hosted trade digest runs Tuesday at 10 a.m. America/New_York alongside the waiver email. Each report has its own delivery key. Jobs run sequentially so private archive and delivery-ledger writes do not race. Merge-triggered lineup/trade runs prepare reports without sending; manual dispatch offers `trades` and a separate send switch. Existing Gmail credentials and email activation apply.
+The Tuesday 10 a.m. Eastern digest assesses every offensive position without a fixed RB/QB/WR/TE priority. Its objective is the change in your **expected remaining-season starting-lineup points**, relative to the roster you already have and the currently available waiver alternatives. The default window runs from the next unstarted week through week 17. It assumes the team continues playing throughout that window; playoff qualification probabilities and future-season keeper value are not included.
 
-## What the values mean
+## Valuation
 
-The calculator optimizes both teams' offensive starters before and after each proposal, using imported slot eligibility including FLEX. A value of +12 means twelve additional projected starting-lineup points over the displayed weeks, not twelve points per week or a player market price. The digest scans one-for-one swaps, keeps positive gains for both sides at one-decimal display precision, sorts by your gain, and shows at most one proposal per partner. That rounding filter is not a statistical-significance test. Weekly tables expose negative weeks and bye coverage behind the total.
+One pregame weekly model is fit on prior weeks only. Each remaining week's fixtures are predicted separately using current historical features, opponent schedules, and league-supported scoring. Predicted outcomes never become training data. Current injuries and roles are held unchanged; this is not a validated multi-week injury-recovery or role-change model.
 
-One pregame weekly model is fit on prior weeks only. Future fixtures are predicted independently with current historical features; predicted outcomes never become training data. The default horizon is four weeks, capped at week 17. If any game in the current week has started, the comparison starts next week. The league's trade deadline is respected; after the email cutoff, trade preparation and sending return `trade_suppressed` without emailing a closed-window report. Trade-review delays are not simulated.
+Waiver candidates reuse canonical ownership checks, including provider IDs, canonical IDs, and unresolved owned IDs. Only modeled offensive players with at least four historical appearances are considered. Up to four distinct projected alternatives per position per week enter the lineup optimizer. No single player can fill two slots, including FLEX. Streaming is an optimistic counterfactual: claim competition, FAAB, waiver timing, and drop/reacquisition costs are not modeled. These assumptions are applied to both sides consistently, so a QB bye does not automatically create a zero-point baseline and an inflated trade premium.
 
-These are current-role scenarios, not a validated rest-of-season valuation model. Opponent and bye schedules vary across weeks; future roles and injury recovery do not. Active players with injury designations are excluded from trade candidates. Currently unavailable players stay unavailable, reserve/taxi players are excluded, and players with fewer than four historical games have unknown forecasts. An unknown player-week blocks that team's comparison rather than being treated as zero. Partial scoring coverage is disclosed in the email. Defense, kickers, keeper value, bench insurance, playoff qualification, and acceptance probabilities are not valued.
+Depth contributes through 128 fixed-seed availability scenarios per week, shared before and after every proposal. Participation probabilities use Laplace-smoothed scoring-appearance rates over up to eight past current-team scheduled opportunities since the player's first observed appearance there; players without current-team evidence use a position-pooled fallback. This is an **uncalibrated availability proxy**, not a clinical injury probability or a medical prediction. Byes and known unavailable players remain explicit. The optimizer uses forecast points in each availability scenario, not sampled realized scores; it does not choose starters with hindsight about their fantasy scores. Future availability, claim access, and player roles need separate backtesting before treating these expected values as calibrated guarantees.
 
-## Evaluate a custom proposal
+The package score is `value(roster after trade and drops) - value(current roster)`. The report decomposes it into incoming marginal benefit and outgoing opportunity cost. Future pick indices remain in separate units and are never added to lineup points. Missing owned-player forecasts block the comparison rather than becoming zero points.
 
-Prepare a private digest (requires the existing hosted league environment variables):
+## Relative strengths and targets
+
+The position table measures the roster value lost when each position's players are removed and waiver alternatives take their place. It compares that marginal value with other evaluable teams at the **same position**, reporting the league median and rank. FLEX and bench cover are included. These overlapping position contributions must not be summed; they explain a roster's strengths, not a fixed preference for buying one position.
+
+The acquisition-target list ranks the greatest expected improvement if an outside player were acquired and one movable roster player displaced. It accounts for the displaced player's opportunity cost but **does not include the price the other manager will demand**. A displaced player is a roster-space counterfactual, not a suggested fair offer. Separately, the digest scans one-for-one packages and reports those with positive expected gains for both teams, ordered by your gain. No arbitrary position floor or single-week veto overrides the marginal-value objective. If no package qualifies, the email says so. Offers and roster changes are never submitted.
+
+## Custom calculator
+
+Prepare privately using existing league environment variables:
 
 ```powershell
+$env:FF_TRADE_RULES='config/trade-rules.json'
 python -m fantasyfootball.reports.hosted prepare --output work/trade-digest --report-type trades
-```
-
-Inspect `work/trade-digest/plan/trade-rosters.csv` for canonical player IDs and roster IDs. The calculator supports multiple players on either side:
-
-```powershell
 python -m fantasyfootball.trading --plan work/trade-digest/plan --partner 2 --give player-id-a player-id-b --receive player-id-c --partner-drop player-id-d --output work/trade-comparison.json
 ```
 
-A proposal cannot increase either team's active offensive roster size. Supply required drops explicitly; open roster slots are conservatively not assumed. Ownership, duplicate IDs, eligibility, and overlapping trade/drop lists are validated. Output contains per-week points and filled-slot counts for both teams before and after, aggregate gains, and the snapshot timestamp. Refresh the digest before making a decision; the calculator does not refresh saved evidence or submit offers.
+Use canonical player IDs and roster IDs from `trade-rosters.csv`. Explicit drops are required when a package would increase either team's active offensive roster size; open slots are conservatively not assumed. Ownership, duplicates, overlapping lists, and inactive trade candidates are checked. Saved replacement forecasts and participation evidence are required when reloading an ROS report, so the CLI cannot silently fall back to a different valuation method. Refresh old snapshots before acting.
 
-Trade rosters, projections, and the report JSON join the existing private evidence archive. They are never uploaded as public Actions artifacts. HTML uses UTF-8, semantic tables, explicit point units, and text equivalents; it does not invent confidence bars for an uncalibrated multi-week comparison.
+## Next-year picks
 
-## Validation
-
-Tests cover surplus versus FLEX value, byes, unknown forecasts, negative projections, ownership, explicit drops, injury exclusions, training cutoffs, one fit across future weeks, started-week rollover, deadline closure, HTML escaping, and separate exactly-once trade delivery. A saved historical league snapshot is used for an offline integration check; it is not current trade advice. Hosted execution and inbox delivery require merge and a subsequent run.
-
-## Next-year draft picks
-
-The trade digest fetches the league's draft configuration and traded-pick ledger from Sleeper. Each pick has an immutable `year:round:original-roster` ID and a separate current owner. Untouched picks belong to their original roster; transferred picks follow the ledger's current owner. Next-year configuration is preferred. If absent, the last completed draft supplies a **provisional** round count, visibly separated from the league's potentially conflicting `draft_rounds` setting. Auction formats and ambiguous configurations do not generate numbered pick assets.
-
-`trade-picks.json` preserves ownership, fetch time, configuration source, and the full possible overall-pick range within each round. These ranges are not confidence intervals or predicted finishing positions. Keeper costs, traded future picks, and a different next-year player pool can materially change value; the current model does not claim a fair price for picks.
-
-Include picks in either side of a custom proposal:
+Sleeper's draft configuration and traded-pick ledger establish assets with immutable `year:round:original-roster` IDs and separate current owners. Confirmed league/year rules live in `config/trade-rules.json`, selected by `FF_TRADE_RULES`. This league's 2027 draft is user-confirmed as 15 rounds. If next-year configuration is missing elsewhere, previous draft rounds are explicitly provisional. A conflicting configured draft fails clearly. Auction formats and ambiguous configurations do not generate numbered picks.
 
 ```powershell
 python -m fantasyfootball.trading --plan work/trade-digest/plan --partner 2 --give-picks 2027:1:3 --receive player-id-c --drop player-id-a --output work/pick-trade.json
 ```
 
-Pick ownership and duplicates are checked. Player-for-pick and pick-only trades are supported. Picks do not consume roster slots, but receiving an extra player requires an explicit drop. Results report the current-season lineup-point change and keep future pick value **null/unpriced**, never zero. Pick-backed offers are not automatically ranked as fair deals until draft/keeper rules and a suitable future valuation model are available. No offers are submitted.
+Pick-only and player-for-pick proposals validate ownership. They report current-season lineup effects separately from **unpriced future fair value**. The optional draft-capital index is `100 / sqrt(overall_pick)`, an unvalidated rank heuristic. It is neither a fantasy-point projection nor an empirical trade-price curve. Do not sum those units. With reverse-standings rules it follows the original team's current winning percentage, points-for tiebreaker, and snake reversal; unknown ordering retains a uniform estimate and a separately labeled conditional reverse-standings scenario. This league now uses current reverse standings for its 2027 snake projection, as requested: lowest winning percentage first, lower points-for as the tiebreaker, and reversed even rounds. The email shows projected round/slot and overall number for owned first-three-round picks; all 15 rounds are retained for the calculator. Exact ties remain ranges, and traded picks follow their original roster. This is an if-the-season-ended-today scenario, not a confirmed final or playoff-adjusted order. It does not model playoffs or lotteries. Keeper costs and the actual next-year player pool remain unspecified. No fair-price pick recommendations are made.
 
-Source: [Sleeper API draft and traded-pick documentation](https://docs.sleeper.com/).
+## Deadline and hosting
 
-Confirmed league/year round counts live in `config/trade-rules.json`, selected by the hosted workflow's `FF_TRADE_RULES` path. The 2027 round count for this league is user-confirmed as 15; keeper rules are still unspecified. A later configured draft that conflicts with this count fails explicitly. Local preparation can set `$env:FF_TRADE_RULES='config/trade-rules.json'` to use the same confirmation. Confirmations never carry into a different league or year automatically.
+The email explains that Sleeper trading closes at the **end** of the final game in the selected deadline week, and trades accepted before it can finish review afterward. Since the final whistle has no fixed timestamp, email preparation and sending conservatively stop at that game's **kickoff**. This is an email cutoff, not the league's deadline. Live rules and schedule are checked independently before preparation and before SMTP. Unknown deadline data fails closed; suppressed runs skip SMTP, reservations, and empty archives. Waiver and lineup reports are unaffected.
 
-## Deadline and delivery guard
+Tuesday waiver/trade jobs run sequentially and use separate delivery keys. Merge-triggered preparations do not send. Rosters, projections, replacement candidates, participation evidence, pick inventory, and report JSON are archived only in the existing private repository. No personal artifacts are uploaded publicly.
 
-The email spells out the league deadline week, date of its final scheduled game, kickoff in Eastern time, and the trade review period. Sleeper closes trading when that final game **ends**, not when the week's first game starts; accepted trades may process afterward. The calculator can still evaluate next-week benefits after Thursday kickoff in the deadline week.
+## Validation and limits
 
-Because the final whistle has no fixed timestamp, the email pipeline conservatively stops at the **kickoff of the deadline week's final game**. This is an email cutoff, not a claim that league trading has closed. Tuesday preparation checks current league rules before modeling; sending separately reloads league rules and schedule before touching the delivery ledger or SMTP. Unknown deadline data fails closed. Suppressed reports skip private archival and sending cleanly. No trade email is sent during or after the final deadline game. Waiver and lineup schedules are unchanged.
+Tests cover roster-dependent position targets, replacement-adjusted bye value, useful bench depth, FLEX uniqueness, ownership, full remaining-season forecasting without leakage, deterministic shared scenarios, proposal accounting, pick transfers, and deadline suppression. The scenario engine is validated for mechanics, not empirical trade performance. Season-long role forecasting, availability calibration, acquisition friction, multi-player automatic proposal search, and future pick fair pricing remain open work.
 
-## Repricing draft-capital scenarios
+Sources: [Sleeper API](https://docs.sleeper.com/), [trade deadline rules](https://support.sleeper.com/en/articles/2435411-when-is-my-trade-deadline).
 
-Each digest refreshes standings and pick ownership. For `reverse_standings` rules, the current-season finish scenario ranks original teams by winning percentage (ties count half), then points scored; tied teams share possible slots. Even snake rounds reverse the order. A traded pick follows its original team's performance, not its current owner's performance. For `random`, standings do not affect the main estimate. With `unknown`, all slots retain equal weight and a separate reverse-standings column is explicitly conditional. These scenarios do not model playoffs, a lottery, commissioner discretion, or final-position probabilities. Full-round bounds remain available and never masquerade as confidence intervals.
+## Market evidence and offer fairness
 
-The optional comparison index is `100 / sqrt(overall_pick)`, averaged over the scenario's slots. This is an explicit **heuristic rank index**, not an empirical valuation curve, fantasy-point forecast, statistical significance result, or fair trade price. Its curve has not been backtested. Net pick index is reported separately from the current-season lineup gain; future monetary/market value remains null. Do not sum those units. The email shows first-three-round scenarios; all rounds are stored for the calculator and private archive.
+Each digest also fetches FantasyCalc's current redraft market values for the supported league size, QB count, and PPR setting. Quotes join by exact Sleeper IDs and matching position, never fuzzy player names. The private `trade-market.json` captures retrieval time, source, format, coverage, and limitations. Network/format failures leave fairness unavailable without disabling the roster-value report. Saved quotes older than 24 hours or dated in the future cannot support a comparison.
 
-Set the year-specific `draft_order_rule` in `config/trade-rules.json` only after confirming league rules. The current league is marked `unknown` pending that confirmation. Keeper rules and costs are still needed to develop a defensible future-value model; a changing rank index alone does not establish that an offer is fair.
+For a fully priced player-only package, the calculator reports values sent, values received, the signed gap, and the symmetric percentage difference. It does **not** invent an arbitrary fair/unfair threshold, statistical confidence, or acceptance probability. Raw sums do not account for consolidation premiums, custom scoring is only partially matched, and keeper rights are excluded. In this keeper league the overall assessment remains `keeper_unresolved`, even when both teams gain ROS points or market totals are equal.
 
-Deadline source: [Sleeper trade deadline and review-period rules](https://support.sleeper.com/en/articles/2435411-when-is-my-trade-deadline).
+If any future pick is involved, whole-package market comparison remains unavailable. A 2027 all-player keeper-draft selection is not a dynasty rookie pick, and the rank-based pick index is not interchangeable with player market units. Missing assets never become zero-valued assets. A calibrated player-for-pick market fairness forecast still requires keeper eligibility, next-year round costs, whether costs follow traded players, and compatible keeper/pick valuation evidence. The conditional utility estimate below provides a separate sensitivity analysis with explicit assumptions. The current example involving a first-round pick must not be read as a fair-offer recommendation.
+
+Market methodology: [FantasyCalc's real-trade value explanation](https://fantasycalc.com/frequently-asked-questions). Market reference and roster fit are different evidence; neither establishes what a specific manager will accept.
+
+Keeper rules confirmed November 11, 2026: a two-round earlier cost and no more than two consecutive keeps. The cost basis (original versus latest round), transfer of costs/counts on trades, and treatment of costs before Round 1 remain unconfirmed. These partial rules are recorded in `config/trade-rules.json`; they do not yet enable numerical keeper/pick fairness estimates.
+
+
+## Conditional two-season offer estimate
+
+The calculator and hosted digest now add `offer_estimate` alongside the separate external-market comparison. It compares each team's current-season lineup change plus the change in next-season draft capital and keeper surplus. Results identify both-team benefits, one-sided benefits, both-team losses, or dependence on assumptions. These are conditional utility judgments, not a calibrated market-price verdict or acceptance forecast.
+
+Next-season player value carries the current projected points per game and participation proxy forward for 16 fantasy-season games, subtracting the best modeled current waiver alternative at the same position. Currently unavailable players can use their last eight recorded games (minimum four, from this or last season, strictly before the forecast cutoff). Players without enough evidence remain unknown; any affected comparison is unavailable. This is an explicit carry-forward scenario, not a fitted 2027 model.
+
+Draft picks use the ranked observed-player surplus curve and the current standings-based snake selection, including exact ties and transferred ownership. Selection ranks are stressed by plus/minus the league's total keeper capacity to explore player depletion and consumed picks. Ranks beyond observed positive surplus use a replacement-value tail assumption. Future rookies, offseason role changes, and positional draft demand are not modeled. Picks are repriced on every hosted run; as the season advances, the diminishing current-season horizon changes the current/future tradeoff automatically.
+
+Keeper valuation maximizes the portfolio's surplus subject to the two-keeper limit, a distinct owned pick for each keeper cost, and the confirmed two-consecutive-keep limit. The current and previous Sleeper drafts establish observed round costs and known consecutive keeps. The scenarios include no eligible keeper rights, latest round minus two (costs before Round 1 ineligible), and original round minus two (costs before Round 1 floored at 1). Missing original costs use the latest possible draft round in the optimistic scenario. Unknown eligibility is not asserted as fact. Trading away the pick needed to pay for a retained keeper can reduce that keeper's value. Drops also remove keeper rights.
+
+Future utility receives weights of 0.75 and 1.0; these are disclosed sensitivity choices. All before/after portfolios and both managers use the same assumptions within each of 18 scenarios. The displayed extrema are not probabilities, confidence intervals, or guaranteed bounds. A both-benefit result can still involve an unfavorable market-price gap; the email shows the external quote separately. No arbitrary percentage threshold or statistical-significance claim is used.
+
+`trade-fairness.json` records the inputs, draft cost evidence, curve, rules, and assumptions for private archival and reproducible saved-calculator use. It contains private roster evidence and must not be committed. Old reports without this artifact keep their previous behavior. The unresolved keeper rules remain explicit sensitivity cases rather than being silently marked confirmed.
+
+
+## Remaining-season prediction intervals
+
+Hosted trade reports now run a separate, horizon-matched historical replay. This first interval applies to weekly starters selected now from participation-adjusted point forecasts, including the same current waiver alternatives, then held fixed. Its point estimate can differ from the adaptive availability-scenario roster estimate. It does not cover next-year picks or keeper rules, which retain their separate sensitivity range. Multi-player packages, drops, and pick exchanges do not inherit one-for-one validation.
+
+The replay selects the player universe strictly before each forecast origin, fits the weekly model on up to three seasons of prior history, and forecasts every future week without feeding future performance back into the model. Historical synthetic rosters and swaps use only those forecasts. Starting lineups are selected on forecast points, never realized scores. Whole-horizon realized lineup differences preserve shared-player cancellation and actual game/week dependence; missing player rows mean zero only after completed-game and team-week source coverage checks. Calibration never selects trades by realized success. Retired players and DNPs are not intentionally restricted to future scoring appearances.
+
+The earlier of the last two completed historical seasons supplies calibration errors; the later season validates all nontrivial trade-side intervals, with probability diagnostics restricted to positive projected-gain trades. Origins are Weeks 5, 7, and 9 where the requested horizon fits through Week 17. At least 30 calibration and 30 validation outcomes and three origins in each partition are required. Wider horizons without enough origins are unavailable. Errors are scaled by changed player-week exposure, and the empirical 80th-percentile absolute error supplies a nominal 80% prediction interval. Scaling is checked at the exact same horizon, not extrapolated from independent player-week errors or a square-root-of-time assumption. Overlapping origins and paired trade sides are dependent; row counts must not be presented as independent sample sizes or significance tests.
+
+Validation records observed coverage, coverage per origin, probability reliability bins, and Brier score against the positive-trade base rate learned only from calibration. The empirical chance of a positive gain is displayed only for positive planned gains when coverage reaches the nominal target and Brier score improves on that baseline. Those are operational display checks, not statistical significance or proof of probability calibration. An interval is labeled nominal and accompanied by observed historical coverage; it is not a confidence interval or guaranteed future coverage.
+
+The five-season trade data download supports historical replay; current trade point forecasts still fit only the latest three seasons. Other report types retain their existing history window. Private archives retain `trade-uncertainty.json`, `trade-uncertainty-replays.csv`, and the before/after fixed-lineup selections in the report for prospective auditing. Loading uncertainty evidence newer than the saved forecasts is rejected.
+
+Reproduce offline with `python scripts/validate_trade_uncertainty.py --input <weekly.csv> --schedule <games.csv> --league-config <league-supported-offense.json> --slots <offensive-slots.json> --cutoff 202610 --horizon 8 --teams 12 --output <private-output-directory>`.
+
+Statistical background: [Forecasting: Principles and Practice â€” prediction intervals](https://otexts.com/fpp3/prediction-intervals.html). This implementation validates aggregate historical errors directly; it does not assume independent normal player errors. Injury news, real manager decisions, claim competition, historical roster construction, and selected-offer distribution shifts remain limits on transport to the live league.
+
+
+## Concrete player-for-pick offers
+
+The hosted digest compares each of the five highest ROS acquisition targets with every currently owned next-year pick in Rounds 1-3. Each case validates pick ownership, chooses an explicit roster drop, and shows both teams' current-season gains and two-season net ranges. Transferred picks keep their original-team projected selection. A proposal that helps the buyer but hurts the seller throughout the modeled scenarios is labeled accordingly. No offer is sent.
+
+The drop maximizes projected ROS lineup value; equal ROS choices prefer the highest lower-end two-season net value. The reference column assumes current standings, latest-round keeper costs, and equal weighting of current and next-year point-equivalents. It is one assumption scenario, not a measured fair market price or acceptance forecast. Missing evidence stays unavailable. The wider keeper/draft sensitivity ranges remain visible for each offer.
+
+Roster strength labels now distinguish total league size from the number of teams with complete forecasts. A rank among 11 modeled teams in this 12-team league is not a rank out of 12; the remaining team is not silently treated as weakest. The median is labeled as the modeled-team median.

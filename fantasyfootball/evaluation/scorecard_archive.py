@@ -155,4 +155,7 @@ def build_private_scorecards(current_archive, checkout):
                 json.dumps(summary, indent=2, allow_nan=False), encoding="utf-8"
             )
             added.append(relative.as_posix())
+    from fantasyfootball.evaluation.trade_archive import build_private_trade_scorecards
+
+    added.extend(build_private_trade_scorecards(current, checkout, schedule, league))
     return added
