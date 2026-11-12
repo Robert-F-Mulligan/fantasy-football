@@ -179,7 +179,9 @@ def render_report(plan_dir, team_name, season, week):
             + audit.get("reason", "plan blocked")
         )
     lineup = pd.read_csv(plan_dir / "lineup.csv", dtype={"player_id": str})
-    board = availability.merge(
+    # Specialists can share a missing canonical ID; they have their own report.
+    offense = availability.loc[availability.pos.isin(["QB", "RB", "WR", "TE"])]
+    board = offense.merge(
         projections[
             ["player_id", "projected_points"]
             + [
