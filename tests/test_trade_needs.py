@@ -187,6 +187,6 @@ def test_email_explains_roster_relative_value_without_an_rb_rule():
         ],
     }
     _, text, html = render_trades(r, "Team")
-    assert "rank 9/12" in text and "Trade priority" not in text
+    assert "rank 9 among 12 modeled teams" in text and "Trade priority" not in text
     assert "No evaluated one-for-one package" in text
     assert "Your roster relative to the league" in html

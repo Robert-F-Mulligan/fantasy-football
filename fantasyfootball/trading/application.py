@@ -43,6 +43,7 @@ def build_trade_report(args, horizon=None):
         "week": args.week,
         "as_of": args.as_of,
         "my_roster": int(imported["roster_id"]),
+        "league_team_count": imported.get("waiver_settings", {}).get("num_teams"),
         "horizon": horizon,
         "trade_deadline": deadline,
         "deadline": window,
@@ -293,6 +294,13 @@ def build_trade_report(args, horizon=None):
                 }
                 for row in roster.itertuples()
             },
+        )
+        from fantasyfootball.trading.pick_offers import pick_trade_scenarios
+
+        report["pick_trade_scenarios"] = pick_trade_scenarios(
+            calculator,
+            report["my_roster"],
+            [t["player_id"] for t in report["asset_targets"]],
         )
         (args.output / "trade-fairness.json").write_text(
             json.dumps(offer_fairness.evidence, indent=2), encoding="utf-8"

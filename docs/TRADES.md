@@ -95,3 +95,12 @@ The five-season trade data download supports historical replay; current trade po
 Reproduce offline with `python scripts/validate_trade_uncertainty.py --input <weekly.csv> --schedule <games.csv> --league-config <league-supported-offense.json> --slots <offensive-slots.json> --cutoff 202610 --horizon 8 --teams 12 --output <private-output-directory>`.
 
 Statistical background: [Forecasting: Principles and Practice â€” prediction intervals](https://otexts.com/fpp3/prediction-intervals.html). This implementation validates aggregate historical errors directly; it does not assume independent normal player errors. Injury news, real manager decisions, claim competition, historical roster construction, and selected-offer distribution shifts remain limits on transport to the live league.
+
+
+## Concrete player-for-pick offers
+
+The hosted digest compares each of the five highest ROS acquisition targets with every currently owned next-year pick in Rounds 1-3. Each case validates pick ownership, chooses an explicit roster drop, and shows both teams' current-season gains and two-season net ranges. Transferred picks keep their original-team projected selection. A proposal that helps the buyer but hurts the seller throughout the modeled scenarios is labeled accordingly. No offer is sent.
+
+The drop maximizes projected ROS lineup value; equal ROS choices prefer the highest lower-end two-season net value. The reference column assumes current standings, latest-round keeper costs, and equal weighting of current and next-year point-equivalents. It is one assumption scenario, not a measured fair market price or acceptance forecast. Missing evidence stays unavailable. The wider keeper/draft sensitivity ranges remain visible for each offer.
+
+Roster strength labels now distinguish total league size from the number of teams with complete forecasts. A rank among 11 modeled teams in this 12-team league is not a rank out of 12; the remaining team is not silently treated as weakest. The median is labeled as the modeled-team median.

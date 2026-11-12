@@ -155,6 +155,7 @@ class RestOfSeasonValue:
                     "league_median": float(np.median(peers)),
                     "rank": 1 + sum(other > value + 1e-8 for other in peers),
                     "teams_evaluated": len(peers),
+                    "league_teams": int(roster.roster_id.nunique()),
                 }
             )
         return rows

@@ -34,18 +34,28 @@ def render_trades(report, team_name):
             paragraph(
                 "Position strength is the expected remaining-season lineup value lost if those players were replaced from the waiver pool. FLEX and depth are included; position values overlap and should not be summed."
             )
+            modeled = report["roster_strengths"][0]["teams_evaluated"]
+            league_size = report.get("league_team_count") or report["roster_strengths"][
+                0
+            ].get("league_teams", modeled)
+            paragraph(
+                f"{league_size}-team league. Complete roster forecasts: {modeled} of {league_size} teams. Ranks below compare those {modeled} modeled teams."
+            )
             rows = []
             for strength in report["roster_strengths"]:
-                line = f"{strength['position']}: {strength['ros_value_above_replacement']:.1f} points above replacements; rank {strength['rank']}/{strength['teams_evaluated']}"
+                line = f"{strength['position']}: {strength['ros_value_above_replacement']:.1f} points above replacements; rank {strength['rank']} among {strength['teams_evaluated']} modeled teams"
                 lines.append(line)
                 rows.append(
                     f"<tr><td>{escape(strength['position'])}</td><td>{strength['ros_value_above_replacement']:.1f}</td><td>{strength['league_median']:.1f}</td><td>{strength['rank']}/{strength['teams_evaluated']}</td></tr>"
                 )
             sections.append(
-                '<table cellpadding="8" border="1"><caption>ROS replacement premium; higher is stronger</caption><tr><th scope="col">Position</th><th scope="col">Your points</th><th scope="col">League median</th><th scope="col">Rank</th></tr>'
+                '<table cellpadding="8" border="1"><caption>ROS replacement premium; higher is stronger</caption><tr><th scope="col">Position</th><th scope="col">Your points</th><th scope="col">Modeled median</th><th scope="col">Rank among modeled teams</th></tr>'
                 + "".join(rows)
                 + "</table>"
             )
+        pick_html, pick_plain = _render_pick_scenarios(report)
+        sections.extend(pick_html)
+        lines.extend(pick_plain)
         if report.get("asset_targets"):
             sections.append("<h2>Highest-value acquisition targets</h2>")
             paragraph(
@@ -285,3 +295,102 @@ def render_trades(report, team_name):
         + "</body></html>"
     )
     return subject, "\n\n".join(lines), html
+
+
+def _render_pick_scenarios(report):
+    sections, lines = [], []
+
+    def paragraph(text):
+        lines.append(text)
+        sections.append("<p>" + escape(text) + "</p>")
+
+    pick_scenarios = report.get("pick_trade_scenarios", {})
+    if pick_scenarios.get("offers"):
+        sections.append("<h2>Players for next-year picks</h2>")
+        paragraph(
+            "Concrete offers using picks you own. The roster drop is included. Current gain is projected lineup points; two-season ranges also include keeper value and the draft pick given up. These are scenario ranges, not prediction intervals or acceptance odds."
+        )
+        labels = {
+            "too_expensive": "Cost exceeds your modeled benefit",
+            "seller_loses": "Helps you; seller loses in all modeled scenarios",
+            "both_benefit": "Both benefit in modeled scenarios",
+            "positive_for_you": "Positive for you; seller depends on assumptions",
+            "conditional": "Depends on keeper/draft assumptions",
+            "unpriced": "Insufficient future-value evidence",
+        }
+        target_ids = list(
+            dict.fromkeys(o["target_id"] for o in pick_scenarios["offers"])
+        )
+        for target_id in target_ids:
+            player = report["players"][target_id]
+            sections.append(
+                "<h3>"
+                + escape(
+                    f"Acquire {player['name']} ({player['pos']}, {player['team']})"
+                )
+                + "</h3>"
+            )
+            lines.append("Acquire " + player["name"])
+            rows = []
+            for offer in [
+                o for o in pick_scenarios["offers"] if o["target_id"] == target_id
+            ]:
+                pick = offer["pick"]
+                selection = pick.get("value_scenario", {}).get(
+                    "selection", f"Round {pick['round']}"
+                )
+                pick_label = f"{pick['season']} {selection} (original roster {pick['original_roster']})"
+                if offer["status"] != "estimated":
+                    paragraph(pick_label + ": " + offer["reason"])
+                    continue
+                trade = offer["trade"]
+                drop = ", ".join(
+                    report["players"][pid]["name"] for pid in trade["my_drops"]
+                )
+                estimate = trade.get("offer_estimate", {})
+
+                def span(key, estimate=estimate):
+                    value = estimate.get(key)
+                    return (
+                        f"{value['low']:+.1f} to {value['high']:+.1f}"
+                        if value
+                        else "Unavailable"
+                    )
+
+                my_range, partner_range = (
+                    span("my_total_change"),
+                    span("partner_total_change"),
+                )
+                reference = offer.get("reference")
+                reference_text = (
+                    f"{reference['my_total_change']:+.1f}"
+                    if reference
+                    else "Unavailable"
+                )
+                decision = labels[offer["decision"]]
+                line = f"Give {pick_label}; drop {drop}. Your ROS gain {trade['my_gain']:+.1f}; your two-season reference {reference_text}, range {my_range}; seller range {partner_range}. {decision}."
+                lines.append(line)
+                rows.append(
+                    "<tr>"
+                    + "".join(
+                        "<td>" + escape(x).replace("\n", "<br>") + "</td>"
+                        for x in [
+                            pick_label + "\nDrop: " + drop,
+                            f"You: {trade['my_gain']:+.1f}\nSeller: {trade['partner_gain']:+.1f}",
+                            f"Your reference: {reference_text}\nYour range: {my_range}\nSeller range: {partner_range}",
+                            decision,
+                        ]
+                    )
+                    + "</tr>"
+                )
+            sections.append(
+                '<table cellpadding="7" border="1"><caption>Pick cost versus roster benefit (point-equivalents)</caption><tr><th scope="col">Offer / roster move</th><th scope="col">Current-season gain</th><th scope="col">Two-season net value</th><th scope="col">Assessment</th></tr>'
+                + "".join(rows)
+                + "</table>"
+            )
+        paragraph(
+            "Reference scenario: "
+            + pick_scenarios["reference_assumption"]
+            + ". The reference is an assumption, not a measured fair market price."
+        )
+    return sections, lines
