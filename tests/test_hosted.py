@@ -108,7 +108,10 @@ def test_prior_week_must_be_complete_and_include_both_teams():
     require_recent_coverage(games, history, 2026, 9)
 
 
-def test_report_escapes_source_text_and_discloses_limitations(tmp_path):
+@pytest.mark.parametrize("with_specialists", [False, True])
+def test_report_escapes_source_text_and_discloses_limitations(
+    tmp_path, with_specialists
+):
     audit = {
         "status": "offensive_lineup_created",
         "as_of": "2026-10-28T14:00:00Z",
@@ -128,6 +131,24 @@ def test_report_escapes_source_text_and_discloses_limitations(tmp_path):
             "starter_slot": ["QB1", ""],
         }
     )
+    if with_specialists:
+        specialists = pd.DataFrame(
+            {
+                "player_id": [None, None, None],
+                "player_name": ["Kicker", "Defense A", "Defense B"],
+                "sleeper_id": ["3", "NYJ", "BUF"],
+                "pos": ["K", None, "DEF"],
+                "availability": ["unsupported_position"] * 3,
+                "starter_slot": ["K1", "DEF1", ""],
+            }
+        )
+        roster = pd.concat([roster, specialists], ignore_index=True)
+        specialists.assign(
+            pos=["K", "DEF", "DEF"],
+            projected_points=[8.0, None, None],
+            recommendation="Review",
+            model_note="Separate specialist context",
+        ).to_csv(tmp_path / "specialists.csv", index=False)
     roster.to_csv(tmp_path / "availability.csv", index=False)
     pd.DataFrame({"player_id": ["a", "b"], "projected_points": [10, 20]}).to_csv(
         tmp_path / "projections.csv", index=False
@@ -153,6 +174,15 @@ def test_report_escapes_source_text_and_discloses_limitations(tmp_path):
     assert "\u2014" in subject
     assert '<meta charset="utf-8">' in html
     assert "\u00e2\u20ac\u201d" not in html
+    if with_specialists:
+        assert "Defense A" in html and "Defense B" in html and "Kicker" in html
+        assert html.count("Defense A") == 1
+    # Real duplicate offensive identities must still fail closed.
+    pd.concat([roster, roster.iloc[[0]]]).to_csv(
+        tmp_path / "availability.csv", index=False
+    )
+    with pytest.raises(pd.errors.MergeError):
+        render_report(tmp_path, "Team", 2026, 8)
     audit["status"] = "blocked"
     audit["reason"] = "missing player"
     (tmp_path / "plan-report.json").write_text(json.dumps(audit))
