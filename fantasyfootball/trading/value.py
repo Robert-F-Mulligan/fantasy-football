@@ -51,6 +51,7 @@ class RestOfSeasonValue:
             raise ValueError("Invalid participation probabilities")
         if not set(self.players.index).issubset(probabilities.index):
             raise ValueError("Participation estimates missing for valuation players")
+        self.probabilities = probabilities.to_dict()
         rng = np.random.default_rng(seed)
         self.draws = {
             (pid, week): rng.random(samples) < float(probabilities.loc[pid])

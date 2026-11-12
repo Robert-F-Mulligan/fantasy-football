@@ -68,7 +68,9 @@ def build_trade_report(args, horizon=None):
             raw.loc[raw.season * 100 + raw.week < args.season * 100 + args.week],
             config.scoring,
         )
-        model = FactorModel("weekly").fit(history)
+        model = FactorModel("weekly").fit(
+            history.loc[history.season >= args.season - 2]
+        )
         roster = pd.read_csv(
             args.league_dir / "rosters.csv", dtype={"player_id": str, "sleeper_id": str}
         )
@@ -232,6 +234,40 @@ def build_trade_report(args, horizon=None):
             pick_inventory=inventory,
         )
         opportunities = calculator.opportunities(report["my_roster"])
+        if getattr(args, "trade_uncertainty", False):
+            from fantasyfootball.trading.uncertainty import (
+                TradePredictionRanges,
+                replay_trades,
+            )
+
+            replay = replay_trades(
+                history,
+                schedule,
+                slots,
+                len(weeks),
+                teams=imported.get("waiver_settings", {}).get("num_teams", 12),
+            )
+            uncertainty = TradePredictionRanges.fit(replay, len(weeks))
+            uncertainty.evidence.update(
+                history_cutoff=int(history.period.max()),
+                slots=slots,
+                scoring_settings=imported.get("scoring_settings", {}),
+                teams=imported.get("waiver_settings", {}).get("num_teams", 12),
+            )
+            for opportunity in opportunities:
+                opportunity["uncertainty"] = uncertainty.assess(
+                    calculator,
+                    report["my_roster"],
+                    opportunity["partner_roster"],
+                    opportunity,
+                )
+            report["uncertainty_validation"] = {
+                k: v for k, v in uncertainty.evidence.items() if k != "errors"
+            }
+            (args.output / "trade-uncertainty.json").write_text(
+                json.dumps(uncertainty.evidence, indent=2), encoding="utf-8"
+            )
+            replay.to_csv(args.output / "trade-uncertainty-replays.csv", index=False)
         report.update(
             status="estimated",
             weeks=weeks,
@@ -333,6 +369,18 @@ def load_calculator(plan):
         if estimate_path.exists()
         else None
     )
+    from fantasyfootball.trading.uncertainty import TradePredictionRanges
+
+    uncertainty_path = plan / "trade-uncertainty.json"
+    uncertainty = (
+        TradePredictionRanges(json.loads(uncertainty_path.read_text(encoding="utf-8")))
+        if uncertainty_path.exists()
+        else None
+    )
+    if uncertainty is not None and uncertainty.evidence.get(
+        "history_cutoff", 0
+    ) > report.get("history_cutoff", 0):
+        raise ValueError("Uncertainty evidence postdates the saved forecasts")
     return TradeCalculator(
         roster,
         projections,
@@ -342,4 +390,5 @@ def load_calculator(plan):
         value_model=value_model,
         fairness=fairness,
         offer_fairness=offer_fairness,
+        uncertainty=uncertainty,
     ), report

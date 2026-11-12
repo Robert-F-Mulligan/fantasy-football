@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "status": "estimated",
+  "horizon": 8,
+  "target_coverage": 0.8,
+  "probability_available": true,
+  "policy": "Weekly starters fixed using forecast expected points, with current waiver alternatives",
+  "limitations": "Synthetic one-for-one trades, not observed league transactions. Overlapping replay windows are dependent. Coverage is descriptive, not guaranteed; future lineup adjustments and waiver access are not modeled.",
+  "calibration_seasons": [
+    2024
+  ],
+  "validation_season": 2025,
+  "calibration_rows": 452,
+  "validation_rows": 445,
+  "calibration_origins": 3,
+  "validation_origins": 3,
+  "scaled_half_width": 16.250922073772102,
+  "observed_coverage": 0.8404494382022472,
+  "brier": 0.21280659767030888,
+  "baseline_brier": 0.22641154953551962,
+  "reliability": [
+    {
+      "predicted": 0.5191679965182069,
+      "observed": 0.6147540983606558,
+      "rows": 122
+    },
+    {
+      "predicted": 0.6661662452591656,
+      "observed": 0.7857142857142857,
+      "rows": 56
+    },
+    {
+      "predicted": 0.8550884955752213,
+      "observed": 1.0,
+      "rows": 6
+    }
+  ],
+  "positive_validation_rows": 184,
+  "positive_observed_coverage": 0.8315217391304348,
+  "validation_origin_coverage": {
+    "202505": 0.8896103896103896,
+    "202507": 0.8013245033112583,
+    "202509": 0.8285714285714286
+  },
+  "history_cutoff": 202609,
+  "teams": 12,
+  "evaluation_type": "Historical synthetic fixed-lineup trades; descriptive dependent-sample validation",
+  "data_source": "https://github.com/nflverse/nflverse-data/releases",
+  "fitted_model": "FactorModel weekly, frozen origin, rolling three-season training window"
+}

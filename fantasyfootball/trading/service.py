@@ -21,11 +21,13 @@ class TradeCalculator:
         value_model=None,
         fairness=None,
         offer_fairness=None,
+        uncertainty=None,
     ):
         self.needs_policy = RosterNeedsPolicy()
         self.value_model = value_model
         self.fairness = fairness
         self.offer_fairness = offer_fairness
+        self.uncertainty = uncertainty
         self.pick_inventory = pick_inventory
         self.roster = roster.copy()
         self.roster["player_id"] = self.roster.player_id.astype(str)
@@ -215,6 +217,10 @@ class TradeCalculator:
                     "Current lineup effect plus conditional two-season utility; market fairness and acceptance are not calibrated"
                 )
 
+        if self.uncertainty is not None:
+            result["uncertainty"] = self.uncertainty.assess(
+                self, my_roster, partner_roster, result
+            )
         return result
 
     def opportunities(self, my_roster, limit=5):

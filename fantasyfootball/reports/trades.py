@@ -109,6 +109,30 @@ def render_trades(report, team_name):
             paragraph(
                 f"Your lineup: {trade['my_gain']:+.1f} points total. Their lineup: {trade['partner_gain']:+.1f} points total."
             )
+            uncertainty = trade.get("uncertainty", {})
+            interval = uncertainty.get("you", {})
+            if interval.get("status") == "estimated":
+                paragraph(
+                    f"Forecast-selected lineup gain: {interval['expected_gain']:+.1f} points. "
+                    f"Nominal 80% prediction interval: {interval['prediction_lower']:+.1f} to {interval['prediction_upper']:+.1f}."
+                )
+                probability = interval.get("probability_positive")
+                if probability is not None:
+                    paragraph(
+                        f"Estimated chance of a positive gain under this lineup plan: {probability:.0%}."
+                    )
+            elif interval.get("status") == "unchanged_lineups":
+                paragraph(
+                    "The fixed starter plan is unchanged; its projected scoring difference is zero."
+                )
+            elif uncertainty:
+                paragraph(
+                    "Prediction interval unavailable: "
+                    + (
+                        uncertainty.get("reason")
+                        or "Insufficient matching validation evidence"
+                    )
+                )
             fairness = trade.get("fairness", {})
             comparison = fairness.get("player_market_comparison")
             if comparison:
@@ -167,6 +191,14 @@ def render_trades(report, team_name):
         )
         paragraph(
             "Ranked by your expected ROS gain; one proposal per partner. Weekly streaming assumes access to current waiver alternatives; claim competition, FAAB, drop/reacquisition costs, and trade-review delays are not modeled. Future pick value stays separate. No trade offers are sent."
+        )
+    validation = report.get("uncertainty_validation", {})
+    if validation.get("status") == "estimated":
+        paragraph(
+            f"Interval check: {validation['observed_coverage']:.0%} observed coverage against an 80% target "
+            f"on {validation['validation_rows']} synthetic trade-side outcomes across {validation['validation_origins']} overlapping historical forecast windows. "
+            "This range fixes weekly starters using today's forecasts; future lineup adjustments can change the result. "
+            "It is a prediction interval for scoring outcomes, not a confidence interval or a range for keeper/pick value. Historical coverage is not guaranteed future coverage."
         )
     if report.get("fairness_assumptions"):
         sections.append("<h2>How offer value is estimated</h2>")

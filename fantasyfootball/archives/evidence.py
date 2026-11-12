@@ -138,6 +138,8 @@ def capture(report_dir, archive_dir):
         "trade-picks.json",
         "trade-market.json",
         "trade-fairness.json",
+        "trade-uncertainty.json",
+        "trade-uncertainty-replays.csv",
         "trade-replacements.csv",
         "trade-replacement-projections.csv",
         "trade-participation.csv",
