@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "ready_for_scoring": false,
+  "plays": 23822,
+  "games": 136,
+  "coverage_attested": false,
+  "input_sha256": {
+    "team_stats": "b87aa50dd275feda741c267004f9d28e6975768637288d3740ef96772d888527",
+    "settings": "d6ebb6f6f581024995c1e8af54bc3c0214d7ea533c02722382002318d2892c13",
+    "sleeper_stats": "b5b6a17659d4b0017df13f7e512c62ed9c5cacc9b762d58ab2f9bd3acf62829c",
+    "pbp": "1aa9d0dadf7152ee17b8df94b0d8e5c944d43c4cf217518acd60311455cbe818"
+  },
+  "components": [
+    {
+      "scoring_key": "def_4_and_stop",
+      "candidate_events": 177,
+      "unresolved_attribution_rows": 1054
+    },
+    {
+      "scoring_key": "def_st_ff",
+      "candidate_events": 24,
+      "unresolved_attribution_rows": 1406
+    },
+    {
+      "scoring_key": "def_st_fum_rec",
+      "candidate_events": 22,
+      "unresolved_attribution_rows": 1406
+    },
+    {
+      "scoring_key": "def_td",
+      "candidate_events": 14,
+      "unresolved_attribution_rows": 1408
+    },
+    {
+      "scoring_key": "ff",
+      "candidate_events": 207,
+      "unresolved_attribution_rows": 1412
+    },
+    {
+      "scoring_key": "fum_rec",
+      "candidate_events": 128,
+      "unresolved_attribution_rows": 1412
+    }
+  ],
+  "aggregate_td_discrepancies_with_explicit_return_events": [
+    {
+      "season": 2026,
+      "week": 1,
+      "team": "CIN",
+      "game_id": "2026_01_TB_CIN",
+      "play_id": 545,
+      "reason": "Explicit defensive fumble-return touchdown"
+    },
+    {
+      "season": 2026,
+      "week": 2,
+      "team": "NE",
+      "game_id": "2026_02_PIT_NE",
+      "play_id": 3144,
+      "reason": "Explicit defensive fumble-return touchdown"
+    },
+    {
+      "season": 2026,
+      "week": 5,
+      "team": "ATL",
+      "game_id": "2026_05_BAL_ATL",
+      "play_id": 486,
+      "reason": "Explicit defensive fumble-return touchdown"
+    },
+    {
+      "season": 2026,
+      "week": 5,
+      "team": "NO",
+      "game_id": "2026_05_MIN_NO",
+      "play_id": 2643,
+      "reason": "Explicit defensive fumble-return touchdown"
+    },
+    {
+      "season": 2026,
+      "week": 5,
+      "team": "SF",
+      "game_id": "2026_05_SF_SEA",
+      "play_id": 2147,
+      "reason": "Explicit defensive fumble-return touchdown"
+    },
+    {
+      "season": 2026,
+      "week": 7,
+      "team": "TB",
+      "game_id": "2026_07_TB_CAR",
+      "play_id": 1087,
+      "reason": "Explicit defensive fumble-return touchdown"
+    }
+  ],
+  "triage": {
+    "mismatch_cases": 25,
+    "resolved_cases": 0,
+    "hypotheses": {
+      "fumble_recovery_td_arithmetic_compatible": 6,
+      "special_teams_ff_arithmetic_compatible": 11,
+      "special_teams_ff_does_not_explain_difference": 1,
+      "unexplained": 7
+    }
+  },
+  "limitations": "Observed event subsets, not complete fantasy scores. Full PBP coverage not attested; no full-game counts or forecast accuracy claimed. Penalty/complex plays and points-allowed rules remain unresolved."
+}
