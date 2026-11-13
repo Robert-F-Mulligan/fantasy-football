@@ -63,3 +63,19 @@ The November 12 snapshot comparison produced:
 See [aggregate reconciliation evidence](validation/defense-component-reconciliation.json). Counts are component observations, not independent games. Sleeper records are sparse: absent fields are unknown, not implicit zeros. Consequently these paired matches do not establish complete scoring coverage, and comparing only reported events is not an accuracy estimate over all games. `component-comparisons.csv` retains every mismatch and unresolved row for investigation; aliases LAR/LA and WSH/WAS are normalized, and duplicate team-weeks are rejected.
 
 Twenty-five component differences need event-level investigation before using these mappings in forecasts. This comparison does not establish which provider is correct, game finality, total score agreement, or historical league-rule consistency. DEF forecasts remain disabled. The next step is to inspect these identified plays and reconcile the ten unmapped active settings, rather than infer missing values or fit a forecast to inconsistent labels.
+
+## Play-level investigation
+
+The unified investigation command produces the coverage audit, explicit-provider reconciliation, stable discrepancy cases, and an optional attributed play ledger:
+
+```powershell
+python -m fantasyfootball.evaluation.defense_investigation --team-stats team-stats.csv --settings settings.json --sleeper-stats sleeper-defense-records.json --pbp play_by_play_2026.csv.gz --season 2026 --through-week 9 --output defense-investigation
+```
+
+Use the official snapshot at `https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2026.csv.gz`. All input bytes are hashed. Outputs include `discrepancy-cases.csv`, `event_ledger.csv`, `event_components.csv` and `event_comparisons.csv`, with JSON summaries. The output directory must not exist.
+
+Candidate events cover explicit fourth-down failures on pass/run plays, simple opponent fumble recoveries and forced fumbles (separating punt/kickoff phases), and attributed defensive return touchdowns. No-play rows are excluded. Penalty dispositions, complex fumble sequences, missing flags and unsupported play types remain unresolved. Offensive recovery touchdowns and punt/kickoff return touchdowns are not counted as defensive touchdowns. These are research candidates, not established Sleeper edge-case rules.
+
+`observed_source_count` is the supported event subset. A full-game `source_count` is unavailable unless a caller supplies `--complete-game-ids complete-games.json`, a JSON list of IDs whose complete play coverage was independently checked, and that component has no unresolved plays. A completed game alone is not proof of complete source coverage. Default runs do not attest coverage, so their event counts are not silently compared as complete totals.
+
+The saved 23,822-play / 136-game window reproduced all six aggregate defensive-TD discrepancies as explicitly attributed defensive fumble-return touchdowns. Their game/play IDs are retained in [event evidence](validation/defense-event-investigation.json). This establishes a problem with using the aggregate field alone; it does not justify adding all aggregate fumble-recovery touchdowns, which can include other phases. Eleven forced-fumble cases remain numerically compatible with special-teams category separation, one retains a residual, and seven cases remain unexplained. Arithmetic compatibility never automatically resolves a case. Full scoring, penalty enforcement, sparse-provider zeros, points-allowed exclusions and forecast validation are still pending.

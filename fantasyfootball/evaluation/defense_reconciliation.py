@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from fantasyfootball.evaluation.defense import COMPONENTS
+from fantasyfootball.evaluation.defense import COMPONENTS, UNRESOLVED
 
 
 class DefenseComponentReconciliation:
@@ -24,6 +24,12 @@ class DefenseComponentReconciliation:
         source = source.loc[
             source.season.eq(season) & source.week.between(1, through_week)
         ]
+        unsupported = set(source.scoring_key) - (set(COMPONENTS) | set(UNRESOLVED))
+        if unsupported:
+            raise ValueError(
+                "Unsupported candidate defense components: "
+                + ", ".join(sorted(unsupported))
+            )
         if source.duplicated(keys).any():
             raise ValueError("Duplicate candidate defense component")
         observations, seen = [], set()
@@ -50,7 +56,7 @@ class DefenseComponentReconciliation:
                 raise ValueError("Duplicate Sleeper defense team-week")
             seen.add(identity)
             stats = record.get("stats") or {}
-            for key in COMPONENTS:
+            for key in sorted(source.scoring_key.unique()):
                 value = stats.get(key)
                 try:
                     value = float(value) if value is not None else float("nan")
