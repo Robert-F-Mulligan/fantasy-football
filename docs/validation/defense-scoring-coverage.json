@@ -1,0 +1,264 @@
+{
+  "schema_version": 1,
+  "season": 2026,
+  "through_week": 9,
+  "team_games": 272,
+  "observed_weeks": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "ready_for_scoring": false,
+  "independent_reconciliation": "not_performed",
+  "components": [
+    {
+      "scoring_key": "blk_kick",
+      "weight": 2.0,
+      "source_columns": [
+        "def_punt_blocks",
+        "def_pat_blocks",
+        "def_fg_blocks"
+      ],
+      "rows": 272,
+      "valid_rows": 272,
+      "status": "candidate_mapping",
+      "reason": "Source coverage only; not independently reconciled to Sleeper events or scores."
+    },
+    {
+      "scoring_key": "def_4_and_stop",
+      "weight": 1.0,
+      "source_columns": [],
+      "rows": 272,
+      "valid_rows": 0,
+      "status": "requires_attribution",
+      "reason": "Derive fourth-down stops from eligible plays with penalty/no-play handling."
+    },
+    {
+      "scoring_key": "def_st_ff",
+      "weight": 1.0,
+      "source_columns": [],
+      "rows": 272,
+      "valid_rows": 0,
+      "status": "requires_attribution",
+      "reason": "Identify forced fumbles on special-teams plays."
+    },
+    {
+      "scoring_key": "def_st_fum_rec",
+      "weight": 1.0,
+      "source_columns": [],
+      "rows": 272,
+      "valid_rows": 0,
+      "status": "requires_attribution",
+      "reason": "Identify special-teams fumble recoveries."
+    },
+    {
+      "scoring_key": "def_st_td",
+      "weight": 6.0,
+      "source_columns": [
+        "special_teams_tds"
+      ],
+      "rows": 272,
+      "valid_rows": 272,
+      "status": "candidate_mapping",
+      "reason": "Source coverage only; not independently reconciled to Sleeper events or scores."
+    },
+    {
+      "scoring_key": "def_td",
+      "weight": 6.0,
+      "source_columns": [
+        "def_tds"
+      ],
+      "rows": 272,
+      "valid_rows": 272,
+      "status": "candidate_mapping",
+      "reason": "Source coverage only; not independently reconciled to Sleeper events or scores."
+    },
+    {
+      "scoring_key": "ff",
+      "weight": 1.0,
+      "source_columns": [
+        "def_fumbles_forced"
+      ],
+      "rows": 272,
+      "valid_rows": 272,
+      "status": "candidate_mapping",
+      "reason": "Source coverage only; not independently reconciled to Sleeper events or scores."
+    },
+    {
+      "scoring_key": "fum_rec",
+      "weight": 2.0,
+      "source_columns": [],
+      "rows": 272,
+      "valid_rows": 0,
+      "status": "requires_attribution",
+      "reason": "Separate defensive recoveries from offensive and special-teams recoveries."
+    },
+    {
+      "scoring_key": "int",
+      "weight": 2.0,
+      "source_columns": [
+        "def_interceptions"
+      ],
+      "rows": 272,
+      "valid_rows": 272,
+      "status": "candidate_mapping",
+      "reason": "Source coverage only; not independently reconciled to Sleeper events or scores."
+    },
+    {
+      "scoring_key": "pts_allow_0",
+      "weight": 10.0,
+      "source_columns": [],
+      "rows": 272,
+      "valid_rows": 0,
+      "status": "requires_attribution",
+      "reason": "Derive fantasy points allowed using Sleeper exclusions; final game score is not a substitute."
+    },
+    {
+      "scoring_key": "pts_allow_14_20",
+      "weight": 1.0,
+      "source_columns": [],
+      "rows": 272,
+      "valid_rows": 0,
+      "status": "requires_attribution",
+      "reason": "Derive fantasy points allowed using Sleeper exclusions; final game score is not a substitute."
+    },
+    {
+      "scoring_key": "pts_allow_1_6",
+      "weight": 7.0,
+      "source_columns": [],
+      "rows": 272,
+      "valid_rows": 0,
+      "status": "requires_attribution",
+      "reason": "Derive fantasy points allowed using Sleeper exclusions; final game score is not a substitute."
+    },
+    {
+      "scoring_key": "pts_allow_28_34",
+      "weight": -1.0,
+      "source_columns": [],
+      "rows": 272,
+      "valid_rows": 0,
+      "status": "requires_attribution",
+      "reason": "Derive fantasy points allowed using Sleeper exclusions; final game score is not a substitute."
+    },
+    {
+      "scoring_key": "pts_allow_35p",
+      "weight": -4.0,
+      "source_columns": [],
+      "rows": 272,
+      "valid_rows": 0,
+      "status": "requires_attribution",
+      "reason": "Derive fantasy points allowed using Sleeper exclusions; final game score is not a substitute."
+    },
+    {
+      "scoring_key": "pts_allow_7_13",
+      "weight": 4.0,
+      "source_columns": [],
+      "rows": 272,
+      "valid_rows": 0,
+      "status": "requires_attribution",
+      "reason": "Derive fantasy points allowed using Sleeper exclusions; final game score is not a substitute."
+    },
+    {
+      "scoring_key": "sack",
+      "weight": 1.0,
+      "source_columns": [
+        "def_sacks"
+      ],
+      "rows": 272,
+      "valid_rows": 272,
+      "status": "candidate_mapping",
+      "reason": "Source coverage only; not independently reconciled to Sleeper events or scores."
+    },
+    {
+      "scoring_key": "safe",
+      "weight": 2.0,
+      "source_columns": [
+        "def_safeties"
+      ],
+      "rows": 272,
+      "valid_rows": 272,
+      "status": "candidate_mapping",
+      "reason": "Source coverage only; not independently reconciled to Sleeper events or scores."
+    },
+    {
+      "scoring_key": "tkl_loss",
+      "weight": 0.5,
+      "source_columns": [
+        "def_tackles_for_loss"
+      ],
+      "rows": 272,
+      "valid_rows": 272,
+      "status": "candidate_mapping",
+      "reason": "Source coverage only; not independently reconciled to Sleeper events or scores."
+    }
+  ],
+  "ignored_individual_or_kicking_settings": [
+    "fgm_0_19",
+    "fgm_20_29",
+    "fgm_30_39",
+    "fgm_40_49",
+    "fgm_50_59",
+    "fgm_60p",
+    "fgmiss_0_19",
+    "fgmiss_20_29",
+    "fum_lost",
+    "fum_rec_td",
+    "pass_2pt",
+    "pass_int",
+    "pass_td",
+    "pass_yd",
+    "rec",
+    "rec_2pt",
+    "rec_td",
+    "rec_yd",
+    "rush_2pt",
+    "rush_td",
+    "rush_yd",
+    "st_ff",
+    "st_fum_rec",
+    "st_td",
+    "xpm",
+    "xpmiss"
+  ],
+  "blocking_components": [
+    "def_4_and_stop",
+    "def_st_ff",
+    "def_st_fum_rec",
+    "fum_rec",
+    "pts_allow_0",
+    "pts_allow_14_20",
+    "pts_allow_1_6",
+    "pts_allow_28_34",
+    "pts_allow_35p",
+    "pts_allow_7_13"
+  ],
+  "limitations": "Coverage audit only. Candidate component contributions are not full defense scores or forecasts. Missing components are not zero; current settings may differ from historical settings.",
+  "input_sha256": {
+    "team_stats": "b87aa50dd275feda741c267004f9d28e6975768637288d3740ef96772d888527",
+    "settings": "d6ebb6f6f581024995c1e8af54bc3c0214d7ea533c02722382002318d2892c13",
+    "sleeper_stats": "b5b6a17659d4b0017df13f7e512c62ed9c5cacc9b762d58ab2f9bd3acf62829c"
+  },
+  "source_capture": {
+    "fetched_at": "2026-11-13T00:49:11.867598+00:00",
+    "sources": {
+      "team-stats.csv": {
+        "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2026.csv",
+        "sha256": "b87aa50dd275feda741c267004f9d28e6975768637288d3740ef96772d888527"
+      },
+      "settings.json": {
+        "url": "Sleeper league scoring settings (league identity omitted)",
+        "sha256": "d6ebb6f6f581024995c1e8af54bc3c0214d7ea533c02722382002318d2892c13"
+      },
+      "sleeper-stats.json": {
+        "url": "https://api.sleeper.com/stats/nfl/2026/{week}?season_type=regular; weeks 1-9; DEF only",
+        "sha256": "b5b6a17659d4b0017df13f7e512c62ed9c5cacc9b762d58ab2f9bd3acf62829c"
+      }
+    }
+  }
+}

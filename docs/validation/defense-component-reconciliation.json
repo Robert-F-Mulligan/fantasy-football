@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "season": 2026,
+  "through_week": 9,
+  "provider_team_weeks": 272,
+  "components": [
+    {
+      "scoring_key": "blk_kick",
+      "rows": 272,
+      "paired_rows": 16,
+      "matched_rows": 16,
+      "mismatched_rows": 0,
+      "unresolved_rows": 256
+    },
+    {
+      "scoring_key": "def_st_td",
+      "rows": 272,
+      "paired_rows": 3,
+      "matched_rows": 3,
+      "mismatched_rows": 0,
+      "unresolved_rows": 269
+    },
+    {
+      "scoring_key": "def_td",
+      "rows": 272,
+      "paired_rows": 15,
+      "matched_rows": 9,
+      "mismatched_rows": 6,
+      "unresolved_rows": 257
+    },
+    {
+      "scoring_key": "ff",
+      "rows": 272,
+      "paired_rows": 151,
+      "matched_rows": 137,
+      "mismatched_rows": 14,
+      "unresolved_rows": 121
+    },
+    {
+      "scoring_key": "int",
+      "rows": 272,
+      "paired_rows": 143,
+      "matched_rows": 143,
+      "mismatched_rows": 0,
+      "unresolved_rows": 129
+    },
+    {
+      "scoring_key": "sack",
+      "rows": 272,
+      "paired_rows": 231,
+      "matched_rows": 228,
+      "mismatched_rows": 3,
+      "unresolved_rows": 41
+    },
+    {
+      "scoring_key": "safe",
+      "rows": 272,
+      "paired_rows": 2,
+      "matched_rows": 2,
+      "mismatched_rows": 0,
+      "unresolved_rows": 270
+    },
+    {
+      "scoring_key": "tkl_loss",
+      "rows": 272,
+      "paired_rows": 266,
+      "matched_rows": 264,
+      "mismatched_rows": 2,
+      "unresolved_rows": 6
+    }
+  ],
+  "ready_for_scoring": false,
+  "scope": "Candidate component counts only; not total defense scores, event attribution, or forecast validation",
+  "missing_policy": "Absent or invalid Sleeper stat fields remain unknown; sparse records are not zero-filled",
+  "limitations": "Provider agreement is not independent play-level verification. Finality and historical scoring settings are not established by this comparison. Unmapped scoring rules remain unresolved.",
+  "input_sha256": {
+    "team_stats": "b87aa50dd275feda741c267004f9d28e6975768637288d3740ef96772d888527",
+    "settings": "d6ebb6f6f581024995c1e8af54bc3c0214d7ea533c02722382002318d2892c13",
+    "sleeper_stats": "b5b6a17659d4b0017df13f7e512c62ed9c5cacc9b762d58ab2f9bd3acf62829c"
+  },
+  "source_capture": {
+    "fetched_at": "2026-11-13T00:49:11.867598+00:00",
+    "sources": {
+      "team-stats.csv": {
+        "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2026.csv",
+        "sha256": "b87aa50dd275feda741c267004f9d28e6975768637288d3740ef96772d888527"
+      },
+      "settings.json": {
+        "url": "Sleeper league scoring settings (league identity omitted)",
+        "sha256": "d6ebb6f6f581024995c1e8af54bc3c0214d7ea533c02722382002318d2892c13"
+      },
+      "sleeper-stats.json": {
+        "url": "https://api.sleeper.com/stats/nfl/2026/{week}?season_type=regular; weeks 1-9; DEF only",
+        "sha256": "b5b6a17659d4b0017df13f7e512c62ed9c5cacc9b762d58ab2f9bd3acf62829c"
+      }
+    }
+  }
+}
