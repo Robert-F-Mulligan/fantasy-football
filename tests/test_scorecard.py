@@ -247,8 +247,9 @@ def test_observed_outcomes_wait_for_completed_games_and_never_infer_dnp():
     assert observed_outcomes(previous, current, schedule) is None
 
 
+@pytest.mark.parametrize("blocked", [False, True])
 def test_private_scorecards_choose_earliest_capture_and_save_outputs(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, blocked
 ):
     from zipfile import ZipFile
 
@@ -311,8 +312,26 @@ def test_private_scorecards_choose_earliest_capture_and_save_outputs(
         return current if path == current_path else previous
 
     monkeypatch.setattr(scorecard_archive, "ArchivedForecast", read)
+    if blocked:
+        previous.manifest["lineup_status"] = "blocked"
+        from fantasyfootball.evaluation import trade_archive
+
+        trade_calls = []
+
+        def trade_cards(*args):
+            trade_calls.append(args)
+            return ["independent-trade-scorecard"]
+
+        monkeypatch.setattr(
+            trade_archive, "build_private_trade_scorecards", trade_cards
+        )
     added = scorecard_archive.build_private_scorecards(current_path, checkout)
     assert loaded == ["current.zip", "first.zip"]
+    if blocked:
+        assert added == ["independent-trade-scorecard"]
+        assert len(trade_calls) == 1
+        assert not (checkout / "scorecards").exists()
+        return
     with ZipFile(checkout / added[0]) as archive:
         report = json.loads(archive.read("scorecard.json"))
         assert (

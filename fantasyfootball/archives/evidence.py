@@ -95,8 +95,48 @@ def capture(report_dir, archive_dir):
 
     # Explicit allowlist: never archive environment files, SMTP settings or report mail.
     plan = document("plan/plan-report.json")
-    if plan["status"] != "offensive_lineup_created":
-        raise ValueError("Only completed plans can be captured")
+    delivery_path = root / "delivery.json"
+    delivery = (
+        json.loads(delivery_path.read_text(encoding="utf-8-sig"))
+        if delivery_path.exists()
+        else {}
+    )
+    report_type = delivery.get("report_type", "lineup")
+    lineup_created = plan["status"] == "offensive_lineup_created"
+    if not lineup_created:
+        if plan["status"] != "blocked" or report_type not in {"trades", "waivers"}:
+            raise ValueError("Only completed plans can be captured for lineup reports")
+        if delivery.get("status") != "ready" or any(
+            delivery.get(key) != plan[key] for key in ("season", "week")
+        ):
+            raise ValueError("Independent report delivery is not ready for this plan")
+        name, expected_status, required = {
+            "trades": (
+                "trade-report.json",
+                "estimated",
+                [
+                    "trade-projections.csv",
+                    "trade-rosters.csv",
+                    "trade-prospective.json",
+                ],
+            ),
+            "waivers": (
+                "waiver-report.json",
+                "ready",
+                ["waivers.csv", "waiver-availability.csv"],
+            ),
+        }[report_type]
+        independent = document("plan/" + name)
+        if independent.get("status") != expected_status:
+            raise ValueError("Independent report is not complete")
+        if timestamp(independent["as_of"]) != timestamp(plan["as_of"]):
+            raise ValueError("Independent report timestamp does not match plan")
+        if report_type == "trades" and any(
+            independent.get(key) != plan[key] for key in ("season", "week")
+        ):
+            raise ValueError("Trade report period does not match plan")
+        for name in required:
+            read("plan/" + name)
     season, week = int(plan["season"]), int(plan["week"])
     if not 1 <= week <= 18 or int(plan["history_cutoff"]) >= season * 100 + week:
         raise ValueError("Evidence plan has invalid week or training cutoff")
@@ -129,8 +169,10 @@ def capture(report_dir, archive_dir):
         "my_roster.csv",
     ]:
         read("league/" + name)
-    for name in ["availability.csv", "projections.csv", "lineup.csv"]:
+    for name in ["availability.csv", "projections.csv"]:
         read("plan/" + name)
+    if lineup_created:
+        read("plan/lineup.csv")
     for name in [
         "specialists.csv",
         "forecast-provenance.json",
@@ -183,6 +225,8 @@ def capture(report_dir, archive_dir):
         "schema_version": 1,
         "captured_at": captured.isoformat(),
         "plan_as_of": plan["as_of"],
+        "report_type": report_type,
+        "lineup_status": plan["status"],
         "latest_source_observed_at": max(observed).isoformat(),
         "season": season,
         "week": week,

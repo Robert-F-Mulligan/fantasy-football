@@ -62,6 +62,18 @@ def render_trade_brief(report, team_name):
                 + "; ".join(audit["unresolved_keeper_rules"])
                 + "."
             )
+        focus = report.get("seller_focus", {})
+        if focus.get("status") == "record_focus":
+            paragraph(
+                "Pick-trade focus: weaker-record teams first, ranked by the improvement to your roster. A weak record does not establish willingness to sell."
+            )
+        elif focus:
+            paragraph(
+                "Standings do not identify a distinct weaker-record group; targets are ranked by roster improvement."
+            )
+        sellers = {
+            t["player_id"]: t.get("seller", {}) for t in report.get("asset_targets", [])
+        }
         offers = report.get("pick_trade_scenarios", {}).get("offers", [])
         if offers:
             html.append("<h2>Pick offers to review</h2>")
@@ -70,6 +82,17 @@ def render_trade_brief(report, team_name):
                 title = f"Acquire {player['name']} ({player['pos']}, {player['team']})"
                 html.append("<h3>" + escape(title) + "</h3>")
                 lines.append(title)
+                seller = sellers.get(target_id, {})
+                if seller:
+                    record = seller.get("record") or "record unavailable"
+                    label = (
+                        "Priority outreach"
+                        if seller.get("priority")
+                        else "Other roster-value option"
+                    )
+                    paragraph(
+                        f"{label}: roster {seller['roster_id']} ({record} W-L-T)."
+                    )
                 choices = [o for o in offers if o["target_id"] == target_id]
                 ready = [o for o in choices if o["status"] == "estimated"]
                 if ready:

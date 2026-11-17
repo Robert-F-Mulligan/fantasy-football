@@ -42,7 +42,11 @@ class ArchivedForecast:
             self.plan = document("plan/plan-report.json")
             self.roster = frame("plan/availability.csv")
             self.projections = frame("plan/projections.csv")
-            self.lineup = frame("plan/lineup.csv")
+            self.lineup = (
+                frame("plan/lineup.csv")
+                if self.plan["status"] == "offensive_lineup_created"
+                else None
+            )
             self.shadow = (
                 frame("plan/shadow-projections.csv")
                 if "plan/shadow-projections.csv" in archive.namelist()
@@ -320,6 +324,12 @@ class WeeklyScorecard:
         return report, board
 
     def lineup_regret(self, forecast, board):
+        if forecast.lineup is None:
+            return {
+                "status": "unavailable",
+                "reason": "No completed lineup was archived: "
+                + forecast.plan.get("reason", forecast.plan["status"]),
+            }
         pool = board.loc[board.availability.isin(["eligible", "locked_starter"])].copy()
         pool["locked_slot"] = pool.locked_slot.fillna("")
         fixed = dict(

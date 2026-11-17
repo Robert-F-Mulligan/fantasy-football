@@ -196,3 +196,94 @@ def test_add_drop_comparisons_are_in_private_archive(tmp_path, clock):
     with ZipFile(archive) as z:
         assert z.read("plan/waiver-add-drop.csv") == payload
         assert "plan/waiver-coverage.csv" in z.namelist()
+
+
+def independent_report(root, report_type):
+    plan_path = root / "plan/plan-report.json"
+    plan = json.loads(plan_path.read_text())
+    plan.update(status="blocked", reason="Unresolved offensive player")
+    plan_path.write_text(json.dumps(plan))
+    (root / "plan/lineup.csv").unlink()
+    (root / "delivery.json").write_text(
+        json.dumps(
+            {
+                "status": "ready",
+                "report_type": report_type,
+                "season": 2026,
+                "week": 8,
+            }
+        )
+    )
+    if report_type == "trades":
+        report = {"status": "estimated", "season": 2026, "week": 8, "as_of": plan["as_of"]}
+        (root / "plan/trade-report.json").write_text(json.dumps(report))
+        (root / "plan/trade-prospective.json").write_text("{}")
+        for name in ["trade-projections.csv", "trade-rosters.csv"]:
+            (root / "plan" / name).write_text("player_id\na\n")
+    else:
+        (root / "plan/waiver-report.json").write_text(
+            json.dumps(
+                {
+                    "status": "ready",
+                    "as_of": plan["as_of"],
+                }
+            )
+        )
+        for name in ["waivers.csv", "waiver-availability.csv"]:
+            (root / "plan" / name).write_text("player_id\na\n")
+
+
+@pytest.mark.parametrize("report_type", ["trades", "waivers"])
+def test_blocked_lineup_preserves_independent_report(tmp_path, clock, report_type):
+    from fantasyfootball.evaluation.scorecard import ArchivedForecast, WeeklyScorecard
+
+    root = sample(tmp_path)
+    independent_report(root, report_type)
+    (root / "league/league-supported-offense.json").write_text('{"scoring": {}}')
+    archive = evidence.capture(root, tmp_path / "archive")
+    manifest = evidence.verify(archive)
+    assert manifest["report_type"] == report_type
+    assert manifest["lineup_status"] == "blocked"
+    with ZipFile(archive) as sealed:
+        assert "plan/lineup.csv" not in sealed.namelist()
+        assert (
+            json.loads(sealed.read("plan/plan-report.json"))["reason"]
+            == "Unresolved offensive player"
+        )
+    forecast = ArchivedForecast(archive)
+    assert forecast.lineup is None
+    regret = WeeklyScorecard().lineup_regret(forecast, pd.DataFrame())
+    assert regret["status"] == "unavailable"
+    assert "Unresolved offensive player" in regret["reason"]
+
+
+@pytest.mark.parametrize("report_type", ["trades", "waivers"])
+def test_blocked_lineup_needs_completed_matching_report(tmp_path, clock, report_type):
+    root = sample(tmp_path)
+    independent_report(root, report_type)
+    name = "trade-report.json" if report_type == "trades" else "waiver-report.json"
+    path = root / "plan" / name
+    report = json.loads(path.read_text())
+    report["status"] = "unavailable"
+    path.write_text(json.dumps(report))
+    with pytest.raises(ValueError, match="Independent report is not complete"):
+        evidence.capture(root, tmp_path / "archive")
+    report["status"] = "estimated" if report_type == "trades" else "ready"
+    report["as_of"] = "2026-10-27T13:55:00Z"
+    path.write_text(json.dumps(report))
+    with pytest.raises(ValueError, match="timestamp does not match"):
+        evidence.capture(root, tmp_path / "archive")
+
+
+def test_lineup_capture_still_requires_completed_lineup(tmp_path, clock):
+    root = sample(tmp_path)
+    independent_report(root, "waivers")
+    (root / "delivery.json").unlink()
+    with pytest.raises(ValueError, match="Only completed plans"):
+        evidence.capture(root, tmp_path / "archive")
+    path = root / "plan/plan-report.json"
+    plan = json.loads(path.read_text())
+    plan["status"] = "offensive_lineup_created"
+    path.write_text(json.dumps(plan))
+    with pytest.raises(FileNotFoundError):
+        evidence.capture(root, tmp_path / "archive")
