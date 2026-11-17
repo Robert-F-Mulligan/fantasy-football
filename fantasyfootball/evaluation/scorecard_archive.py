@@ -98,6 +98,10 @@ def build_private_scorecards(current_archive, checkout):
     study_reports = []
     for _, path in chosen.values():
         previous = ArchivedForecast(path)
+        # Retain the earliest capture policy; do not substitute a later successful
+        # lineup for a blocked decision. Trade evaluation runs independently below.
+        if previous.manifest.get("lineup_status") == "blocked":
+            continue
         outcomes = observed_outcomes(previous, current, schedule)
         in_study = (
             previous.manifest["season"] == 2026 and 9 <= previous.manifest["week"] <= 17

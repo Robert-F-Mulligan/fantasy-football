@@ -277,7 +277,7 @@ def build_trade_report(args, horizon=None):
             roster_strengths=value_model.strengths(roster, report["my_roster"]),
             market_reference={k: v for k, v in market.items() if k != "quotes"},
             fairness_assumptions=offer_fairness.evidence["assumptions"],
-            asset_targets=value_model.targets(roster, report["my_roster"]),
+            asset_targets=value_model.targets(roster, report["my_roster"], limit=None),
             valuation_method="Expected remaining-season lineup points under current-role and historical participation assumptions; waiver alternatives included",
             participation_method="Laplace-smoothed last-eight-team-game scoring-appearance proxy; not a calibrated injury model",
             replacement_assumption="Current unrostered players are weekly streaming alternatives; claim access, competition, FAAB, and drop/reacquisition costs are not modeled",
@@ -296,7 +296,11 @@ def build_trade_report(args, horizon=None):
             },
         )
         from fantasyfootball.trading.pick_offers import pick_trade_scenarios
+        from fantasyfootball.trading.sellers import prioritize_pick_targets
 
+        report["asset_targets"], report["seller_focus"] = prioritize_pick_targets(
+            report["asset_targets"], roster, inventory, report["my_roster"]
+        )
         report["pick_trade_scenarios"] = pick_trade_scenarios(
             calculator,
             report["my_roster"],

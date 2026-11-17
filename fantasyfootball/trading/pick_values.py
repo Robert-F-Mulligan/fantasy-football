@@ -39,8 +39,16 @@ def reprice_picks(inventory, rosters, *, order_rule="unknown"):
         if order_rule == "reverse_standings" and standings
         else "unassigned; full round range, not a probability interval"
     )
+    records = {int(r["roster_id"]): r.get("settings", {}) for r in rosters}
     inventory["standings_snapshot"] = [
-        {"roster_id": owner, "win_fraction": pct, "points_for": points}
+        {
+            "roster_id": owner,
+            "win_fraction": pct,
+            "points_for": points,
+            "record": "-".join(
+                str(int(records[owner][k])) for k in ("wins", "losses", "ties")
+            ),
+        }
         for owner, pct, points in ordered
     ]
     inventory["valuation_method"] = (

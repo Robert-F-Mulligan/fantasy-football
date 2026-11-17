@@ -21,3 +21,9 @@ The existing weekly player scorecard and fixed-window workload-momentum study re
 ## Evidence boundary and next decision
 
 Mechanics tests can establish that forecasts were frozen, baselines are fair, and outcomes were not fabricated. They cannot establish predictive advantage before the horizons finish. Review prospective errors and unresolved outcomes after settlement; compare against both simple baselines before claiming an edge. Next-year price validation additionally requires settled keeper rules, historical draft/keeper outcomes, and a future roster-utility model on a comparable scale. Do not tune or widen historical intervals based on a live report's eventual outcome.
+
+## Standings-based pick outreach
+
+Pick-offer targets prioritize the bottom third of league records by win percentage, including every team tied at the boundary. Within that group, positive marginal remaining-season lineup value determines order; other useful targets follow. No position receives a fixed preference. The record snapshot and W-L-T label are retained in the report. Missing/incomplete standings or a fully tied league fall back to roster-value ranking. Records are an outreach heuristic, not evidence of rebuilding intent or an acceptance probability, and do not change pick prices or seller-side losses.
+
+Ready waiver/trade reports may be archived even when the shared offensive lineup is blocked. Archives retain the blocked plan and reason without inventing lineup rows; weekly lineup scorecards skip that earliest capture rather than substitute a later successful rerun. Independent trade evaluation remains available.
