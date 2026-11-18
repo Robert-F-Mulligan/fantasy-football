@@ -88,6 +88,7 @@ jobs:
         env:
           FF_ARCHIVE_REPOSITORY: ${{ vars.FF_ARCHIVE_REPOSITORY }}
           FF_ARCHIVE_SSH_KEY: ${{ secrets.FF_ARCHIVE_SSH_KEY }}
+          GITHUB_TOKEN: ${{ github.token }} # Public SSH metadata only; privacy probes stay anonymous.
         run: python -m fantasyfootball.archives.private_archive --report work/hosted-report
       - name: Send once per league week
         if: github.event_name == 'schedule' || inputs.send_email

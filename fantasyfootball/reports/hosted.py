@@ -139,6 +139,7 @@ def prepare(
     (args.output / "forecast-provenance.json").write_text(
         json.dumps(runtime_provenance(), indent=2), encoding="utf-8"
     )
+    report_variant = {}
     if report_type == "trades":
         from fantasyfootball.reports.trades import render_trades
         from fantasyfootball.trading.application import build_trade_report
@@ -193,13 +194,21 @@ def prepare(
         )
         plain = subject + "\n" + plain
     else:
-        subject, plain, html = render_report(args.output, team_name, season, week)
+        subject, plain, html = render_report(
+            args.output, team_name, season, week, allow_blocked=True
+        )
+        plan = json.loads(
+            (args.output / "plan-report.json").read_text(encoding="utf-8")
+        )
+        if plan["status"] == "blocked":
+            report_variant = {"report_variant": "availability_alert"}
     (destination / "report.html").write_text(html, encoding="utf-8")
     (destination / "report.txt").write_text(plain, encoding="utf-8")
     (destination / "delivery.json").write_text(
         json.dumps(
             {
                 "status": "ready",
+                **report_variant,
                 "report_type": report_type,
                 "league_id": league_id,
                 "season": season,

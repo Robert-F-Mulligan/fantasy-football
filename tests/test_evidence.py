@@ -215,7 +215,12 @@ def independent_report(root, report_type):
         )
     )
     if report_type == "trades":
-        report = {"status": "estimated", "season": 2026, "week": 8, "as_of": plan["as_of"]}
+        report = {
+            "status": "estimated",
+            "season": 2026,
+            "week": 8,
+            "as_of": plan["as_of"],
+        }
         (root / "plan/trade-report.json").write_text(json.dumps(report))
         (root / "plan/trade-prospective.json").write_text("{}")
         for name in ["trade-projections.csv", "trade-rosters.csv"]:
@@ -286,4 +291,83 @@ def test_lineup_capture_still_requires_completed_lineup(tmp_path, clock):
     plan["status"] = "offensive_lineup_created"
     path.write_text(json.dumps(plan))
     with pytest.raises(FileNotFoundError):
+        evidence.capture(root, tmp_path / "archive")
+
+
+def availability_alert(root):
+    independent_report(root, "lineup")
+    path = root / "plan/plan-report.json"
+    plan = json.loads(path.read_text())
+    plan["reason"] = "Cannot fill all roster slots with eligible players"
+    path.write_text(json.dumps(plan))
+    path = root / "delivery.json"
+    delivery = json.loads(path.read_text())
+    delivery["report_variant"] = "availability_alert"
+    path.write_text(json.dumps(delivery))
+
+
+def test_availability_alert_archive_preserves_block_and_skips_lineup(tmp_path, clock):
+    from fantasyfootball.evaluation.scorecard import ArchivedForecast, WeeklyScorecard
+
+    root = sample(tmp_path)
+    availability_alert(root)
+    (root / "league/league-supported-offense.json").write_text('{"scoring": {}}')
+    archive = evidence.capture(root, tmp_path / "archive")
+    manifest = evidence.verify(archive)
+    assert manifest["report_type"] == "lineup"
+    assert manifest["report_variant"] == "availability_alert"
+    assert manifest["lineup_status"] == "blocked"
+    with ZipFile(archive) as sealed:
+        assert "plan/lineup.csv" not in sealed.namelist()
+        assert (
+            json.loads(sealed.read("plan/plan-report.json"))["reason"]
+            == "Cannot fill all roster slots with eligible players"
+        )
+    forecast = ArchivedForecast(archive)
+    assert forecast.lineup is None
+    assert (
+        WeeklyScorecard().lineup_regret(forecast, pd.DataFrame())["status"]
+        == "unavailable"
+    )
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("status", "pending"),
+        ("week", 9),
+        ("season", 2025),
+        ("report_type", "waivers"),
+        ("report_variant", "lineup"),
+    ],
+)
+def test_alert_capture_rejects_mismatched_delivery(tmp_path, clock, field, value):
+    root = sample(tmp_path)
+    availability_alert(root)
+    path = root / "delivery.json"
+    delivery = json.loads(path.read_text())
+    delivery[field] = value
+    path.write_text(json.dumps(delivery))
+    with pytest.raises(ValueError):
+        evidence.capture(root, tmp_path / "archive")
+
+
+@pytest.mark.parametrize(
+    "status,reason",
+    [
+        ("blocked", "Missing player"),
+        (
+            "offensive_lineup_created",
+            "Cannot fill all roster slots with eligible players",
+        ),
+    ],
+)
+def test_alert_capture_rejects_unsupported_plan(tmp_path, clock, status, reason):
+    root = sample(tmp_path)
+    availability_alert(root)
+    path = root / "plan/plan-report.json"
+    plan = json.loads(path.read_text())
+    plan.update(status=status, reason=reason)
+    path.write_text(json.dumps(plan))
+    with pytest.raises(ValueError, match="supported blocked lineup"):
         evidence.capture(root, tmp_path / "archive")

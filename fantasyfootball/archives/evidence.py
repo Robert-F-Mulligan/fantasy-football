@@ -12,6 +12,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import pandas as pd
 
+from fantasyfootball.reports.reporting import is_availability_alert
+
 
 def utc_now():
     return datetime.now(timezone.utc)
@@ -103,7 +105,22 @@ def capture(report_dir, archive_dir):
     )
     report_type = delivery.get("report_type", "lineup")
     lineup_created = plan["status"] == "offensive_lineup_created"
-    if not lineup_created:
+    availability_alert = (
+        report_type == "lineup"
+        and delivery.get("report_variant") == "availability_alert"
+        and is_availability_alert(plan)
+    )
+    if (
+        delivery.get("report_variant") == "availability_alert"
+        and not availability_alert
+    ):
+        raise ValueError("Availability alert does not match a supported blocked lineup")
+    if availability_alert and (
+        delivery.get("status") != "ready"
+        or any(delivery.get(key) != plan[key] for key in ("season", "week"))
+    ):
+        raise ValueError("Availability alert delivery is not ready for this plan")
+    if not lineup_created and not availability_alert:
         if plan["status"] != "blocked" or report_type not in {"trades", "waivers"}:
             raise ValueError("Only completed plans can be captured for lineup reports")
         if delivery.get("status") != "ready" or any(
@@ -227,6 +244,7 @@ def capture(report_dir, archive_dir):
         "plan_as_of": plan["as_of"],
         "report_type": report_type,
         "lineup_status": plan["status"],
+        **({"report_variant": "availability_alert"} if availability_alert else {}),
         "latest_source_observed_at": max(observed).isoformat(),
         "season": season,
         "week": week,

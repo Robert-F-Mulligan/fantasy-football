@@ -209,3 +209,132 @@ def test_smtp_uses_tls_and_multipart_without_logging_secret(monkeypatch):
         message.get_body(preferencelist=("html",)).get_content().strip()
         == "<p>HTML</p>"
     )
+
+
+def blocked_plan(path, reason="Cannot fill all roster slots with eligible players"):
+    path.mkdir(parents=True, exist_ok=True)
+    (path / "plan-report.json").write_text(
+        json.dumps(
+            {
+                "status": "blocked",
+                "reason": reason,
+                "season": 2026,
+                "week": 8,
+                "offensive_slots": {"QB1": ["QB"], "FLEX": ["RB", "WR", "TE"]},
+                "as_of": "2026-10-28T14:00:00Z",
+                "history_cutoff": 202607,
+            }
+        )
+    )
+    pd.DataFrame(
+        {
+            "player_id": ["a", "b", "c"],
+            "sleeper_id": ["1", "2", "3"],
+            "player_name": ["<script>Out</script>", "Bye Player", "Reserve Player"],
+            "pos": ["WR", "RB", "TE"],
+            "starter_slot": ["WR1", "RB1", ""],
+            "availability": ["unavailable", "no_scheduled_game", "reserve"],
+            "injury_status": ["out", "", "ir"],
+            "warning": ["<b>check</b>", "Bye", ""],
+        }
+    ).to_csv(path / "availability.csv", index=False)
+    pd.DataFrame({"player_id": [], "projected_points": []}).to_csv(
+        path / "projections.csv", index=False
+    )
+
+
+def test_blocked_alert_is_opt_in_and_has_no_fabricated_lineup(tmp_path):
+    blocked_plan(tmp_path)
+    with pytest.raises(ValueError, match="Cannot email"):
+        render_report(tmp_path, "Team", 2026, 8)
+    title, plain, html = render_report(tmp_path, "<Team>", 2026, 8, allow_blocked=True)
+    assert "Availability Alert" in title
+    assert title == "<Team> - Week 8 Roster Availability Alert (2026)"
+    assert "\u00e2\u20ac\u201d" not in html
+    for text in [
+        "Cannot fill all roster slots",
+        "Bye Player",
+        "Reserve Player",
+        "No projected gain",
+        "not a full lineup recommendation",
+        "before kickoff",
+        "QB1: 0 eligible players",
+        "same player may count",
+    ]:
+        assert text in plain and text in html
+    assert "&lt;script&gt;" in html and "&lt;Team&gt;" in html
+    assert "<script>" not in html and "<b>check</b>" not in html
+    assert "Recommended starters" not in html and "START" not in html
+    assert not (tmp_path / "lineup.csv").exists()
+
+
+@pytest.mark.parametrize(
+    "reason",
+    [
+        "Resolve unknown player availability before recommending a lineup",
+        "Every eligible or locked player needs a projection",
+    ],
+)
+def test_alert_does_not_hide_input_failures(tmp_path, reason):
+    blocked_plan(tmp_path, reason)
+    with pytest.raises(ValueError, match=reason):
+        render_report(tmp_path, "Team", 2026, 8, allow_blocked=True)
+
+
+@pytest.mark.parametrize("blocked", [False, True])
+def test_hosted_records_alert_variant_only_for_blocked_lineup(
+    tmp_path, monkeypatch, blocked
+):
+    from datetime import datetime, timezone
+
+    from fantasyfootball.reports import hosted
+
+    context = tmp_path / "context"
+    context.mkdir()
+    schedule().to_csv(context / "games.csv", index=False)
+    snapshot = tmp_path / "snapshot"
+    snapshot.mkdir()
+    pd.DataFrame({"season": [2026], "week": [7], "team": ["NE"]}).to_csv(
+        snapshot / "weekly.csv", index=False
+    )
+    monkeypatch.setattr(hosted, "sync_weekly_context", lambda path: context)
+    monkeypatch.setattr(
+        hosted, "DataSyncService", lambda: Mock(sync=Mock(return_value=(snapshot, {})))
+    )
+    monkeypatch.setattr(hosted, "require_recent_coverage", lambda *args: None)
+    monkeypatch.setattr(hosted, "load_registry", lambda path: {})
+    importer = Mock()
+    importer.fetch.return_value = {
+        "report": {"unsupported_slots": [], "draft_config_supported": True}
+    }
+    monkeypatch.setattr(hosted, "SleeperLeagueImporter", lambda: importer)
+
+    def plan(args):
+        blocked_plan(args.output)
+        if not blocked:
+            path = args.output / "plan-report.json"
+            audit = json.loads(path.read_text())
+            audit["status"] = "offensive_lineup_created"
+            path.write_text(json.dumps(audit))
+
+    monkeypatch.setattr(hosted, "write_weekly_plan", plan)
+    if not blocked:
+        renderer = Mock(return_value=("Lineup", "Text", "<p>Lineup</p>"))
+        monkeypatch.setattr(hosted, "render_report", renderer)
+    out = tmp_path / "prepared"
+    assert (
+        hosted.prepare(
+            out,
+            "123",
+            "Team",
+            2026,
+            now=datetime(2026, 10, 28, 14, tzinfo=timezone.utc),
+        )
+        == "ready"
+    )
+    metadata = json.loads((out / "delivery.json").read_text())
+    assert (metadata.get("report_variant") == "availability_alert") is blocked
+    if blocked:
+        assert "Availability Alert" in (out / "report.txt").read_text(encoding="utf-8")
+    else:
+        assert renderer.call_args.kwargs == {"allow_blocked": True}

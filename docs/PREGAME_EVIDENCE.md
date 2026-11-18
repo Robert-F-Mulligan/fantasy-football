@@ -73,3 +73,9 @@ Archives are retained as content-addressed files under snapshots/SEASON/week-WW 
 3. Reconcile outcomes using final game/participation evidence. Distinguish bye, DNP, actual zero, partial game and missing data. Keep injury probability and conditional-on-playing points separate.
 4. Select on earlier weeks and evaluate on later weeks, resampling complete weeks. Score the full eligible population and actual roster-constrained lineup regret, including RB/WR/TE FLEX and kickoff locks. Current same-position pair tests are only a proxy.
 5. Require the existing improvement gates plus adequate availability calibration before production promotion. Do not select features repeatedly against the already inspected 2024 or 2026 holdouts. Draft-day forecasts require a separate season-level evaluation.
+
+## Hosted availability alerts and privacy-check recovery
+
+An offensive roster that cannot fill all eligible slots now produces a clearly labeled availability alert in the hosted lineup workflow. It lists slot-option counts and roster statuses, without manufacturing starters or projected improvement. Only this specific infeasibility reason is eligible; other input/validation failures remain errors. Archives preserve the blocked plan and alert variant, and lineup evaluation remains unavailable.
+
+Archive visibility probes remain anonymous and require HTTP 404 before the scoped SSH operation. Transient API/network failures receive bounded retries; only transient statuses can use the anonymous GitHub web repository route as an alternative visibility check. Public responses, redirects, and unverifiable results still withhold upload. Exceptions include sanitized HTTP statuses for diagnosis. The workflow token is used only for public SSH host-key metadata, never archive visibility, and is removed from Git subprocess environments. A successful local capture is not evidence of a successful hosted private push; verify the hosted archive step separately.
