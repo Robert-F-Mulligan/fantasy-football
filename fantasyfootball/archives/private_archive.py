@@ -9,6 +9,7 @@ import shlex
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 import requests
@@ -16,19 +17,51 @@ import requests
 from fantasyfootball.archives.evidence import capture, verify
 
 
+def _get_with_retries(session, url):
+    """Bounded retries for transient GitHub visibility/host-key requests."""
+    response = None
+    for attempt in range(3):
+        try:
+            response = session.get(url, timeout=30, allow_redirects=False)
+        except (requests.Timeout, requests.ConnectionError):
+            response = None
+        if response is not None and response.status_code not in {
+            403,
+            429,
+            500,
+            502,
+            503,
+            504,
+        }:
+            return response
+        if attempt < 2:
+            time.sleep(attempt + 1)
+    return response
+
+
 def require_hidden(repository, session):
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
         raise ValueError("Expected a GitHub owner/repository")
-    response = session.get(
-        f"https://api.github.com/repos/{repository}", timeout=30, allow_redirects=False
-    )
-    # A dedicated SSH deploy key has no REST metadata permission. Setup verifies
-    # private=true with the owner's API session; runtime must remain anonymous-hidden.
-    # A 404 alone is NOT evidence of access: the subsequent SSH clone must also work.
-    if response.status_code != 404:
+    response = _get_with_retries(session, f"https://api.github.com/repos/{repository}")
+    # A scoped SSH deploy key cannot read REST metadata. Setup verifies private=true;
+    # runtime requires anonymous invisibility AND a successful SSH clone.
+    if response is not None and response.status_code == 404:
+        return
+    status = response.status_code if response is not None else "network_error"
+    # Shared runner IPs can exhaust the anonymous REST quota. The anonymous web
+    # route checks the same repository visibility without that REST quota. Never
+    # fall back after a public response, authentication response, or redirect.
+    if status in {403, 429, 500, 502, 503, 504, "network_error"}:
+        webpage = _get_with_retries(session, f"https://github.com/{repository}")
+        if webpage is not None and webpage.status_code == 404:
+            return
+        web_status = webpage.status_code if webpage is not None else "network_error"
         raise ValueError(
-            "Archive repository is public, redirected, or privacy check is unavailable"
+            f"Archive privacy check unavailable (API HTTP {status}; web HTTP {web_status}); upload withheld"
         )
+    raise ValueError(
+        f"Archive repository is public, redirected, or privacy check is unavailable (HTTP {status}); upload withheld"
+    )
 
 
 def normalized_private_key(key):
@@ -81,7 +114,16 @@ def publish(archive, repository, key, session=None, *, scorecards=False):
             False  # No .netrc or ambient REST credentials for visibility check.
         )
     require_hidden(repository, session)
-    response = session.get("https://api.github.com/meta", timeout=30)
+    metadata_session = session
+    token = os.environ.get("GITHUB_TOKEN")
+    if token and os.environ.get("GITHUB_ACTIONS") == "true":
+        # Use the workflow token only for public SSH metadata, never visibility.
+        metadata_session = requests.Session()
+        metadata_session.trust_env = False
+        metadata_session.headers["Authorization"] = "Bearer " + token
+    response = _get_with_retries(metadata_session, "https://api.github.com/meta")
+    if response is None:
+        raise ValueError("GitHub SSH host-key check unavailable; upload withheld")
     response.raise_for_status()
     keys = response.json().get("ssh_keys", [])
     if not keys or not all(
@@ -100,6 +142,7 @@ def publish(archive, repository, key, session=None, *, scorecards=False):
         hosts.write_text("".join(f"github.com {k}\n" for k in keys), encoding="utf-8")
         env = os.environ.copy()
         env.pop("FF_ARCHIVE_SSH_KEY", None)
+        env.pop("GITHUB_TOKEN", None)
         env.update(
             GIT_TERMINAL_PROMPT="0",
             GIT_CONFIG_NOSYSTEM="1",
@@ -145,7 +188,9 @@ def publish(archive, repository, key, session=None, *, scorecards=False):
         shutil.copyfile(archive, target)
         added = [relative.as_posix()]
         if scorecards:
-            from fantasyfootball.evaluation.scorecard_archive import build_private_scorecards
+            from fantasyfootball.evaluation.scorecard_archive import (
+                build_private_scorecards,
+            )
 
             added.extend(build_private_scorecards(archive, checkout))
         _git(["add", "--", *added], checkout, env)

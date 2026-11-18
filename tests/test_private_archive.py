@@ -7,6 +7,11 @@ import pytest
 from fantasyfootball.archives import private_archive
 
 
+@pytest.fixture(autouse=True)
+def no_retry_delay(monkeypatch):
+    monkeypatch.setattr(private_archive.time, "sleep", lambda _: None)
+
+
 @pytest.mark.parametrize("status", [200, 301, 401, 403, 429, 500])
 def test_upload_requires_anonymously_hidden_destination(status):
     session = Mock()
@@ -22,8 +27,9 @@ def test_rejects_invalid_repository_before_network():
     session.get.assert_not_called()
 
 
+@pytest.mark.parametrize("metadata_token", [False, True])
 def test_publish_verifies_remote_blob_and_does_not_pass_secret_to_git(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, metadata_token
 ):
     archive = tmp_path / "sample.zip"
     archive.write_bytes(b"fixture")
@@ -38,10 +44,17 @@ def test_publish_verifies_remote_blob_and_does_not_pass_secret_to_git(
         return response
 
     session.get.side_effect = get
+    if metadata_token:
+        metadata = Mock(headers={})
+        metadata.get.side_effect = get
+        monkeypatch.setenv("GITHUB_TOKEN", "test-workflow-token")
+        monkeypatch.setenv("GITHUB_ACTIONS", "true")
+        monkeypatch.setattr(private_archive.requests, "Session", lambda: metadata)
     calls = []
 
     def git(args, cwd, env):
         assert "FF_ARCHIVE_SSH_KEY" not in env
+        assert "GITHUB_TOKEN" not in env
         assert "StrictHostKeyChecking=yes" in env["GIT_SSH_COMMAND"]
         calls.append(args)
         if args[0] == "clone":
@@ -56,6 +69,12 @@ def test_publish_verifies_remote_blob_and_does_not_pass_secret_to_git(
     )
     assert [c[0] for c in calls][-4:] == ["push", "fetch", "hash-object", "rev-parse"]
     assert "SECRET" not in str(calls)
+    if metadata_token:
+        assert all("/repos/" in c.args[0] for c in session.get.call_args_list)
+        metadata.get.assert_called_once_with(
+            "https://api.github.com/meta", timeout=30, allow_redirects=False
+        )
+        assert metadata.headers["Authorization"] == "Bearer test-workflow-token"
 
 
 def test_failed_git_does_not_expose_stderr_or_key(monkeypatch, tmp_path):
@@ -129,3 +148,36 @@ def test_normalized_windows_key_is_accepted_by_openssh(tmp_path):
         result.stdout.decode().split()[:2]
         == original.with_suffix(".pub").read_text().split()[:2]
     )
+
+
+def test_transient_visibility_recovers_without_web_fallback():
+    session = Mock()
+    session.get.side_effect = [Mock(status_code=503), Mock(status_code=404)]
+    private_archive.require_hidden("owner/private", session)
+    assert session.get.call_count == 2
+    assert all(
+        call.kwargs["allow_redirects"] is False for call in session.get.call_args_list
+    )
+
+
+def test_api_rate_limit_uses_anonymous_web_visibility_check():
+    session = Mock()
+    session.get.side_effect = [Mock(status_code=403)] * 3 + [Mock(status_code=404)]
+    private_archive.require_hidden("owner/private", session)
+    assert session.get.call_args.args[0] == "https://github.com/owner/private"
+
+
+@pytest.mark.parametrize("status", [200, 301, 401])
+def test_public_or_redirect_response_never_uses_alternate_probe(status):
+    session = Mock()
+    session.get.return_value.status_code = status
+    with pytest.raises(ValueError, match="upload withheld"):
+        private_archive.require_hidden("owner/private", session)
+    assert session.get.call_count == 1
+
+
+def test_rate_limited_api_and_public_web_fail_closed():
+    session = Mock()
+    session.get.side_effect = [Mock(status_code=429)] * 3 + [Mock(status_code=200)]
+    with pytest.raises(ValueError, match="API HTTP 429; web HTTP 200"):
+        private_archive.require_hidden("owner/private", session)

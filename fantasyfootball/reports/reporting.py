@@ -168,12 +168,122 @@ def render_specialists(plan_dir, metadata):
     )
 
 
-def render_report(plan_dir, team_name, season, week):
+def is_availability_alert(audit):
+    """Only roster infeasibility can become an alert; input failures stay blocked."""
+    return (
+        audit.get("status") == "blocked"
+        and audit.get("reason") == "Cannot fill all roster slots with eligible players"
+    )
+
+
+def render_availability_alert(availability, audit, team_name, season, week):
+    title = f"{team_name} - Week {week} Roster Availability Alert ({season})"
+    scope = (
+        "A complete offensive lineup could not be filled. This is an availability "
+        "alert, not a full lineup recommendation. No projected gain is available. "
+        "Current slots below reflect the imported roster, not recommended starters."
+    )
+    action = (
+        "Review unavailable players, bye/no-game players, and reserve/taxi players "
+        "below. Check open offensive slots in Sleeper and available replacements "
+        "before kickoff; confirm injury status and reserve eligibility. "
+        "No lineup changes were submitted."
+    )
+    coverage = []
+    for slot, positions in audit.get("offensive_slots", {}).items():
+        eligible = availability.loc[
+            availability.availability.eq("eligible") & availability.pos.isin(positions)
+        ]
+        locked = availability.loc[
+            availability.availability.eq("locked_starter")
+            & availability.get(
+                "locked_slot", pd.Series("", index=availability.index)
+            ).eq(slot)
+        ]
+        coverage.append(
+            f"{slot}: {len(eligible)} eligible players"
+            + ("; current starter locked in this slot" if not locked.empty else "")
+        )
+    coverage_note = (
+        "Counts show eligible roster options per slot before assignment; the same "
+        "player may count toward multiple slots, including FLEX. Locked starters "
+        "cannot move. These counts do not establish a complete legal lineup."
+    )
+    headers = ["Player", "Position", "Current slot", "Availability", "Injury", "Notes"]
+    labels = {
+        "no_scheduled_game": "No scheduled game (bye or incomplete schedule)",
+        "reserve": "Reserve / taxi",
+        "unavailable": "Unavailable",
+    }
+    rows, lines = [], []
+    for row in availability.to_dict("records"):
+
+        def value(key, default="", row=row):
+            item = row.get(key)
+            return str(item) if pd.notna(item) else default
+
+        status = value("availability", "unknown")
+        values = [
+            value("player_name") or value("sleeper_id", "Unknown player"),
+            value("pos"),
+            value("starter_slot", "Bench / reserve"),
+            labels.get(status, status.replace("_", " ")),
+            value("injury_status"),
+            value("warning"),
+        ]
+        rows.append(
+            "<tr>" + "".join("<td>" + escape(v) + "</td>" for v in values) + "</tr>"
+        )
+        lines.append(" | ".join(values))
+    reason = str(audit["reason"])
+    timing = f"Data as of {audit['as_of']}. Training cutoff: {audit['history_cutoff']}."
+    plain = "\n\n".join(
+        [
+            title,
+            reason,
+            scope,
+            action,
+            timing,
+            "\n".join(coverage),
+            coverage_note,
+            " | ".join(headers),
+            "\n".join(lines),
+        ]
+    )
+    html = (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>'
+        + escape(title)
+        + '</title></head><body style="font-family:Arial,sans-serif">'
+        + "<h1>"
+        + escape(title)
+        + "</h1><p><b>"
+        + escape(reason)
+        + "</b></p>"
+        + "".join("<p>" + escape(text) + "</p>" for text in [scope, action, timing])
+        + "<h2>Offensive slot coverage</h2><ul>"
+        + "".join("<li>" + escape(line) + "</li>" for line in coverage)
+        + "</ul><p>"
+        + escape(coverage_note)
+        + "</p>"
+        + "<h2>Roster availability</h2><table><tr>"
+        + "".join("<th>" + escape(h) + "</th>" for h in headers)
+        + "</tr>"
+        + "".join(rows)
+        + "</table></body></html>"
+    )
+    return title, plain, html
+
+
+def render_report(plan_dir, team_name, season, week, *, allow_blocked=False):
     plan_dir = Path(plan_dir)
     audit = json.loads((plan_dir / "plan-report.json").read_text(encoding="utf-8"))
     availability = pd.read_csv(plan_dir / "availability.csv", dtype={"player_id": str})
     projections = pd.read_csv(plan_dir / "projections.csv", dtype={"player_id": str})
     if audit["status"] != "offensive_lineup_created":
+        if allow_blocked and is_availability_alert(audit):
+            return render_availability_alert(
+                availability, audit, team_name, season, week
+            )
         raise ValueError(
             "Cannot email a lineup recommendation: "
             + audit.get("reason", "plan blocked")
