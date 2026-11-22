@@ -40,6 +40,7 @@ def pick_trade_scenarios(calculator, my_roster, target_ids, rounds=(1, 2, 3)):
         target = calculator.players.loc[target_id]
         if target.roster_id == my_roster or not target.tradable:
             continue
+        drop_review = calculator.review_acquisition_drops(my_roster, target_id)
         for pick in picks:
             candidates = []
             for drop in drops:
@@ -113,6 +114,7 @@ def pick_trade_scenarios(calculator, my_roster, target_ids, rounds=(1, 2, 3)):
                     "pick": pick,
                     "status": "estimated",
                     "decision": decision,
+                    "drop_review": drop_review,
                     "reference": reference,
                     "trade": best,
                 }
