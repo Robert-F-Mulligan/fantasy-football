@@ -100,6 +100,10 @@ def render_trade_brief(report, team_name):
                 choices = [o for o in offers if o["target_id"] == target_id]
                 ready = [o for o in choices if o["status"] == "estimated"]
                 if ready:
+                    from fantasyfootball.reports.drop_review import acquisition_lines
+
+                    for explanation in acquisition_lines(ready[0].get("drop_review")):
+                        paragraph(explanation)
                     t = ready[0]["trade"]
                     paragraph(
                         f"Current-season lineup change: you {points(t['my_gain'])} points; seller {points(t['partner_gain'])} points. Pick compensation is separate below."

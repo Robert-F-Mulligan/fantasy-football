@@ -25,6 +25,7 @@ class TradeCalculator:
         forecast_evidence=None,
     ):
         self.forecast_evidence = forecast_evidence or {}
+        self._drop_reviews = {}
         self.needs_policy = RosterNeedsPolicy()
         self.value_model = value_model
         self.fairness = fairness
@@ -233,6 +234,40 @@ class TradeCalculator:
             "basis": "Historical participation is not a medical availability forecast",
         }
         return result
+
+    def review_acquisition_drops(self, my_roster, incoming):
+        """Review roster space after one acquisition, once per target/snapshot."""
+        incoming = str(incoming)
+        if incoming not in self.players.index:
+            raise ValueError("Unknown incoming player")
+        if self.players.loc[incoming, "roster_id"] == my_roster:
+            raise ValueError("Incoming player already belongs to this roster")
+        if not self.players.loc[incoming, "tradable"]:
+            raise ValueError("Incoming player is outside the active trade scope")
+        key = (my_roster, incoming)
+        if key in self._drop_reviews:
+            return self._drop_reviews[key]
+        ids = set(self.roster.loc[self.roster.roster_id.eq(my_roster), "player_id"])
+        if not ids:
+            raise ValueError("Unknown acquiring roster")
+        if self.value_model is None or not (ids | {incoming}).issubset(self.forecast_evidence):
+            return {"status": "unavailable", "reason": "Regenerate the report with per-player forecast evidence", "candidates": []}
+        from fantasyfootball.trading.evidence import assess_drops
+
+        model = self.value_model
+        replacement = model.players.loc[sorted(model.replacement_ids)].reset_index()
+        owned_frame = model.projections.loc[~model.projections.player_id.isin(model.replacement_ids)]
+        alternative_frame = model.projections.loc[model.projections.player_id.isin(model.replacement_ids)]
+        participation = pd.DataFrame(list(model.probabilities.items()), columns=["player_id", "probability"])
+        # Missing keeper configuration must not silently imply a redraft league.
+        keeper_limit = self.offer_fairness.evidence.get("keeper_limit", 2) if self.offer_fairness else 2
+        review = assess_drops(
+            self.roster, my_roster, owned_frame, replacement, alternative_frame,
+            participation, self.slots, self.weeks, self.forecast_evidence,
+            keeper_limit=keeper_limit, incoming=incoming, samples=model.samples,
+        )
+        self._drop_reviews[key] = review
+        return review
 
     def opportunities(self, my_roster, limit=5):
         if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:

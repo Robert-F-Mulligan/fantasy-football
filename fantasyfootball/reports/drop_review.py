@@ -26,3 +26,27 @@ def review_lines(report):
             text += " Bye: " + ", ".join(map(str, row["bye_weeks"])) + "."
         lines.append(text)
     return lines
+
+
+def acquisition_lines(review):
+    """Compact target-specific explanation, rendered once per acquisition."""
+    if not review:
+        return []
+    if review["status"] in {"unavailable", "incomplete"}:
+        return ["Roster-space review unavailable: " + review["reason"]]
+    choices = [r for r in review["candidates"] if r["near_best_in_all_scenarios"]]
+    if not choices:
+        return ["No consistently lowest-cost drop across availability/workload scenarios; review the alternatives before making room."]
+    names = "; ".join(
+        f"{r['name']} ({r['loss_low']:.1f}-{r['loss_high']:.1f} lineup points lost)"
+        for r in choices
+    )
+    lines = ["After this acquisition, lowest-cost roster-space options: " + names + "."]
+    if len(choices) > 1:
+        lines.append("These options are within one total ROS lineup point of the best in every scenario; there is no unique drop choice.")
+    flagged = [r["name"] for r in choices if r["flags"]]
+    if flagged:
+        lines.append("Workload/injury evidence needs review for " + ", ".join(flagged) + ".")
+    if review.get("keeper_review_required"):
+        lines.append("Preserve keeper rights until their cost and eligibility are checked.")
+    return lines
