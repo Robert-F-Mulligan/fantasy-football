@@ -1,0 +1,313 @@
+{
+  "protocol": "availability_workload_v1",
+  "selected_on_2024": "combined",
+  "development": {
+    "all": {
+      "rows": 7205,
+      "weeks": 17,
+      "point_metrics": {
+        "baseline": {
+          "mae": 4.366051905553088,
+          "rmse": 6.444812297653045
+        },
+        "availability": {
+          "mae": 4.14363337755786,
+          "rmse": 6.186813821992706
+        },
+        "workload": {
+          "mae": 4.274711979986964,
+          "rmse": 6.361837570904947
+        },
+        "combined": {
+          "mae": 4.101819208878062,
+          "rmse": 6.168259119867212
+        }
+      },
+      "mae_delta_intervals": {
+        "availability": [
+          -0.2950547590907507,
+          -0.16307456043678545
+        ],
+        "workload": [
+          -0.11848630644645616,
+          -0.0660448847898643
+        ],
+        "combined": [
+          -0.3404509635354884,
+          -0.19654413240377702
+        ]
+      },
+      "mean_decision_regret": {
+        "baseline": 3.5702544311695514,
+        "availability": 3.071650220691886,
+        "workload": 3.3578818200725626,
+        "combined": 3.0679560002773094
+      },
+      "regret_delta_intervals": {
+        "availability": [
+          -0.7030078438229652,
+          -0.32080130323527867
+        ],
+        "workload": [
+          -0.3511223176124138,
+          -0.09716239542786193
+        ],
+        "combined": [
+          -0.7106370668449641,
+          -0.29189906762258094
+        ]
+      },
+      "decision_pairs": 43273
+    },
+    "prior_gap": {
+      "rows": 2019,
+      "weeks": 16,
+      "point_metrics": {
+        "baseline": {
+          "mae": 2.9037628083305362,
+          "rmse": 4.567886247627642
+        },
+        "availability": {
+          "mae": 2.1674010305507254,
+          "rmse": 3.9292773785897985
+        },
+        "workload": {
+          "mae": 2.5616046303605478,
+          "rmse": 4.255193135202978
+        },
+        "combined": {
+          "mae": 1.9892458208245307,
+          "rmse": 3.8860846465352847
+        }
+      },
+      "mae_delta_intervals": {
+        "availability": [
+          -0.8691582380146914,
+          -0.6551342793084548
+        ],
+        "workload": [
+          -0.39005691461462105,
+          -0.309722169596273
+        ],
+        "combined": [
+          -1.0617014467080947,
+          -0.8228486968945407
+        ]
+      },
+      "mean_decision_regret": {
+        "baseline": 0.5133108995403809,
+        "availability": 0.5254259684832568,
+        "workload": 0.5029752133946159,
+        "combined": 0.5156057124097176
+      },
+      "regret_delta_intervals": {
+        "availability": [
+          -0.04245585140452007,
+          0.035024463211692475
+        ],
+        "workload": [
+          -0.02030874133003114,
+          -0.0006698601560689171
+        ],
+        "combined": [
+          -0.04257167580687133,
+          0.021814616019818333
+        ]
+      },
+      "decision_pairs": 24368
+    },
+    "appearance_brier": {
+      "baseline": 0.16246283703035794,
+      "candidate": 0.13635001612944622
+    }
+  },
+  "confirmation": {
+    "all": {
+      "rows": 7479,
+      "weeks": 17,
+      "point_metrics": {
+        "baseline": {
+          "mae": 4.176069915211021,
+          "rmse": 6.188982167758209
+        },
+        "availability": {
+          "mae": 3.954166905170365,
+          "rmse": 5.95661289619791
+        },
+        "workload": {
+          "mae": 4.100963911905323,
+          "rmse": 6.120768061974788
+        },
+        "combined": {
+          "mae": 3.931936376064047,
+          "rmse": 5.960994172309103
+        }
+      },
+      "mae_delta_intervals": {
+        "availability": [
+          -0.2651728057755581,
+          -0.17860391535200965
+        ],
+        "workload": [
+          -0.0958159717434965,
+          -0.0560987898258727
+        ],
+        "combined": [
+          -0.29547106259236144,
+          -0.19871637126653435
+        ]
+      },
+      "mean_decision_regret": {
+        "baseline": 3.355723245881635,
+        "availability": 2.969106528370958,
+        "workload": 3.229085539963392,
+        "combined": 2.9661681513117752
+      },
+      "regret_delta_intervals": {
+        "availability": [
+          -0.5121865663636803,
+          -0.2989675494689553
+        ],
+        "workload": [
+          -0.22824048030972158,
+          -0.054617668804620316
+        ],
+        "combined": [
+          -0.5242539575200167,
+          -0.280554709448154
+        ]
+      },
+      "decision_pairs": 40975
+    },
+    "prior_gap": {
+      "rows": 2136,
+      "weeks": 16,
+      "point_metrics": {
+        "baseline": {
+          "mae": 2.7942233617527505,
+          "rmse": 4.380957096038473
+        },
+        "availability": {
+          "mae": 2.0104912360830256,
+          "rmse": 3.63194655645049
+        },
+        "workload": {
+          "mae": 2.4273715000384937,
+          "rmse": 3.9639159407887727
+        },
+        "combined": {
+          "mae": 1.8150200109934402,
+          "rmse": 3.553459641219373
+        }
+      },
+      "mae_delta_intervals": {
+        "availability": [
+          -0.9268142402955473,
+          -0.7219320886542191
+        ],
+        "workload": [
+          -0.42035602304665015,
+          -0.3475805851918907
+        ],
+        "combined": [
+          -1.1438866646288903,
+          -0.9181555667129263
+        ]
+      },
+      "mean_decision_regret": {
+        "baseline": 0.5157878233603345,
+        "availability": 0.46479823808279513,
+        "workload": 0.503962820560678,
+        "combined": 0.45846578819664796
+      },
+      "regret_delta_intervals": {
+        "availability": [
+          -0.07835911619978773,
+          -0.0207864508206564
+        ],
+        "workload": [
+          -0.030088359015271345,
+          0.009154027570471575
+        ],
+        "combined": [
+          -0.0954166933572481,
+          -0.03205355736413757
+        ]
+      },
+      "decision_pairs": 26789
+    },
+    "appearance_brier": {
+      "baseline": 0.16038431074296178,
+      "candidate": 0.13669599887540831
+    }
+  },
+  "coverage": {
+    "excluded_team_coverage_or_transfer_rows": 61
+  },
+  "production_changed": false,
+  "inference": "95% paired four-week moving-block bootstrap; negative deltas favor candidate. Development intervals are exploratory; confirmation inference applies only to the frozen selected arm. Secondary cohorts and metrics are descriptive.",
+  "limits": [
+    "Scoring appearance is not injury availability; no historical pregame injury reports or inactive lists",
+    "Candidate universe uses last-observed team; transfers and sparse team coverage excluded",
+    "Missing rows are zero scoring only within covered completed team weeks; source omissions can remain",
+    "Synthetic close start/sit pairs are not actual league roster decisions or championship odds",
+    "2025 is a chronological holdout but was previously used elsewhere in repository research; not a pristine lockbox",
+    "No production promotion from this experiment alone; prospective validation and pregame injury evidence required"
+  ],
+  "sha256": {
+    "weekly.csv": "b15e7768576f159c1e2fe88ef917bd642310ee158ac9122bf5a46a5b04dfb3f9",
+    "games.csv": "5a61d3121f2178ce81d43fe8894dfb666ac853f6acce20077cb4199410a4eb01",
+    "league-supported-offense.json": "7b64df9f363a3190097a233f042ba1d1a3c7186bb6041d6b36198ab9c4e603ca"
+  },
+  "confirmation_diagnostics": {
+    "observed_after_gap": {
+      "rows": 580,
+      "post_outcome_slice": true,
+      "baseline": {
+        "mae": 3.348714839304429,
+        "bias": -0.8743874437835987
+      },
+      "combined": {
+        "mae": 3.332241592490575,
+        "bias": -2.340453662925961
+      },
+      "combined_mae_delta_interval": [
+        -0.2207819017571882,
+        0.13959903547107444
+      ]
+    },
+    "still_absent_after_gap": {
+      "rows": 1556,
+      "post_outcome_slice": true,
+      "baseline": {
+        "mae": 2.5875363071383717,
+        "bias": 2.5875363071383717
+      },
+      "combined": {
+        "mae": 1.249474691412246,
+        "bias": 1.249474691412246
+      },
+      "combined_mae_delta_interval": [
+        -1.6816876496204591,
+        -1.1741530319022777
+      ]
+    },
+    "no_prior_gap": {
+      "rows": 5343,
+      "post_outcome_slice": false,
+      "baseline": {
+        "mae": 4.7284981836345406,
+        "bias": -0.7216305367392737
+      },
+      "combined": {
+        "mae": 4.7782274776531946,
+        "bias": 0.1842228145013437
+      },
+      "combined_mae_delta_interval": [
+        0.015363358047020523,
+        0.07547125405421552
+      ]
+    }
+  },
+  "experiment_code_sha256": "d92aa9ff195c4b857ba093fed8809345fe59fa95ac5ff0eb76dea5b68a8f3bbb"
+}
