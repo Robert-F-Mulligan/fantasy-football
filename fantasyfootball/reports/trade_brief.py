@@ -38,6 +38,10 @@ def render_trade_brief(report, team_name):
         return f"about {low:.0f} to {high:.0f}"
 
     paragraph("As of " + report["as_of"])
+    from fantasyfootball.reports.drop_review import review_lines
+
+    for review in review_lines(report):
+        paragraph(review)
     if report.get("deadline"):
         paragraph(report["deadline"]["description"])
     if report["status"] == "closed":
@@ -129,7 +133,7 @@ def render_trade_brief(report, team_name):
                 table(
                     [
                         "You give",
-                        "You drop",
+                        "Illustrative drop (review required)",
                         "Your future-cost proxy",
                         "Seller future-credit proxy",
                     ],
@@ -145,6 +149,8 @@ def render_trade_brief(report, team_name):
                 paragraph(
                     f"Give {names(trade['give'])}; receive {names(trade['receive'])}. Current-season gain: you {points(trade['my_gain'])}; partner {points(trade['partner_gain'])} points."
                 )
+                if trade.get("forecast_review", {}).get("required"):
+                    paragraph("Forecast review required: missing history or injury flags on one of the rosters can change this comparison.")
                 interval = trade.get("uncertainty", {}).get("you", {})
                 if interval.get("status") == "estimated":
                     paragraph(

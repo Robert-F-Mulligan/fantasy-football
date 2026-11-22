@@ -29,6 +29,10 @@ def render_trade_details(report, team_name):
         paragraph(
             "Research detail: combined two-season totals mix current lineup value with an unvalidated future-surplus proxy. They are not established fair prices; use the brief to compare the components separately."
         )
+    from fantasyfootball.reports.drop_review import review_lines
+
+    for review in review_lines(report):
+        paragraph(review)
     if report.get("deadline"):
         paragraph(report["deadline"]["description"])
         paragraph(

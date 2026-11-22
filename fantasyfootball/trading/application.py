@@ -234,6 +234,17 @@ def build_trade_report(args, horizon=None):
             offer_fairness=offer_fairness,
             pick_inventory=inventory,
         )
+        from fantasyfootball.trading.evidence import player_evidence, assess_drops
+
+        evidence = player_evidence(roster, history, schedule, details, args.season, args.week)
+        calculator.forecast_evidence = evidence
+        report["player_evidence"] = evidence
+        report["forecast_cutoff"] = int(history.period.max())
+        report["drop_assessment"] = assess_drops(
+            roster, report["my_roster"], projections, replacements,
+            replacement_projections, participation, slots, weeks, evidence,
+            keeper_limit=imported.get("waiver_settings", {}).get("max_keepers", 0),
+        )
         opportunities = calculator.opportunities(report["my_roster"])
         if getattr(args, "trade_uncertainty", False):
             from fantasyfootball.trading.uncertainty import (
@@ -306,6 +317,12 @@ def build_trade_report(args, horizon=None):
             report["my_roster"],
             [t["player_id"] for t in report["asset_targets"]],
         )
+        # A selected drop in a pick package is a scenario assumption, not advice.
+        for offer in report["pick_trade_scenarios"].get("offers", []):
+            if offer.get("status") == "estimated":
+                offer["drop_review_required"] = True
+                offer["drop_basis"] = "Illustrative roster-space assumption; review workload, near ties, and keeper rights before dropping"
+
         from fantasyfootball.evaluation.trades import seal_trade_forecasts
         from fantasyfootball.trading.audit import audit_trade_model
 
@@ -418,4 +435,5 @@ def load_calculator(plan):
         fairness=fairness,
         offer_fairness=offer_fairness,
         uncertainty=uncertainty,
+        forecast_evidence=report.get("player_evidence"),
     ), report

@@ -136,6 +136,8 @@ def test_closed_deadline_does_not_train_or_offer_trades(tmp_path):
                 "season": 2026,
                 "week": 8,
                 "game_type": "REG",
+                "home_team": "NE",
+                "away_team": "BUF",
                 "gameday": "2026-10-29",
                 "gametime": "20:15",
             }
@@ -184,6 +186,8 @@ def test_builder_uses_one_pregame_fit_and_separate_future_weeks(
                 "season": 2026,
                 "week": 8,
                 "game_type": "REG",
+                "home_team": "NE",
+                "away_team": "BUF",
                 "gameday": "2026-10-29",
                 "gametime": "20:15",
             }
@@ -200,7 +204,7 @@ def test_builder_uses_one_pregame_fit_and_separate_future_weeks(
         assert frame.week.tolist() == [
             7
         ]  # Current week cannot enter training, even after kickoff.
-        return frame.assign(player_id="a", fantasy_points=20.0)
+        return frame.assign(player_id="a", team="NE", fantasy_points=20.0, period=frame.season * 100 + frame.week)
 
     monkeypatch.setattr(app, "prepare_weekly", prepare)
     model = Mock(cutoff=202607)

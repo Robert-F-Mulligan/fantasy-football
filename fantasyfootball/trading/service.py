@@ -22,7 +22,9 @@ class TradeCalculator:
         fairness=None,
         offer_fairness=None,
         uncertainty=None,
+        forecast_evidence=None,
     ):
+        self.forecast_evidence = forecast_evidence or {}
         self.needs_policy = RosterNeedsPolicy()
         self.value_model = value_model
         self.fairness = fairness
@@ -221,6 +223,15 @@ class TradeCalculator:
             result["uncertainty"] = self.uncertainty.assess(
                 self, my_roster, partner_roster, result
             )
+        flagged = {
+            pid: self.forecast_evidence[pid]
+            for pid in sorted(mine | theirs)
+            if self.forecast_evidence.get(pid, {}).get("flags")
+        }
+        result["forecast_review"] = {
+            "required": bool(flagged), "players": flagged,
+            "basis": "Historical participation is not a medical availability forecast",
+        }
         return result
 
     def opportunities(self, my_roster, limit=5):
