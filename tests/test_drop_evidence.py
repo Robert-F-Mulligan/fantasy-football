@@ -64,9 +64,10 @@ def test_near_ties_and_keeper_rights_prevent_false_precision():
     assert assess_drops(*args)["status"] == "incomplete"
 
 
-def test_scenarios_preserve_known_byes_and_injury_unavailability():
+@pytest.mark.parametrize("status", ["bye", "unavailable"])
+def test_scenarios_preserve_known_byes_and_injury_unavailability(status):
     roster, history, schedule, projections, pool, alternatives, rates = fixture()
-    projections.loc[projections.player_id.eq("return"), "status"] = "unavailable"
+    projections.loc[projections.player_id.eq("return"), "status"] = status
     e = player_evidence(roster, history, schedule, {}, 2026, 10)
     result = assess_drops(roster, 1, projections, pool, alternatives, rates, {"RB": ["RB"]}, [10, 11], e)
     row = next(r for r in result["candidates"] if r["player_id"] == "return")
@@ -82,3 +83,24 @@ def test_report_exposes_cutoff_gap_and_scenario_limits():
     assert "Keeper value is not included" in lines
     assert "not confidence intervals" in lines
     assert "workload after gap unverified" in lines
+
+
+def test_incoming_player_is_included_before_comparing_roster_space():
+    roster, _, _, projections, pool, alternatives, rates = fixture()
+    newcomer = roster.iloc[0].copy()
+    newcomer["player_id"] = "incoming"
+    newcomer["roster_id"] = 2
+    roster = pd.concat([roster, newcomer.to_frame().T], ignore_index=True)
+    projections = pd.concat([projections, pd.DataFrame([
+        dict(player_id="incoming", week=w, status="projected", projected_points=30)
+        for w in [10, 11]
+    ])], ignore_index=True)
+    rates = pd.concat([rates, pd.DataFrame([dict(player_id="incoming", probability=1)])], ignore_index=True)
+    result = assess_drops(roster, 1, projections, pool, alternatives, rates,
+                          {"RB": ["RB"]}, [10, 11], {}, incoming="incoming")
+    assert result["incoming_player_id"] == "incoming"
+    assert set(result["shortlist"]) == {"return", "depth"}
+    assert all(row["loss_high"] == 0 for row in result["candidates"])
+    with pytest.raises(ValueError, match="different roster"):
+        assess_drops(roster, 1, projections, pool, alternatives, rates,
+                     {"RB": ["RB"]}, [10, 11], {}, incoming="depth")
