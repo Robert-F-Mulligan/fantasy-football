@@ -325,6 +325,10 @@ def test_private_scorecards_choose_earliest_capture_and_save_outputs(
         monkeypatch.setattr(
             trade_archive, "build_private_trade_scorecards", trade_cards
         )
+    monkeypatch.setattr(
+        "fantasyfootball.evaluation.availability_archive.build_private_availability_history",
+        lambda *args: [],
+    )
     added = scorecard_archive.build_private_scorecards(current_path, checkout)
     assert loaded == ["current.zip", "first.zip"]
     if blocked:
