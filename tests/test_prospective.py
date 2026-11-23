@@ -155,6 +155,10 @@ def test_archive_writes_private_monitor_using_earliest_missing_candidate(
     monkeypatch.setattr(
         module.WeeklyScorecard, "evaluate", lambda *args: (missing, None)
     )
+    monkeypatch.setattr(
+        "fantasyfootball.evaluation.availability_archive.build_private_availability_history",
+        lambda *args: [],
+    )
     added = module.build_private_scorecards(current_path, checkout)
     assert loaded == ["current.zip", "first.zip"]
     assert len(added) == 1 and added[0].startswith("studies/workload_momentum_v1/")

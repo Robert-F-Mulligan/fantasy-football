@@ -162,4 +162,7 @@ def build_private_scorecards(current_archive, checkout):
     from fantasyfootball.evaluation.trade_archive import build_private_trade_scorecards
 
     added.extend(build_private_trade_scorecards(current, checkout, schedule, league))
+    from fantasyfootball.evaluation.availability_archive import build_private_availability_history
+
+    added.extend(build_private_availability_history(current, checkout, schedule, league))
     return added
